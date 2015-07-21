@@ -53,7 +53,7 @@ func Send(r *http.Request, decorators ...SendDecorator) (*http.Response, error) 
 }
 
 // WithLogging returns a SendDecorator that implements simple before and after logging of the request.
-func WithLogging(logger log.Logger) SendDecorator {
+func WithLogging(logger *log.Logger) SendDecorator {
 	return func(s Sender) Sender {
 		return SenderFunc(func(r *http.Request) (*http.Response, error) {
 			log.Printf("autorest: Sending %s %s\n", r.Method, r.URL)

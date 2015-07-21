@@ -1,3 +1,8 @@
+/*
+	This package provides time.Time derivatives that conform to the Swagger.io (https://swagger.io/) defined date
+	formats: Date and DateTime. Both types may, in most cases, be used in lieu of time.Time types. And both convert
+	to time.Time through a ToTime method.
+*/
 package date
 
 import (
@@ -17,7 +22,7 @@ type Date struct {
 }
 
 // Create a new Date from the passed string.
-func Parse(date string) (d Date, err error) {
+func ParseDate(date string) (d Date, err error) {
 	d = Date{}
 	d.Time, err = time.Parse(RFC3339FullDate, date)
 	return d, err

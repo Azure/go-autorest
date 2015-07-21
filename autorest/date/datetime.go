@@ -1,4 +1,4 @@
-package datetime
+package date
 
 import (
 	"time"
@@ -10,7 +10,7 @@ type DateTime struct {
 }
 
 // Create a new DateTime from the passed string.
-func Parse(date string) (d DateTime, err error) {
+func ParseDateTime(date string) (d DateTime, err error) {
 	d = DateTime{}
 	d.Time, err = time.Parse(time.RFC3339, date)
 	return d, err

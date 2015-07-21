@@ -33,7 +33,7 @@ func (pf PreparerFunc) Prepare(r *http.Request) (*http.Request, error) {
 // PrepareDecorator takes and possibly decorates, by wrapping, a Preparer.
 // Decorators may affect the http.Request and pass it along or, first, pass the http.Request along then
 // affect the result.
-// By convention, the names of PrepareDecorators should begin with "With."
+// By convention, the names of PrepareDecorators should begin with "As" or "With" as appropriate.
 type PrepareDecorator func(Preparer) Preparer
 
 // CreatePreparer creates, decorates, and returns a Preparer.
@@ -55,16 +55,19 @@ func DecoratePreparer(p Preparer, decorators ...PrepareDecorator) Preparer {
 }
 
 // Prepare accepts an http.Request and a, possibly empty, set of PrepareDecorators.
-// It creates a Preparer from the decorators it then applies to the passed http.Request.
+// It creates a Preparer from the decorators which it then applies to the passed http.Request.
 func Prepare(r *http.Request, decorators ...PrepareDecorator) (*http.Request, error) {
 	return CreatePreparer(decorators...).Prepare(r)
 }
 
-// Header returns a PrepareDecorator that adds the specified HTTP header and value to the http.Request.
+// WithHeader returns a PrepareDecorator that adds the specified HTTP header and value to the http.Request.
 // It will canonicalize the passed header name (via http.CanonicalHeaderKey) before adding the header.
-func Header(header string, value string) PrepareDecorator {
+func WithHeader(header string, value string) PrepareDecorator {
 	return func(p Preparer) Preparer {
 		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
+			if r.Header == nil {
+				r.Header = make(http.Header)
+			}
 			r.Header.Add(http.CanonicalHeaderKey(header), value)
 			return p.Prepare(r)
 		})
@@ -74,31 +77,73 @@ func Header(header string, value string) PrepareDecorator {
 // WithBearerAuthorization returns a PrepareDecorator that adds an HTTP Authorization header whose value is
 // "Bearer " followed by the supplied token.
 func WithBearerAuthorization(token string) PrepareDecorator {
-	return Header(headerAuthorization, fmt.Sprintf("Bearer %s", token))
+	return WithHeader(headerAuthorization, fmt.Sprintf("Bearer %s", token))
 }
 
-// WithJsonContentType returns a PrepareDecorator that adds an HTTP ContentType header whose value is
+// AsJson returns a PrepareDecorator that adds an HTTP Content-Type header whose value is
 // "application/json".
-func WithJsonContentType() PrepareDecorator {
-	return Header(headerContentType, mimeTypeJson)
+func AsJson() PrepareDecorator {
+	return WithHeader(headerContentType, mimeTypeJson)
+}
+
+// WithMethod returns a PrepareDecorator that sets the HTTP method of the passed request. The decorator
+// does not validate that the passed method string is a known HTTP method.
+func WithMethod(method string) PrepareDecorator {
+	return func(p Preparer) Preparer {
+		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
+			r.Method = method
+			return p.Prepare(r)
+		})
+	}
+}
+
+func AsDelete() PrepareDecorator {
+	return WithMethod("DELETE")
+}
+
+func AsGet() PrepareDecorator {
+	return WithMethod("GET")
+}
+
+func AsHead() PrepareDecorator {
+	return WithMethod("HEAD")
+}
+
+func AsPost() PrepareDecorator {
+	return WithMethod("POST")
+}
+
+func AsPut() PrepareDecorator {
+	return WithMethod("PUT")
 }
 
 // WithURL returns a PrepareDecorator that populates the http.Request with a url.URL constructed from the
-// supplied baseUrl and path.
-func WithURL(baseUrl string, path string) PrepareDecorator {
+// supplied baseUrl.
+func WithBaseURL(baseUrl string) PrepareDecorator {
 	return func(p Preparer) Preparer {
 		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
 			u, err := url.Parse(baseUrl)
 			if err != nil {
 				return r, err
 			}
+			r.URL = u
+			return p.Prepare(r)
+		})
+	}
+}
+
+// WithPath adds the supplied path to the request URL.
+// If the path is absolute (that is, it begins with a "/"), it replaces the existing path.
+func WithPath(path string) PrepareDecorator {
+	return func(p Preparer) Preparer {
+		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
+			u := r.URL
 			u.Path = strings.TrimRight(u.Path, "/")
 			if strings.HasPrefix(path, "/") {
 				u.Path = path
 			} else {
 				u.Path += "/" + path
 			}
-			r.URL = u
 			return p.Prepare(r)
 		})
 	}
