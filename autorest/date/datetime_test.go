@@ -9,8 +9,9 @@ import (
 )
 
 func ExampleParseDateTime() {
-	fmt.Println(ParseDateTime("2001-02-03T04:05:06Z"))
-	// Output: 2001-02-03T04:05:06Z <nil>
+	d, _ := ParseDateTime("2001-02-03T04:05:06Z")
+	fmt.Println(d)
+	// Output: 2001-02-03T04:05:06Z
 }
 
 func ExampleDateTime_MarshalBinary() {

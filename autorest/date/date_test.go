@@ -9,8 +9,9 @@ import (
 )
 
 func ExampleParseDate() {
-	fmt.Println(ParseDate("2001-02-03"))
-	// Output: 2001-02-03 <nil>
+	d, _ := ParseDate("2001-02-03")
+	fmt.Println(d)
+	// Output: 2001-02-03
 }
 
 func ExampleDate() {
@@ -19,17 +20,18 @@ func ExampleDate() {
 
 	// Date acts as time.Time when the receiver
 	if d.Before(t) {
-		fmt.Println("Before")
+		fmt.Printf("Before ")
 	} else {
-		fmt.Println("After")
+		fmt.Printf("After ")
 	}
 
 	// Convert Date when needing a time.Time
 	if t.After(d.ToTime()) {
-		fmt.Println("After")
+		fmt.Printf("After")
 	} else {
-		fmt.Println("Before")
+		fmt.Printf("Before")
 	}
+	// Output: Before After
 }
 
 func ExampleDate_MarshalBinary() {

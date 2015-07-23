@@ -2,54 +2,60 @@ package autorest
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"net/url"
 	"reflect"
 	"testing"
 
 	"github.com/azure/go-autorest/autorest/mocks"
 )
 
-// PrepareDecorators wrap and invoke a Preparer. The decorator may invoke the passed Preparer
-// before, after, or within its own processing.
+// PrepareDecorators wrap and invoke a Preparer. Most often, the decorator invokes the passed
+// Preparer and decorates the response.
 func ExamplePrepareDecorator(path string) PrepareDecorator {
 	return func(p Preparer) Preparer {
 		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
-			if r.URL == nil {
-				return r, fmt.Errorf("ERROR: URL is not set")
+			r, err := p.Prepare(r)
+			if err == nil {
+				if r.URL == nil {
+					return r, fmt.Errorf("ERROR: URL is not set")
+				}
+				r.URL.Path += path
 			}
-			r.URL.Path += path
-			return p.Prepare(r)
+			return r, err
 		})
 	}
 }
 
-func ExamplePrepareDecorator_post(path string) PrepareDecorator {
+// PrepareDecorators may also modify and then invoke the Preparer.
+func ExamplePrepareDecorator_pre(path string) PrepareDecorator {
 	return func(p Preparer) Preparer {
 		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
-			r, err := p.Prepare(r)
-			if err != nil {
-				return r, err
-			}
 			r.Header.Add(http.CanonicalHeaderKey("ContentType"), "application/json")
-			return r, nil
+			return p.Prepare(r)
 		})
 	}
 }
 
 // Create a sequence of three Preparers that build up the URL path.
 func ExampleCreatePreparer() {
-	p := CreatePreparer(WithBaseURL("https://microsoft.com/"), WithPath("/a/b/c/"))
+	p := CreatePreparer(
+		WithBaseURL("https://microsoft.com/"),
+		WithPath("a"),
+		WithPath("b"),
+		WithPath("c"))
 	r, err := p.Prepare(&http.Request{})
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
 	} else {
 		fmt.Println(r.URL)
 	}
-	// Output: https://microsoft.com/a/b/c/
+	// Output: https://microsoft.com/a/b/c
 }
 
-// Create, and then chain, separate Preparers
-func ExampleCreatePreparer_chained() {
+// Create and apply separate Preparers
+func ExampleCreatePreparer_multiple() {
 	params := map[string]interface{}{
 		"param1": "a",
 		"param2": "c",
@@ -64,6 +70,25 @@ func ExampleCreatePreparer_chained() {
 	}
 
 	r, err = p2.Prepare(r)
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+	} else {
+		fmt.Println(r.URL)
+	}
+	// Output: https://microsoft.com/a/b/c/
+}
+
+// Create and chain separate Preparers
+func ExampleCreatePreparer_chain() {
+	params := map[string]interface{}{
+		"param1": "a",
+		"param2": "c",
+	}
+
+	p := CreatePreparer(WithBaseURL("https://microsoft.com/"), WithPath("/{param1}/b/{param2}/"))
+	p = DecoratePreparer(p, WithPathParameters(params))
+
+	r, err := p.Prepare(&http.Request{})
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
 	} else {
@@ -109,6 +134,46 @@ func ExampleWithHeader() {
 		fmt.Printf("Header %s=%s\n", "x-foo", r.Header.Get("x-foo"))
 	}
 	// Output: Header x-foo=bar
+}
+
+// Create a request whose Body is the JSON encoding of a structure
+func ExampleWithFormData() {
+	v := url.Values{}
+	v.Add("name", "Rob Pike")
+	v.Add("age", "42")
+
+	r, err := Prepare(&http.Request{},
+		WithFormData(v))
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+	}
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+	} else {
+		fmt.Printf("Request Body contains %s\n", string(b))
+	}
+	// Output: Request Body contains age=42&name=Rob+Pike
+}
+
+// Create a request whose Body is the JSON encoding of a structure
+func ExampleWithJSON() {
+	t := mocks.T{Name: "Rob Pike", Age: 42}
+
+	r, err := Prepare(&http.Request{},
+		WithJSON(&t))
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+	}
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+	} else {
+		fmt.Printf("Request Body contains %s\n", string(b))
+	}
+	// Output: Request Body contains {"name":"Rob Pike","age":42}
 }
 
 // Create a request from a path with parameters
@@ -170,26 +235,50 @@ func TestCreatePreparerRunsDecoratorsInOrder(t *testing.T) {
 	}
 }
 
-func TestAsJson(t *testing.T) {
-	r, err := mocks.NewRequest()
+func TestAsContentType(t *testing.T) {
+	r, err := Prepare(mocks.NewRequest(), AsContentType("application/text"))
 	if err != nil {
 		fmt.Printf("ERROR: %v", err)
 	}
-	r, err = Prepare(r, AsJson())
+	if r.Header.Get(headerContentType) != "application/text" {
+		t.Errorf("autorest: AsContentType failed to add header (%s=%s)", headerContentType, r.Header.Get(headerContentType))
+	}
+}
+
+func TestAsFormUrlEncoded(t *testing.T) {
+	r, err := Prepare(mocks.NewRequest(), AsFormUrlEncoded())
 	if err != nil {
 		fmt.Printf("ERROR: %v", err)
 	}
-	if r.Header.Get(headerContentType) != mimeTypeJson {
-		t.Errorf("autorest: WithBearerAuthorization failed to add header (%s=%s)", "Authorization", r.Header.Get("Authorization"))
+	if r.Header.Get(headerContentType) != mimeTypeFormPost {
+		t.Errorf("autorest: AsFormUrlEncoded failed to add header (%s=%s)", headerContentType, r.Header.Get(headerContentType))
+	}
+}
+
+func TestAsJSON(t *testing.T) {
+	r, err := Prepare(mocks.NewRequest(), AsJSON())
+	if err != nil {
+		fmt.Printf("ERROR: %v", err)
+	}
+	if r.Header.Get(headerContentType) != mimeTypeJSON {
+		t.Errorf("autorest: AsJSON failed to add header (%s=%s)", headerContentType, r.Header.Get(headerContentType))
+	}
+}
+
+func TestWithNothing(t *testing.T) {
+	r1 := mocks.NewRequest()
+	r2, err := Prepare(r1, WithNothing())
+	if err != nil {
+		t.Errorf("autorest: WithNothing returned an unexpected error (%v)", err)
+	}
+
+	if !reflect.DeepEqual(r1, r2) {
+		t.Error("azure: WithNothing modified the passed HTTP Request")
 	}
 }
 
 func TestWithBearerAuthorization(t *testing.T) {
-	r, err := mocks.NewRequest()
-	if err != nil {
-		fmt.Printf("ERROR: %v", err)
-	}
-	r, err = Prepare(r, WithBearerAuthorization("SOME-TOKEN"))
+	r, err := Prepare(mocks.NewRequest(), WithBearerAuthorization("SOME-TOKEN"))
 	if err != nil {
 		fmt.Printf("ERROR: %v", err)
 	}
@@ -198,8 +287,102 @@ func TestWithBearerAuthorization(t *testing.T) {
 	}
 }
 
+func TestWithMethod(t *testing.T) {
+	r, _ := Prepare(mocks.NewRequest(), WithMethod("HEAD"))
+	if r.Method != "HEAD" {
+		t.Error("autorest: WithMethod failed to set HTTP method header")
+	}
+}
+
+func TestAsDelete(t *testing.T) {
+	r, _ := Prepare(mocks.NewRequest(), AsDelete())
+	if r.Method != "DELETE" {
+		t.Error("autorest: AsDelete failed to set HTTP method header to DELETE")
+	}
+}
+
+func TestAsGet(t *testing.T) {
+	r, _ := Prepare(mocks.NewRequest(), AsGet())
+	if r.Method != "GET" {
+		t.Error("autorest: AsGet failed to set HTTP method header to GET")
+	}
+}
+
+func TestAsHead(t *testing.T) {
+	r, _ := Prepare(mocks.NewRequest(), AsHead())
+	if r.Method != "HEAD" {
+		t.Error("autorest: AsHead failed to set HTTP method header to HEAD")
+	}
+}
+
+func TestAsOptions(t *testing.T) {
+	r, _ := Prepare(mocks.NewRequest(), AsOptions())
+	if r.Method != "OPTIONS" {
+		t.Error("autorest: AsOptions failed to set HTTP method header to OPTIONS")
+	}
+}
+
+func TestAsPatch(t *testing.T) {
+	r, _ := Prepare(mocks.NewRequest(), AsPatch())
+	if r.Method != "PATCH" {
+		t.Error("autorest: AsPatch failed to set HTTP method header to PATCH")
+	}
+}
+
+func TestAsPost(t *testing.T) {
+	r, _ := Prepare(mocks.NewRequest(), AsPost())
+	if r.Method != "POST" {
+		t.Error("autorest: AsPost failed to set HTTP method header to POST")
+	}
+}
+
+func TestAsPut(t *testing.T) {
+	r, _ := Prepare(mocks.NewRequest(), AsPut())
+	if r.Method != "PUT" {
+		t.Error("autorest: AsPut failed to set HTTP method header to PUT")
+	}
+}
+
+func TestWithFormDataSetsContentLength(t *testing.T) {
+	v := url.Values{}
+	v.Add("name", "Rob Pike")
+	v.Add("age", "42")
+
+	r, err := Prepare(&http.Request{},
+		WithFormData(v))
+	if err != nil {
+		t.Errorf("autorest: WithFormData failed with error (%v)", err)
+	}
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		t.Errorf("autorest: WithFormData failed with error (%v)", err)
+	}
+
+	if r.ContentLength != int64(len(b)) {
+		t.Errorf("autorest:WithFormData set Content-Length to %v, expected %v", r.ContentLength, len(b))
+	}
+}
+
+func TestWithJSONSetsContentLength(t *testing.T) {
+	r, err := Prepare(&http.Request{},
+		WithJSON(&mocks.T{Name: "Rob Pike", Age: 42}))
+	if err != nil {
+		t.Errorf("autorest: WithJSON failed with error (%v)", err)
+	}
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		t.Errorf("autorest: WithJSON failed with error (%v)", err)
+	}
+
+	if r.ContentLength != int64(len(b)) {
+		t.Errorf("autorest:WithJSON set Content-Length to %v, expected %v", r.ContentLength, len(b))
+	}
+}
+
 func TestWithHeaderAllocatesHeaders(t *testing.T) {
-	r, err := Prepare(&http.Request{}, WithHeader("x-foo", "bar"))
+	r, err := Prepare(mocks.NewRequest(), WithHeader("x-foo", "bar"))
 	if err != nil {
 		t.Errorf("autorest: WithHeader failed (%v)", err)
 	}
@@ -208,16 +391,53 @@ func TestWithHeaderAllocatesHeaders(t *testing.T) {
 	}
 }
 
-func TestModifyingExistingRequest(t *testing.T) {
-	r, err := http.NewRequest("GET", "https://bing.com/", nil)
-	if err != nil {
-		t.Errorf("autorest: Creating a new request failed (%v)", err)
+func TestWithPathCatchesNilURL(t *testing.T) {
+	_, err := Prepare(&http.Request{}, WithPath("a"))
+	if err == nil {
+		t.Errorf("autorest: WithPath failed to catch a nil URL")
 	}
-	r, err = Prepare(r, WithPath("search"), WithQueryParameters(map[string]interface{}{"q": "golang"}))
+}
+
+func TestWithEscapedPathParametersCatchesNilURL(t *testing.T) {
+	_, err := Prepare(&http.Request{}, WithEscapedPathParameters(map[string]interface{}{"foo": "bar"}))
+	if err == nil {
+		t.Errorf("autorest: WithEscapedPathParameters failed to catch a nil URL")
+	}
+}
+
+func TestWithPathParametersCatchesNilURL(t *testing.T) {
+	_, err := Prepare(&http.Request{}, WithPathParameters(map[string]interface{}{"foo": "bar"}))
+	if err == nil {
+		t.Errorf("autorest: WithPathParameters failed to catch a nil URL")
+	}
+}
+
+func TestWithQueryParametersCatchesNilURL(t *testing.T) {
+	_, err := Prepare(&http.Request{}, WithQueryParameters(map[string]interface{}{"foo": "bar"}))
+	if err == nil {
+		t.Errorf("autorest: WithQueryParameters failed to catch a nil URL")
+	}
+}
+
+func TestModifyingExistingRequest(t *testing.T) {
+	r, err := Prepare(mocks.NewRequestForURL("https://bing.com"), WithPath("search"), WithQueryParameters(map[string]interface{}{"q": "golang"}))
 	if err != nil {
 		t.Errorf("autorest: Preparing an existing request returned an error (%v)", err)
 	}
 	if r.URL.String() != "https://bing.com/search?q=golang" {
 		t.Errorf("autorest: Preparing an existing request failed (%s)", r.URL)
+	}
+}
+
+func TestWithAuthorizer(t *testing.T) {
+	r1 := mocks.NewRequest()
+
+	na := &NullAuthorizer{}
+	r2, err := Prepare(r1,
+		na.WithAuthorization())
+	if err != nil {
+		t.Errorf("autorest: NullAuthorizer#WithAuthorization returned an unexpected error (%v)", err)
+	} else if !reflect.DeepEqual(r1, r2) {
+		t.Errorf("autorest: NullAuthorizer#WithAuthorization modified the request -- received %v, expected %v", r2, r1)
 	}
 }
