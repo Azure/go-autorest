@@ -30,17 +30,17 @@ around passing the data (such as a logger might do). Decorators run in the order
 example, the following:
 
 ```
-req, err := Prepare(&http.Request{},
-  WithBaseURL("https://microsoft.com/"),
-  WithPath("a"),
-  WithPath("b"),
-  WithPath("c"))
+  req, err := Prepare(&http.Request{},
+    WithBaseURL("https://microsoft.com/"),
+    WithPath("a"),
+    WithPath("b"),
+    WithPath("c"))
 ```
 
 will set the URL to:
 
 ```
-https://microsoft.com/a/b/c
+  https://microsoft.com/a/b/c
 ```
 
 Preparers and Responders may be shared and re-used (assuming the underlying decorators support
@@ -55,12 +55,12 @@ fixed set of values. Similarly, sharing a Responder that reads the response body
 struct (e.g., ByUnmarshallingJson) is likely incorrect.
 
 Lastly, the Swagger specification (https://swagger.io) that drives AutoRest
-(https://github.com/azure/autorest/) precisely defines two date forms (i.e., date and date-time).
-The two sub-packages -- github.com/azure/go-autorest/autorest/date and
-github.com/azure/go-autorest/autorest/datetime -- provide time.Time derivations to ensure correct
-parsing and formatting.
+(https://github.com/azure/autorest/) precisely defines two date forms: date and date-time. The
+github.com/azure/go-autorest/autorest/date package provides time.Time derivations to ensure
+correct parsing and formatting.
 
-See the included examples for more detail.
+See the included examples for more detail. For details on the suggested use of this package by
+generated clients, see the Client described below.
 
 
 ## Install
