@@ -56,8 +56,8 @@ func Respond(r *http.Response, decorators ...RespondDecorator) error {
 	return CreateResponder(decorators...).Respond(r)
 }
 
-// ByIgnoring returns a RespondDecorator that ignores the passed http.Response by passing it
-// unexamined to the next RespondDecorator.
+// ByIgnoring returns a RespondDecorator that ignores the passed http.Response passing it unexamined
+// to the next RespondDecorator.
 func ByIgnoring() RespondDecorator {
 	return func(r Responder) Responder {
 		return ResponderFunc(func(resp *http.Response) error {
@@ -83,7 +83,6 @@ func ByClosing() RespondDecorator {
 
 // ByClosingIfError returns a RespondDecorator that first invokes the passed Responder after which
 // it closes the response if the passed Responder returns an error and the response body exists.
-// This decorator should, usually, come first in the set.
 func ByClosingIfError() RespondDecorator {
 	return func(r Responder) Responder {
 		return ResponderFunc(func(resp *http.Response) error {

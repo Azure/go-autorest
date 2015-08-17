@@ -46,12 +46,12 @@
   struct (e.g., ByUnmarshallingJson) is likely incorrect.
 
   Lastly, the Swagger specification (https://swagger.io) that drives AutoRest
-  (https://github.com/azure/autorest/) precisely defines two date forms (i.e., date and date-time).
-  The two sub-packages -- github.com/azure/go-autorest/autorest/date and
-  github.com/azure/go-autorest/autorest/datetime -- provide time.Time derivations to ensure correct
-  parsing and formatting.
+  (https://github.com/azure/autorest/) precisely defines two date forms: date and date-time. The
+  github.com/azure/go-autorest/autorest/date package provides time.Time derivations to ensure
+  correct parsing and formatting.
 
-  See the included examples for more detail.
+  See the included examples for more detail. For details on the suggested use of this package by
+  generated clients, see the Client described below.
 
 */
 package autorest
@@ -67,39 +67,34 @@ const (
 	headerRetryAfter = "Retry-After"
 )
 
-// CreatePollingRequest allocates and returns a new http.Request, along with suggested a retry
-// delay, if the supplied http.Response code is with the passed set (the set defaults to an
-// HTTP 202). The http.Response must include both Location and Retry-After headers. If the passed
-// http.Response is to be polled, this method will close the http.Response body. A passed http.Response
-// with an HTTP 200 status code is ignored.
-func CreatePollingRequest(resp *http.Response, authorizer Authorizer, codes ...int) (*http.Request, time.Duration, error) {
-	d := time.Duration(0)
+// ResponseHasStatusCode returns true if the status code in the HTTP Response is in the passed set
+// and false otherwise.
+func ResponseHasStatusCode(resp *http.Response, codes ...int) bool {
+	return containsInt(codes, resp.StatusCode)
+}
 
+// ResponseRequiresPolling returns true if the passed http.Response requires polling follow-up
+// request (as determined by the status code being in the passed set, which defaults to HTTP 202
+// Accepted).
+func ResponseRequiresPolling(resp *http.Response, codes ...int) bool {
 	if resp.StatusCode == 200 {
-		return nil, d, nil
+		return false
 	}
 
 	if len(codes) == 0 {
 		codes = []int{202}
 	}
 
-	if !ResponseHasStatusCode(resp, codes...) {
-		return nil, d, fmt.Errorf("autorest: Poll requested for unexpected status code -- %v not in %v", resp.StatusCode, codes)
-	}
+	return ResponseHasStatusCode(resp, codes...)
+}
 
+// CreatePollingRequest allocates and returns a new http.Request for use in polling. The
+// http.Response must include a Location header. The method will close the Body of the passed
+// http.Reponse.
+func CreatePollingRequest(resp *http.Response, authorizer Authorizer) (*http.Request, error) {
 	location := resp.Header.Get(headerLocation)
 	if location == "" {
-		return nil, d, fmt.Errorf("autorest: Missing Location header in poll request to %s", resp.Request.URL)
-	}
-
-	retry := resp.Header.Get(headerRetryAfter)
-	if retry == "" {
-		return nil, d, fmt.Errorf("autorest: Missing Retry-After header in poll request to %s", resp.Request.URL)
-	}
-
-	d, err := time.ParseDuration(retry + "s")
-	if err != nil {
-		return nil, d, fmt.Errorf("autorest: Failed to parse retry duration (%s) in poll request to %s -- (%v)", retry, location, err)
+		return nil, fmt.Errorf("autorest: Missing Location header in poll request to %s", resp.Request.URL)
 	}
 
 	req, err := Prepare(&http.Request{},
@@ -107,18 +102,34 @@ func CreatePollingRequest(resp *http.Response, authorizer Authorizer, codes ...i
 		WithBaseURL(location),
 		authorizer.WithAuthorization())
 	if err != nil {
-		return nil, d, fmt.Errorf("autorest: Failure creating poll request to %s (%v)", location, err)
+		return nil, fmt.Errorf("autorest: Failure creating poll request to %s (%v)", location, err)
 	}
 
 	Respond(resp,
 		ByClosing())
 
-	return req, d, nil
+	return req, nil
+}
+
+// GetRetryDelay extracts the polling delay from the Retry-After header of the passed request. If
+// the header is absent or is malformed, it will return the supplied default delay time.Duration.
+func GetRetryDelay(resp *http.Response, defaultDelay time.Duration) time.Duration {
+	retry := resp.Header.Get(headerRetryAfter)
+	if retry == "" {
+		return defaultDelay
+	}
+
+	d, err := time.ParseDuration(retry + "s")
+	if err != nil {
+		return defaultDelay
+	}
+
+	return d
 }
 
 // PollForAttempts will retry the passed http.Request until it receives an HTTP status code outside
 // the passed set or has made the specified number of attempts. The set of status codes defaults to
-// HTTP 202.
+// HTTP 202 Accepted.
 func PollForAttempts(s Sender, req *http.Request, delay time.Duration, attempts int, codes ...int) (*http.Response, error) {
 	return SendWithSender(
 		decorateForPolling(s, delay, codes...),
@@ -128,7 +139,7 @@ func PollForAttempts(s Sender, req *http.Request, delay time.Duration, attempts 
 
 // PollForDuration will retry the passed http.Request until it receives an HTTP status code outside
 // the passed set or the total time meets or exceeds the specified duration. The set of status codes
-// defaults to HTTP 202.
+// defaults to HTTP 202 Accepted.
 func PollForDuration(s Sender, req *http.Request, delay time.Duration, total time.Duration, codes ...int) (*http.Response, error) {
 	return SendWithSender(
 		decorateForPolling(s, delay, codes...),
@@ -143,12 +154,6 @@ func decorateForPolling(s Sender, delay time.Duration, codes ...int) Sender {
 
 	return DecorateSender(s,
 		AfterDelay(delay),
-		DoCloseIfError(),
-		DoErrorIfStatusCode(codes...))
-}
-
-// ResponseHasStatusCode returns true if the status code in the HTTP Response is in the passed set
-// and false otherwise.
-func ResponseHasStatusCode(resp *http.Response, codes ...int) bool {
-	return containsInt(codes, resp.StatusCode)
+		DoErrorIfStatusCode(codes...),
+		DoCloseIfError())
 }

@@ -13,56 +13,83 @@ const (
 	headerMockAuthorizer = "x-mock-authorizer"
 )
 
-func TestClientPollIfNeededIgnoresOk(t *testing.T) {
+func TestClientShouldPoll(t *testing.T) {
+	c := &Client{PollingMode: PollUntilAttempts}
+	r := mocks.NewResponseWithStatus("202 Accepted", 202)
+
+	if !c.ShouldPoll(r) {
+		t.Error("autorest: Client#ShouldPoll failed to return true for an http.Response that requires polling")
+	}
+}
+
+func TestClientShouldPollIgnoresOk(t *testing.T) {
+	c := &Client{PollingMode: PollUntilAttempts}
+	r := mocks.NewResponse()
+
+	if c.ShouldPoll(r) {
+		t.Error("autorest: Client#ShouldPoll failed to return false for an http.Response that does not require polling")
+	}
+}
+
+func TestClientShouldPollIgnoredPollingMode(t *testing.T) {
+	c := &Client{PollingMode: DoNotPoll}
+	r := mocks.NewResponse()
+
+	if c.ShouldPoll(r) {
+		t.Error("autorest: Client#ShouldPoll failed to return false when polling is disabled")
+	}
+}
+
+func TestClientPollAsNeededIgnoresOk(t *testing.T) {
 	c := &Client{}
-	s := mocks.NewClient()
+	s := mocks.NewSender()
 	c.Sender = s
 	r := mocks.NewResponse()
 
-	resp, err := c.PollIfNeeded(r)
+	resp, err := c.PollAsNeeded(r)
 	if err != nil {
-		t.Errorf("autorest: Client#PollIfNeeded failed when given a successful HTTP request (%v)", err)
+		t.Errorf("autorest: Client#PollAsNeeded failed when given a successful HTTP request (%v)", err)
 	}
 	if s.Attempts() > 0 {
-		t.Error("autorest: Client#PollIfNeeded attempted to poll a successful HTTP request")
+		t.Error("autorest: Client#PollAsNeeded attempted to poll a successful HTTP request")
 	}
 
 	Respond(resp,
 		ByClosing())
 }
 
-func TestClientPollIfNeededLeavesBodyOpen(t *testing.T) {
+func TestClientPollAsNeededLeavesBodyOpen(t *testing.T) {
 	c := &Client{}
-	c.Sender = mocks.NewClient()
+	c.Sender = mocks.NewSender()
 	r := mocks.NewResponse()
 
-	resp, err := c.PollIfNeeded(r)
+	resp, err := c.PollAsNeeded(r)
 	if err != nil {
-		t.Errorf("autorest: Client#PollIfNeeded failed when given a successful HTTP request (%v)", err)
+		t.Errorf("autorest: Client#PollAsNeeded failed when given a successful HTTP request (%v)", err)
 	}
 	if !resp.Body.(*mocks.Body).IsOpen() {
-		t.Error("autorest: Client#PollIfNeeded unexpectedly closed the response body")
+		t.Error("autorest: Client#PollAsNeeded unexpectedly closed the response body")
 	}
 
 	Respond(resp,
 		ByClosing())
 }
 
-func TestClientPollIfNeededPollsForAttempts(t *testing.T) {
+func TestClientPollAsNeededPollsForAttempts(t *testing.T) {
 	c := &Client{}
 	c.PollingMode = PollUntilAttempts
 	c.PollingAttempts = 5
 
-	s := mocks.NewClient()
+	s := mocks.NewSender()
 	s.EmitStatus("202 Accepted", 202)
 	c.Sender = s
 
 	r := mocks.NewResponseWithStatus("202 Accepted", 202)
 	addAcceptedHeaders(r)
 
-	resp, _ := c.PollIfNeeded(r)
+	resp, _ := c.PollAsNeeded(r)
 	if s.Attempts() != 5 {
-		t.Errorf("autorest: Client#PollIfNeeded did not poll the expected number of attempts -- expected %v, actual %v",
+		t.Errorf("autorest: Client#PollAsNeeded did not poll the expected number of attempts -- expected %v, actual %v",
 			c.PollingAttempts, s.Attempts())
 	}
 
@@ -70,12 +97,12 @@ func TestClientPollIfNeededPollsForAttempts(t *testing.T) {
 		ByClosing())
 }
 
-func TestClientPollIfNeededPollsForDuration(t *testing.T) {
+func TestClientPollAsNeededPollsForDuration(t *testing.T) {
 	c := &Client{}
 	c.PollingMode = PollUntilDuration
 	c.PollingDuration = 10 * time.Millisecond
 
-	s := mocks.NewClient()
+	s := mocks.NewSender()
 	s.EmitStatus("202 Accepted", 202)
 	c.Sender = s
 
@@ -84,10 +111,10 @@ func TestClientPollIfNeededPollsForDuration(t *testing.T) {
 
 	d1 := 10 * time.Millisecond
 	start := time.Now()
-	resp, _ := c.PollIfNeeded(r)
+	resp, _ := c.PollAsNeeded(r)
 	d2 := time.Now().Sub(start)
 	if d2 < d1 {
-		t.Errorf("autorest: Client#PollIfNeeded did not poll for the expected duration -- expected %v, actual %v",
+		t.Errorf("autorest: Client#PollAsNeeded did not poll for the expected duration -- expected %v, actual %v",
 			d1.Seconds(), d2.Seconds())
 	}
 

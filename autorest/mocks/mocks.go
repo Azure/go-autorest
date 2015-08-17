@@ -10,17 +10,18 @@ import (
 )
 
 type Body struct {
-	s      string
-	b      []byte
-	isOpen bool
+	s             string
+	b             []byte
+	isOpen        bool
+	closeAttempts int
 }
 
 func NewBody(s string) *Body {
-	return &Body{s: s, b: []byte(s), isOpen: true}
+	return (&Body{s: s}).reset()
 }
 
 func (body *Body) Read(b []byte) (n int, err error) {
-	if !body.isOpen {
+	if !body.IsOpen() {
 		return 0, fmt.Errorf("ERROR: Body has been closed\n")
 	}
 	if len(body.b) == 0 {
@@ -32,71 +33,95 @@ func (body *Body) Read(b []byte) (n int, err error) {
 }
 
 func (body *Body) Close() error {
-	body.isOpen = false
+	if body.isOpen {
+		body.isOpen = false
+		body.closeAttempts += 1
+	}
 	return nil
+}
+
+func (body *Body) CloseAttempts() int {
+	return body.closeAttempts
 }
 
 func (body *Body) IsOpen() bool {
 	return body.isOpen
 }
 
-type Client struct {
-	attempts   int
-	content    string
-	emitErrors int
-	status     string
-	statusCode int
-	err        error
+func (body *Body) reset() *Body {
+	body.isOpen = true
+	body.b = []byte(body.s)
+	return body
 }
 
-func NewClient() *Client {
-	return &Client{status: "200 OK", statusCode: 200}
+type Sender struct {
+	attempts      int
+	content       string
+	reuseResponse bool
+	resp          *http.Response
+	status        string
+	statusCode    int
+	emitErrors    int
+	err           error
 }
 
-func (c *Client) Do(r *http.Request) (*http.Response, error) {
+func NewSender() *Sender {
+	return &Sender{status: "200 OK", statusCode: 200}
+}
+
+func (c *Sender) Do(r *http.Request) (*http.Response, error) {
 	c.attempts += 1
 
-	resp := NewResponse()
-	resp.Request = r
-	resp.Body = NewBody(c.content)
-	resp.Status = c.status
-	resp.StatusCode = c.statusCode
+	if !c.reuseResponse || c.resp == nil {
+		resp := NewResponse()
+		resp.Request = r
+		resp.Body = NewBody(c.content)
+		resp.Status = c.status
+		resp.StatusCode = c.statusCode
+		c.resp = resp
+	} else {
+		c.resp.Body.(*Body).reset()
+	}
 
 	if c.emitErrors > 0 || c.emitErrors < 0 {
 		c.emitErrors -= 1
 		if c.err == nil {
-			return resp, fmt.Errorf("Faux Error")
+			return c.resp, fmt.Errorf("Faux Error")
 		} else {
-			return resp, c.err
+			return c.resp, c.err
 		}
 	} else {
-		return resp, nil
+		return c.resp, nil
 	}
 }
 
-func (c *Client) Attempts() int {
+func (c *Sender) Attempts() int {
 	return c.attempts
 }
 
-func (c *Client) EmitErrors(emit int) {
+func (c *Sender) EmitErrors(emit int) {
 	c.emitErrors = emit
 }
 
-func (c *Client) SetError(err error) {
+func (c *Sender) SetError(err error) {
 	c.err = err
 }
 
-func (c *Client) ClearError() {
+func (c *Sender) ClearError() {
 	c.SetError(nil)
 }
 
-func (c *Client) EmitContent(s string) {
+func (c *Sender) EmitContent(s string) {
 	c.content = s
 }
 
-func (c *Client) EmitStatus(status string, code int) {
+func (c *Sender) EmitStatus(status string, code int) {
 	c.status = status
 	c.statusCode = code
+}
+
+func (c *Sender) ReuseResponse(reuseResponse bool) {
+	c.reuseResponse = reuseResponse
 }
 
 type T struct {

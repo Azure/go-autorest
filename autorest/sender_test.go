@@ -13,7 +13,7 @@ import (
 )
 
 func ExampleSendWithSender() {
-	client := mocks.NewClient()
+	client := mocks.NewSender()
 	client.EmitStatus("202 Accepted", 202)
 
 	logger := log.New(os.Stdout, "", 0)
@@ -47,7 +47,7 @@ func ExampleSendWithSender() {
 }
 
 func ExampleDoRetryForAttempts() {
-	client := mocks.NewClient()
+	client := mocks.NewSender()
 	client.EmitErrors(10)
 
 	// Retry with backoff -- ensure returned Bodies are closed
@@ -63,7 +63,7 @@ func ExampleDoRetryForAttempts() {
 }
 
 func ExampleDoErrorIfStatusCode() {
-	client := mocks.NewClient()
+	client := mocks.NewSender()
 	client.EmitStatus("204 NoContent", 204)
 
 	// Chain decorators to retry the request, up to five times, if the status code is 204
@@ -80,7 +80,7 @@ func ExampleDoErrorIfStatusCode() {
 }
 
 func TestSendWithSenderRunsDecoratorsInOrder(t *testing.T) {
-	client := mocks.NewClient()
+	client := mocks.NewSender()
 	s := ""
 
 	r, err := SendWithSender(client, mocks.NewRequest(),
@@ -100,7 +100,7 @@ func TestSendWithSenderRunsDecoratorsInOrder(t *testing.T) {
 }
 
 func TestAfterDelayWaits(t *testing.T) {
-	client := mocks.NewClient()
+	client := mocks.NewSender()
 
 	// Establish a baseline and then set the wait to 10x that amount
 	// -- Waiting 10x the baseline should be long enough for a real test while not slowing the
@@ -122,7 +122,7 @@ func TestAfterDelayWaits(t *testing.T) {
 }
 
 func TestAfterDelayDoesNotWaitTooLong(t *testing.T) {
-	client := mocks.NewClient()
+	client := mocks.NewSender()
 
 	// Establish a baseline and then set the wait to 10x that amount
 	// -- Waiting 10x the baseline should be long enough for a real test while not slowing the
@@ -144,7 +144,7 @@ func TestAfterDelayDoesNotWaitTooLong(t *testing.T) {
 }
 
 func TestAsIs(t *testing.T) {
-	client := mocks.NewClient()
+	client := mocks.NewSender()
 
 	r1 := mocks.NewResponse()
 	r2, err := SendWithSender(client, mocks.NewRequest(),
@@ -169,7 +169,7 @@ func TestAsIs(t *testing.T) {
 }
 
 func TestDoCloseIfError(t *testing.T) {
-	client := mocks.NewClient()
+	client := mocks.NewSender()
 	client.EmitStatus("400 BadRequest", 400)
 
 	r, _ := SendWithSender(client, mocks.NewRequest(),
@@ -185,7 +185,7 @@ func TestDoCloseIfError(t *testing.T) {
 }
 
 func TestDoCloseIfErrorAcceptsNilResponse(t *testing.T) {
-	client := mocks.NewClient()
+	client := mocks.NewSender()
 
 	SendWithSender(client, mocks.NewRequest(),
 		(func() SendDecorator {
@@ -203,7 +203,7 @@ func TestDoCloseIfErrorAcceptsNilResponse(t *testing.T) {
 }
 
 func TestDoCloseIfErrorAcceptsNilBody(t *testing.T) {
-	client := mocks.NewClient()
+	client := mocks.NewSender()
 
 	SendWithSender(client, mocks.NewRequest(),
 		(func() SendDecorator {
@@ -222,7 +222,7 @@ func TestDoCloseIfErrorAcceptsNilBody(t *testing.T) {
 }
 
 func TestDoErrorIfStatusCode(t *testing.T) {
-	client := mocks.NewClient()
+	client := mocks.NewSender()
 	client.EmitStatus("400 BadRequest", 400)
 
 	r, err := SendWithSender(client, mocks.NewRequest(),
@@ -237,7 +237,7 @@ func TestDoErrorIfStatusCode(t *testing.T) {
 }
 
 func TestDoErrorIfStatusCodeIgnoresStatusCodes(t *testing.T) {
-	client := mocks.NewClient()
+	client := mocks.NewSender()
 	client.EmitStatus("202 Accepted", 202)
 
 	r, err := SendWithSender(client, mocks.NewRequest(),
@@ -252,7 +252,7 @@ func TestDoErrorIfStatusCodeIgnoresStatusCodes(t *testing.T) {
 }
 
 func TestDoErrorUnlessStatusCode(t *testing.T) {
-	client := mocks.NewClient()
+	client := mocks.NewSender()
 	client.EmitStatus("400 BadRequest", 400)
 
 	r, err := SendWithSender(client, mocks.NewRequest(),
@@ -267,7 +267,7 @@ func TestDoErrorUnlessStatusCode(t *testing.T) {
 }
 
 func TestDoErrorUnlessStatusCodeIgnoresStatusCodes(t *testing.T) {
-	client := mocks.NewClient()
+	client := mocks.NewSender()
 	client.EmitStatus("202 Accepted", 202)
 
 	r, err := SendWithSender(client, mocks.NewRequest(),
@@ -282,7 +282,7 @@ func TestDoErrorUnlessStatusCodeIgnoresStatusCodes(t *testing.T) {
 }
 
 func TestDoRetryForAttemptsStopsAfterAttempts(t *testing.T) {
-	client := mocks.NewClient()
+	client := mocks.NewSender()
 	client.EmitErrors(10)
 
 	r, err := SendWithSender(client, mocks.NewRequest(),
@@ -301,7 +301,7 @@ func TestDoRetryForAttemptsStopsAfterAttempts(t *testing.T) {
 }
 
 func TestDoRetryForAttemptsReturnsResponse(t *testing.T) {
-	client := mocks.NewClient()
+	client := mocks.NewSender()
 	client.EmitErrors(1)
 
 	r, err := SendWithSender(client, mocks.NewRequest(),
@@ -319,7 +319,7 @@ func TestDoRetryForAttemptsReturnsResponse(t *testing.T) {
 }
 
 func TestDoRetryForDurationStopsAfterDuration(t *testing.T) {
-	client := mocks.NewClient()
+	client := mocks.NewSender()
 	client.EmitErrors(-1)
 
 	d := 10 * time.Millisecond
@@ -340,7 +340,7 @@ func TestDoRetryForDurationStopsAfterDuration(t *testing.T) {
 }
 
 func TestDoRetryForDurationStopsWithinReason(t *testing.T) {
-	client := mocks.NewClient()
+	client := mocks.NewSender()
 	client.EmitErrors(-1)
 
 	d := 10 * time.Millisecond
@@ -361,7 +361,7 @@ func TestDoRetryForDurationStopsWithinReason(t *testing.T) {
 }
 
 func TestDoRetryForDurationReturnsResponse(t *testing.T) {
-	client := mocks.NewClient()
+	client := mocks.NewSender()
 	client.EmitErrors(-1)
 
 	r, err := SendWithSender(client, mocks.NewRequest(),
