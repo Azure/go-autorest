@@ -75,6 +75,44 @@ func TestClientPollAsNeededLeavesBodyOpen(t *testing.T) {
 		ByClosing())
 }
 
+func TestClientPollAsNeededReturnsErrorWhenPollingDisabled(t *testing.T) {
+	c := &Client{}
+	c.Sender = mocks.NewSender()
+	c.PollingMode = DoNotPoll
+
+	r := mocks.NewResponseWithStatus("202 Accepted", 202)
+	addAcceptedHeaders(r)
+
+	_, err := c.PollAsNeeded(r)
+	if err == nil {
+		t.Error("autorest: Client#PollAsNeeded failed to return an error when polling was disabled but required")
+	}
+
+	Respond(r,
+		ByClosing())
+}
+
+func TestClientPollAsNeededAllowsInspectionOfRequest(t *testing.T) {
+	c := &Client{}
+	c.Sender = mocks.NewSender()
+	c.PollingMode = PollUntilAttempts
+	c.PollingAttempts = 1
+
+	mi := &mockInspector{}
+	c.RequestInspector = mi
+
+	r := mocks.NewResponseWithStatus("202 Accepted", 202)
+	addAcceptedHeaders(r)
+
+	c.PollAsNeeded(r)
+	if !mi.wasInvoked {
+		t.Error("autorest: Client#PollAsNeeded failed to allow inspection of polling request")
+	}
+
+	Respond(r,
+		ByClosing())
+}
+
 func TestClientPollAsNeededPollsForAttempts(t *testing.T) {
 	c := &Client{}
 	c.PollingMode = PollUntilAttempts

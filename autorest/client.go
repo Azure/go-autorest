@@ -80,6 +80,10 @@ func (c *Client) PollAsNeeded(resp *http.Response, codes ...int) (*http.Response
 		return resp, nil
 	}
 
+	if c.DoNotPoll() {
+		return resp, fmt.Errorf("autorest: Polling for %s is required, but polling is disabled", resp.Request.URL)
+	}
+
 	req, err := CreatePollingRequest(resp, c)
 	if err != nil {
 		return resp, fmt.Errorf("autorest: Unable to create polling request for response to %s (%v)",
@@ -88,12 +92,13 @@ func (c *Client) PollAsNeeded(resp *http.Response, codes ...int) (*http.Response
 
 	delay := GetRetryDelay(resp, DefaultPollingDelay)
 
+	Prepare(req,
+		c.WithInspection())
+
 	if c.PollForAttempts() {
 		return PollForAttempts(c, req, delay, c.PollingAttempts, codes...)
-	} else if c.PollForDuration() {
-		return PollForDuration(c, req, delay, c.PollingDuration, codes...)
 	} else {
-		return resp, fmt.Errorf("autorest: Polling for %s is required, but polling is disabled", req.URL)
+		return PollForDuration(c, req, delay, c.PollingDuration, codes...)
 	}
 }
 
