@@ -53,7 +53,11 @@ func DecorateResponder(r Responder, decorators ...RespondDecorator) Responder {
 // Respond accepts an http.Response and a, possibly empty, set of RespondDecorators.
 // It creates a Responder from the decorators it then applies to the passed http.Response.
 func Respond(r *http.Response, decorators ...RespondDecorator) error {
-	return CreateResponder(decorators...).Respond(r)
+	if r == nil {
+		return nil
+	} else {
+		return CreateResponder(decorators...).Respond(r)
+	}
 }
 
 // ByIgnoring returns a RespondDecorator that ignores the passed http.Response passing it unexamined

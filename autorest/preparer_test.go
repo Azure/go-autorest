@@ -343,6 +343,13 @@ func TestAsPut(t *testing.T) {
 	}
 }
 
+func TestPrepareWithNullRequest(t *testing.T) {
+	_, err := Prepare(nil)
+	if err == nil {
+		t.Error("autorest: Prepare failed to return an error when given a null http.Request")
+	}
+}
+
 func TestWithFormDataSetsContentLength(t *testing.T) {
 	v := url.Values{}
 	v.Add("name", "Rob Pike")

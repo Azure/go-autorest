@@ -263,6 +263,13 @@ func TestByUnmarhallingJSON(t *testing.T) {
 	}
 }
 
+func TestRespondAcceptsNullResponse(t *testing.T) {
+	err := Respond(nil)
+	if err != nil {
+		t.Errorf("autorest: Respond returned an unexpected error when given a null Response (%v)", err)
+	}
+}
+
 func TestWithErrorUnlessStatusCode(t *testing.T) {
 	r := mocks.NewResponse()
 	r.Request = mocks.NewRequest()

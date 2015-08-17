@@ -61,7 +61,11 @@ func DecoratePreparer(p Preparer, decorators ...PrepareDecorator) Preparer {
 // Prepare accepts an http.Request and a, possibly empty, set of PrepareDecorators.
 // It creates a Preparer from the decorators which it then applies to the passed http.Request.
 func Prepare(r *http.Request, decorators ...PrepareDecorator) (*http.Request, error) {
-	return CreatePreparer(decorators...).Prepare(r)
+	if r == nil {
+		return nil, fmt.Errorf("autorest: Prepare invoked without an http.Request")
+	} else {
+		return CreatePreparer(decorators...).Prepare(r)
+	}
 }
 
 // WithNothing returns a "do nothing" PrepareDecorator that makes no changes to the passed
