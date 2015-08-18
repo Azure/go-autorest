@@ -113,6 +113,25 @@ func TestClientPollAsNeededAllowsInspectionOfRequest(t *testing.T) {
 		ByClosing())
 }
 
+func TestClientPollAsNeededReturnsErrorIfUnableToCreateRequest(t *testing.T) {
+	c := &Client{}
+	c.Authorizer = failingAuthorizer{}
+	c.Sender = mocks.NewSender()
+	c.PollingMode = PollUntilAttempts
+	c.PollingAttempts = 1
+
+	r := mocks.NewResponseWithStatus("202 Accepted", 202)
+	addAcceptedHeaders(r)
+
+	_, err := c.PollAsNeeded(r)
+	if err == nil {
+		t.Error("autorest: Client#PollAsNeeded failed to return error when unable to create request")
+	}
+
+	Respond(r,
+		ByClosing())
+}
+
 func TestClientPollAsNeededPollsForAttempts(t *testing.T) {
 	c := &Client{}
 	c.PollingMode = PollUntilAttempts

@@ -176,6 +176,24 @@ func ExampleWithJSON() {
 	// Output: Request Body contains {"name":"Rob Pike","age":42}
 }
 
+// Create a request from a path with escaped parameters
+func ExampleWithEscapedPathParameters() {
+	params := map[string]interface{}{
+		"param1": "a b c",
+		"param2": "d e f",
+	}
+	r, err := Prepare(&http.Request{},
+		WithBaseURL("https://microsoft.com/"),
+		WithPath("/{param1}/b/{param2}/"),
+		WithEscapedPathParameters(params))
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+	} else {
+		fmt.Println(r.URL)
+	}
+	// Output: https://microsoft.com/a+b+c/b/d+e+f/
+}
+
 // Create a request from a path with parameters
 func ExampleWithPathParameters() {
 	params := map[string]interface{}{

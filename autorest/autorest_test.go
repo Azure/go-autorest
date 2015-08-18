@@ -88,9 +88,8 @@ func TestCreatePollingRequestDoesNotReturnARequestWhenLocationHeaderIsMissing(t 
 func TestCreatePollingRequestReturnsAnErrorWhenPrepareFails(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
 	addAcceptedHeaders(resp)
-	resp.Header.Set(http.CanonicalHeaderKey(headerLocation), testBadUrl)
 
-	_, err := CreatePollingRequest(resp, NullAuthorizer{})
+	_, err := CreatePollingRequest(resp, failingAuthorizer{})
 	if err == nil {
 		t.Error("autorest: CreatePollingRequest failed to return an error when Prepare fails")
 	}
@@ -152,7 +151,7 @@ func TestCreatePollingRequestAppliesAuthorization(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
 	addAcceptedHeaders(resp)
 
-	req, _ := CreatePollingRequest(resp, TestAuthorizer{})
+	req, _ := CreatePollingRequest(resp, testAuthorizer{})
 	if req.Header.Get(http.CanonicalHeaderKey(headerAuthorization)) != testAuthorizationHeader {
 		t.Errorf("autorest: CreatePollingRequest did not apply authorization -- received %v, expected %v",
 			req.Header.Get(http.CanonicalHeaderKey(headerAuthorization)), testAuthorizationHeader)
@@ -339,8 +338,18 @@ func addAcceptedHeaders(resp *http.Response) {
 	mocks.AddResponseHeader(resp, http.CanonicalHeaderKey(headerRetryAfter), fmt.Sprintf("%v", int(testDelay.Seconds())))
 }
 
-type TestAuthorizer struct{}
+type testAuthorizer struct{}
 
-func (ta TestAuthorizer) WithAuthorization() PrepareDecorator {
+func (ta testAuthorizer) WithAuthorization() PrepareDecorator {
 	return WithHeader(headerAuthorization, testAuthorizationHeader)
+}
+
+type failingAuthorizer struct{}
+
+func (fa failingAuthorizer) WithAuthorization() PrepareDecorator {
+	return func(p Preparer) Preparer {
+		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
+			return r, fmt.Errorf("ERROR: failingAuthorizer returned expected error")
+		})
+	}
 }
