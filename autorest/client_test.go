@@ -9,10 +9,6 @@ import (
 	"github.com/azure/go-autorest/autorest/mocks"
 )
 
-const (
-	headerMockAuthorizer = "x-mock-authorizer"
-)
-
 func TestClientShouldPoll(t *testing.T) {
 	c := &Client{PollingMode: PollUntilAttempts}
 	r := mocks.NewResponseWithStatus("202 Accepted", 202)
@@ -115,7 +111,7 @@ func TestClientPollAsNeededAllowsInspectionOfRequest(t *testing.T) {
 
 func TestClientPollAsNeededReturnsErrorIfUnableToCreateRequest(t *testing.T) {
 	c := &Client{}
-	c.Authorizer = failingAuthorizer{}
+	c.Authorizer = mockFailingAuthorizer{}
 	c.Sender = mocks.NewSender()
 	c.PollingMode = PollUntilAttempts
 	c.PollingAttempts = 1
@@ -239,7 +235,7 @@ func TestClientWithAuthorizer(t *testing.T) {
 	req, _ := Prepare(&http.Request{},
 		c.WithAuthorization())
 
-	if req.Header.Get(headerMockAuthorizer) == "" {
+	if req.Header.Get(headerAuthorization) == "" {
 		t.Error("autorest: Client#WithAuthorizer failed to return the WithAuthorizer from the active Authorizer")
 	}
 }
@@ -302,33 +298,5 @@ func TestClientByInspectingSetsDefault(t *testing.T) {
 
 	if !reflect.DeepEqual(r, &http.Response{}) {
 		t.Error("autorest: Client#ByInspecting failed to provide a default ResponseInspector")
-	}
-}
-
-type mockAuthorizer struct{}
-
-func (ma mockAuthorizer) WithAuthorization() PrepareDecorator {
-	return WithHeader(headerMockAuthorizer, "authorized")
-}
-
-type mockInspector struct {
-	wasInvoked bool
-}
-
-func (mi *mockInspector) WithInspection() PrepareDecorator {
-	return func(p Preparer) Preparer {
-		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
-			mi.wasInvoked = true
-			return p.Prepare(r)
-		})
-	}
-}
-
-func (mi *mockInspector) ByInspecting() RespondDecorator {
-	return func(r Responder) Responder {
-		return ResponderFunc(func(resp *http.Response) error {
-			mi.wasInvoked = true
-			return r.Respond(resp)
-		})
 	}
 }

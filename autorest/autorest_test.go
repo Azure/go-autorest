@@ -1,19 +1,11 @@
 package autorest
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/azure/go-autorest/autorest/mocks"
-)
-
-const (
-	testAuthorizationHeader = "BEARER SECRETTOKEN"
-	testDelay               = 0 * time.Second
-	testBadUrl              = ""
-	testUrl                 = "https://microsoft.com/a/b/c/"
 )
 
 func TestResponseHasStatusCode(t *testing.T) {
@@ -89,7 +81,7 @@ func TestCreatePollingRequestReturnsAnErrorWhenPrepareFails(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
 	addAcceptedHeaders(resp)
 
-	_, err := CreatePollingRequest(resp, failingAuthorizer{})
+	_, err := CreatePollingRequest(resp, mockFailingAuthorizer{})
 	if err == nil {
 		t.Error("autorest: CreatePollingRequest failed to return an error when Prepare fails")
 	}
@@ -151,7 +143,7 @@ func TestCreatePollingRequestAppliesAuthorization(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
 	addAcceptedHeaders(resp)
 
-	req, _ := CreatePollingRequest(resp, testAuthorizer{})
+	req, _ := CreatePollingRequest(resp, mockAuthorizer{})
 	if req.Header.Get(http.CanonicalHeaderKey(headerAuthorization)) != testAuthorizationHeader {
 		t.Errorf("autorest: CreatePollingRequest did not apply authorization -- received %v, expected %v",
 			req.Header.Get(http.CanonicalHeaderKey(headerAuthorization)), testAuthorizationHeader)
@@ -330,26 +322,5 @@ func TestDecorateForPollingCloseBodyOnEachAttempt(t *testing.T) {
 	if resp.Body.(*mocks.Body).CloseAttempts() != 5 {
 		t.Errorf("autorest: decorateForPolling failed to close the response Body between requests -- expected %v, received %v",
 			5, resp.Body.(*mocks.Body).CloseAttempts())
-	}
-}
-
-func addAcceptedHeaders(resp *http.Response) {
-	mocks.AddResponseHeader(resp, http.CanonicalHeaderKey(headerLocation), testUrl)
-	mocks.AddResponseHeader(resp, http.CanonicalHeaderKey(headerRetryAfter), fmt.Sprintf("%v", int(testDelay.Seconds())))
-}
-
-type testAuthorizer struct{}
-
-func (ta testAuthorizer) WithAuthorization() PrepareDecorator {
-	return WithHeader(headerAuthorization, testAuthorizationHeader)
-}
-
-type failingAuthorizer struct{}
-
-func (fa failingAuthorizer) WithAuthorization() PrepareDecorator {
-	return func(p Preparer) Preparer {
-		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
-			return r, fmt.Errorf("ERROR: failingAuthorizer returned expected error")
-		})
 	}
 }

@@ -9,14 +9,6 @@ import (
 	"github.com/azure/go-autorest/autorest/mocks"
 )
 
-const (
-	jsonT = `
-    {
-      "name":"Rob Pike",
-      "age":42
-    }`
-)
-
 func ExampleWithErrorUnlessOK() {
 	r := mocks.NewResponse()
 	r.Request = mocks.NewRequest()
@@ -325,18 +317,5 @@ func TestWithErrorUnlessOKEmitsErrorIfNotOK(t *testing.T) {
 
 	if err == nil {
 		t.Errorf("autorest: WithErrorUnlessOK failed to return an error for a non-OK status code (%v)", err)
-	}
-}
-
-func withErrorRespondDecorator(e *error) RespondDecorator {
-	return func(r Responder) Responder {
-		return ResponderFunc(func(resp *http.Response) error {
-			err := r.Respond(resp)
-			if err != nil {
-				return err
-			}
-			*e = fmt.Errorf("autorest: Faux Error")
-			return *e
-		})
 	}
 }

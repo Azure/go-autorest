@@ -99,6 +99,43 @@ func TestSendWithSenderRunsDecoratorsInOrder(t *testing.T) {
 	}
 }
 
+func TestCreateSender(t *testing.T) {
+	f := false
+
+	s := CreateSender(
+		(func() SendDecorator {
+			return func(s Sender) Sender {
+				return SenderFunc(func(r *http.Request) (*http.Response, error) {
+					f = true
+					return nil, nil
+				})
+			}
+		})())
+	s.Do(&http.Request{})
+
+	if !f {
+		t.Error("autorest: CreateSender failed to apply supplied decorator")
+	}
+}
+
+func TestSend(t *testing.T) {
+	f := false
+
+	Send(&http.Request{},
+		(func() SendDecorator {
+			return func(s Sender) Sender {
+				return SenderFunc(func(r *http.Request) (*http.Response, error) {
+					f = true
+					return nil, nil
+				})
+			}
+		})())
+
+	if !f {
+		t.Error("autorest: Send failed to apply supplied decorator")
+	}
+}
+
 func TestAfterDelayWaits(t *testing.T) {
 	client := mocks.NewSender()
 
@@ -148,14 +185,14 @@ func TestAsIs(t *testing.T) {
 
 	r1 := mocks.NewResponse()
 	r2, err := SendWithSender(client, mocks.NewRequest(),
-		AsIs(),
 		(func() SendDecorator {
 			return func(s Sender) Sender {
 				return SenderFunc(func(r *http.Request) (*http.Response, error) {
 					return r1, nil
 				})
 			}
-		})())
+		})(),
+		AsIs())
 	if err != nil {
 		t.Errorf("autorest: AsIs returned an unexpected error (%v)", err)
 	} else if !reflect.DeepEqual(r1, r2) {
@@ -281,6 +318,23 @@ func TestDoErrorUnlessStatusCodeIgnoresStatusCodes(t *testing.T) {
 		ByClosing())
 }
 
+func TestDoRetryForAttemptsStopsAfterSuccess(t *testing.T) {
+	client := mocks.NewSender()
+
+	r, err := SendWithSender(client, mocks.NewRequest(),
+		DoRetryForAttempts(5, time.Duration(0)))
+	if client.Attempts() != 1 {
+		t.Errorf("autorest: DoRetryForAttempts failed to stop after success -- expected attempts %v, actual %v",
+			1, client.Attempts())
+	}
+	if err != nil {
+		t.Errorf("autorest: DoRetryForAttempts returned an unexpected error (%v)", err)
+	}
+
+	Respond(r,
+		ByClosing())
+}
+
 func TestDoRetryForAttemptsStopsAfterAttempts(t *testing.T) {
 	client := mocks.NewSender()
 	client.EmitErrors(10)
@@ -312,6 +366,23 @@ func TestDoRetryForAttemptsReturnsResponse(t *testing.T) {
 
 	if r == nil {
 		t.Error("autorest: DoRetryForAttempts failed to return the underlying response")
+	}
+
+	Respond(r,
+		ByClosing())
+}
+
+func TestDoRetryForDurationStopsAfterSuccess(t *testing.T) {
+	client := mocks.NewSender()
+
+	r, err := SendWithSender(client, mocks.NewRequest(),
+		DoRetryForDuration(10*time.Millisecond, time.Duration(0)))
+	if client.Attempts() != 1 {
+		t.Errorf("autorest: DoRetryForDuration failed to stop after success -- expected attempts %v, actual %v",
+			1, client.Attempts())
+	}
+	if err != nil {
+		t.Errorf("autorest: DoRetryForDuration returned an unexpected error (%v)", err)
 	}
 
 	Respond(r,
@@ -408,29 +479,5 @@ func TestDelayForBackoffWithinReason(t *testing.T) {
 	DelayForBackoff(d, 1)
 	if time.Now().Sub(start) > (time.Duration(5.0) * d) {
 		t.Error("autorest: DelayForBackoff delayed too long (exceeded 5 times the specified duration)")
-	}
-}
-
-func doEnsureBodyClosed(t *testing.T) SendDecorator {
-	return func(s Sender) Sender {
-		return SenderFunc(func(r *http.Request) (*http.Response, error) {
-			resp, err := s.Do(r)
-			if resp != nil && resp.Body != nil && resp.Body.(*mocks.Body).IsOpen() {
-				t.Error("autorest: Expected Body to be closed -- it was left open")
-			}
-			return resp, err
-		})
-	}
-}
-
-func withMessage(output *string, msg string) SendDecorator {
-	return func(s Sender) Sender {
-		return SenderFunc(func(r *http.Request) (*http.Response, error) {
-			resp, err := s.Do(r)
-			if err == nil {
-				*output += msg
-			}
-			return resp, err
-		})
 	}
 }

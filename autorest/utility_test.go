@@ -1,8 +1,25 @@
 package autorest
 
 import (
+	"fmt"
+	"net/http"
 	"reflect"
 	"testing"
+	"time"
+
+	"github.com/azure/go-autorest/autorest/mocks"
+)
+
+const (
+	testAuthorizationHeader = "BEARER SECRETTOKEN"
+	testDelay               = 0 * time.Second
+	testBadUrl              = ""
+	testUrl                 = "https://microsoft.com/a/b/c/"
+	jsonT                   = `
+    {
+      "name":"Rob Pike",
+      "age":42
+    }`
 )
 
 func TestContainsIntFindsValue(t *testing.T) {
@@ -52,5 +69,85 @@ func TestEnsureStrings(t *testing.T) {
 	v := ensureValueStrings(m)
 	if !reflect.DeepEqual(v, r) {
 		t.Errorf("autorest: ensureValueStrings returned %v\n", v)
+	}
+}
+
+func addAcceptedHeaders(resp *http.Response) {
+	mocks.AddResponseHeader(resp, http.CanonicalHeaderKey(headerLocation), testUrl)
+	mocks.AddResponseHeader(resp, http.CanonicalHeaderKey(headerRetryAfter), fmt.Sprintf("%v", int(testDelay.Seconds())))
+}
+
+func doEnsureBodyClosed(t *testing.T) SendDecorator {
+	return func(s Sender) Sender {
+		return SenderFunc(func(r *http.Request) (*http.Response, error) {
+			resp, err := s.Do(r)
+			if resp != nil && resp.Body != nil && resp.Body.(*mocks.Body).IsOpen() {
+				t.Error("autorest: Expected Body to be closed -- it was left open")
+			}
+			return resp, err
+		})
+	}
+}
+
+type mockAuthorizer struct{}
+
+func (ma mockAuthorizer) WithAuthorization() PrepareDecorator {
+	return WithHeader(headerAuthorization, testAuthorizationHeader)
+}
+
+type mockFailingAuthorizer struct{}
+
+func (mfa mockFailingAuthorizer) WithAuthorization() PrepareDecorator {
+	return func(p Preparer) Preparer {
+		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
+			return r, fmt.Errorf("ERROR: mockFailingAuthorizer returned expected error")
+		})
+	}
+}
+
+func withMessage(output *string, msg string) SendDecorator {
+	return func(s Sender) Sender {
+		return SenderFunc(func(r *http.Request) (*http.Response, error) {
+			resp, err := s.Do(r)
+			if err == nil {
+				*output += msg
+			}
+			return resp, err
+		})
+	}
+}
+
+type mockInspector struct {
+	wasInvoked bool
+}
+
+func (mi *mockInspector) WithInspection() PrepareDecorator {
+	return func(p Preparer) Preparer {
+		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
+			mi.wasInvoked = true
+			return p.Prepare(r)
+		})
+	}
+}
+
+func (mi *mockInspector) ByInspecting() RespondDecorator {
+	return func(r Responder) Responder {
+		return ResponderFunc(func(resp *http.Response) error {
+			mi.wasInvoked = true
+			return r.Respond(resp)
+		})
+	}
+}
+
+func withErrorRespondDecorator(e *error) RespondDecorator {
+	return func(r Responder) Responder {
+		return ResponderFunc(func(resp *http.Response) error {
+			err := r.Respond(resp)
+			if err != nil {
+				return err
+			}
+			*e = fmt.Errorf("autorest: Faux Error")
+			return *e
+		})
 	}
 }
