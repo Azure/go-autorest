@@ -1,7 +1,6 @@
 package autorest
 
 import (
-	"fmt"
 	"log"
 	"math"
 	"net/http"
@@ -120,7 +119,7 @@ func DoErrorIfStatusCode(codes ...int) SendDecorator {
 		return SenderFunc(func(r *http.Request) (*http.Response, error) {
 			resp, err := s.Do(r)
 			if err == nil && ResponseHasStatusCode(resp, codes...) {
-				err = fmt.Errorf("autorest: %v request to %v failed with StatusCode %s",
+				err = NewError("autorest", "DoErrorIfStatusCode", "%v %v failed with %s",
 					resp.Request.Method,
 					resp.Request.URL,
 					resp.Status)
@@ -138,7 +137,7 @@ func DoErrorUnlessStatusCode(codes ...int) SendDecorator {
 		return SenderFunc(func(r *http.Request) (*http.Response, error) {
 			resp, err := s.Do(r)
 			if err == nil && !ResponseHasStatusCode(resp, codes...) {
-				err = fmt.Errorf("autorest: %v request to %v failed with StatusCode %s",
+				err = NewError("autorest", "DoErrorUnlessStatusCode", "%v %v failed with %s",
 					resp.Request.Method,
 					resp.Request.URL,
 					resp.Status)

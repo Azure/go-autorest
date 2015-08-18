@@ -82,6 +82,13 @@ func TestDateTimeString(t *testing.T) {
 	}
 }
 
+func TestDateTimeStringReturnsEmptyStringForError(t *testing.T) {
+	d := DateTime{Time: time.Date(20000, 01, 01, 01, 01, 01, 01, time.UTC)}
+	if d.String() != "" {
+		t.Errorf("date: DateTime#String failed empty string for an error")
+	}
+}
+
 func TestDateTimeBinaryRoundTrip(t *testing.T) {
 	d1, err := ParseDateTime("2001-02-03T04:05:06Z")
 	t1, err := d1.MarshalBinary()

@@ -1,7 +1,6 @@
 package autorest
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 )
@@ -12,7 +11,7 @@ const (
 	DefaultPollingDelay = 60 * time.Second
 
 	// The default total polling duration.
-	DefaultPollingDuration = 10 * time.Minute
+	DefaultPollingDuration = 15 * time.Minute
 )
 
 // PollingMode sets how, if at all, clients composed with Client will poll.
@@ -42,10 +41,10 @@ type ResponseInspector interface {
 }
 
 var (
-	// Generated clients should compose using the DefaultClient instead of allocating a new Client
-	// instance. Users can then established widely used Client defaults by replacing or modifying the
-	// DefaultClient before instantiating a generated client.
-	DefaultClient = &Client{PollingMode: PollUntilDuration, PollingDuration: DefaultPollingDuration}
+	// Generated clients should compose using an instance of Client initialized from the
+	// DefaultClient. Users can then established widely used Client defaults by replacing or modifying
+	// the DefaultClient before instantiating a generated client.
+	DefaultClient = Client{PollingMode: PollUntilDuration, PollingDuration: DefaultPollingDuration}
 )
 
 // Client is the base for autorest generated clients. It provides default, "do nothing"
@@ -68,29 +67,35 @@ type Client struct {
 	PollingDuration time.Duration
 }
 
-// ShouldPoll returns true if the client allows polling and the passed http.Response requires it,
-// otherwise it returns false.
-func (c *Client) ShouldPoll(resp *http.Response, codes ...int) bool {
-	return !c.DoNotPoll() && ResponseRequiresPolling(resp, codes...)
+// ShouldPoll returns an error if the client allows polling and the passed http.Response requires
+// it, otherwise it returns nil.
+func (c Client) ShouldPoll(resp *http.Response, codes ...int) error {
+	if !c.DoNotPoll() && ResponseRequiresPolling(resp, codes...) {
+		return nil
+	} else {
+		return NewError("autorest.Client", "ShouldPoll", "Response to %s requires polling but polling is disabled",
+			resp.Request.URL)
+	}
 }
 
 // PollAsNeeded is a convenience method that will poll if the passed http.Response requires it.
-func (c *Client) PollAsNeeded(resp *http.Response, codes ...int) (*http.Response, error) {
+func (c Client) PollAsNeeded(resp *http.Response, codes ...int) (*http.Response, error) {
 	if !ResponseRequiresPolling(resp, codes...) {
 		return resp, nil
 	}
 
 	if c.DoNotPoll() {
-		return resp, fmt.Errorf("autorest: Polling for %s is required, but polling is disabled", resp.Request.URL)
+		return resp, NewError("autorest.Client", "PollAsNeeded", "Polling for %s is required, but polling is disabled",
+			resp.Request.URL)
 	}
 
-	req, err := CreatePollingRequest(resp, c)
+	req, err := NewPollingRequest(resp, c)
 	if err != nil {
-		return resp, fmt.Errorf("autorest: Unable to create polling request for response to %s (%v)",
-			resp.Request.URL, err)
+		return resp, NewErrorWithError(err, "autorest.Client", "PollAsNeeded", "Unable to create polling request for response to %s",
+			resp.Request.URL)
 	}
 
-	delay := GetRetryDelay(resp, DefaultPollingDelay)
+	delay := GetPollingDelay(resp, DefaultPollingDelay)
 
 	Prepare(req,
 		c.WithInspection())
@@ -117,27 +122,39 @@ func (c Client) PollForDuration() bool {
 	return c.PollingMode == PollUntilDuration
 }
 
-// Do is a convenience method that invokes the Sender of the Client. If no Sender is set, it will
-// be set to the default http.Client.
-func (c *Client) Do(r *http.Request) (*http.Response, error) {
+// Do is a convenience method that invokes the Sender of the Client. If no Sender is set, it uses
+// a new instance of http.Client.
+func (c Client) Do(r *http.Request) (*http.Response, error) {
+	return c.sender().Do(r)
+}
+
+// sender returns the Sender to which to send requests.
+func (c Client) sender() Sender {
 	if c.Sender == nil {
-		c.Sender = &http.Client{}
+		return &http.Client{}
+	} else {
+		return c.Sender
 	}
-	return c.Sender.Do(r)
 }
 
 // WithAuthorization is a convenience method that returns the WithAuthorization PrepareDecorator
-// from the current Authorizer. If not Authorizer is set, it sets it to the NullAuthorizer.
-func (c *Client) WithAuthorization() PrepareDecorator {
+// from the current Authorizer. If not Authorizer is set, it uses the NullAuthorizer.
+func (c Client) WithAuthorization() PrepareDecorator {
+	return c.authorizer().WithAuthorization()
+}
+
+// authorizer returns the Authorizer to use.
+func (c Client) authorizer() Authorizer {
 	if c.Authorizer == nil {
-		c.Authorizer = NullAuthorizer{}
+		return NullAuthorizer{}
+	} else {
+		return c.Authorizer
 	}
-	return c.Authorizer.WithAuthorization()
 }
 
 // WithInspection is a convenience method that passes the request to the supplied RequestInspector,
 // if present, or returns the WithNothing PrepareDecorator otherwise.
-func (c *Client) WithInspection() PrepareDecorator {
+func (c Client) WithInspection() PrepareDecorator {
 	if c.RequestInspector == nil {
 		return WithNothing()
 	} else {
@@ -147,7 +164,7 @@ func (c *Client) WithInspection() PrepareDecorator {
 
 // ByInspecting is a convenience method that passes the response to the supplied ResponseInspector,
 // if present, or returns the ByIgnoring RespondDecorator otherwise.
-func (c *Client) ByInspecting() RespondDecorator {
+func (c Client) ByInspecting() RespondDecorator {
 	if c.ResponseInspector == nil {
 		return ByIgnoring()
 	} else {

@@ -1,7 +1,6 @@
 package azure
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -113,19 +112,18 @@ func (spt *ServicePrincipalToken) Refresh() error {
 	v.Set("grant_type", "client_credentials")
 	v.Set("resource", spt.resource)
 
-	req, err := autorest.Prepare(&http.Request{},
+	req, _ := autorest.Prepare(&http.Request{},
 		autorest.AsPost(),
 		autorest.AsFormUrlEncoded(),
 		autorest.WithBaseURL(oauthUrl),
 		autorest.WithPathParameters(p),
 		autorest.WithFormData(v))
-	if err != nil {
-		return fmt.Errorf("azure: Failed to create refresh request for Service Principal %s (%v)", spt.clientId, err)
-	}
 
 	resp, err := autorest.SendWithSender(spt.sender, req)
 	if err != nil {
-		return fmt.Errorf("azure: Token request for Service Principal %s failed (%v)", spt.clientId, err)
+		return autorest.NewErrorWithError(err,
+			"azure.ServicePrincipalToken", "Refresh", "Failure sending request for Service Principal %s",
+			spt.clientId)
 	}
 
 	err = autorest.Respond(resp,
@@ -133,7 +131,9 @@ func (spt *ServicePrincipalToken) Refresh() error {
 		autorest.ByUnmarshallingJSON(spt),
 		autorest.ByClosing())
 	if err != nil {
-		return fmt.Errorf("azure: Token request for Service Principal %s returned an unexpected error (%v)", spt.clientId, err)
+		return autorest.NewErrorWithError(err,
+			"azure.ServicePrincipalToken", "Refresh", "Failure handling response to Service Principal %s request",
+			spt.clientId)
 	}
 
 	return nil
@@ -169,7 +169,9 @@ func (spt *ServicePrincipalToken) WithAuthorization() autorest.PrepareDecorator 
 			if spt.autoRefresh {
 				err := spt.EnsureFresh()
 				if err != nil {
-					return r, fmt.Errorf("azure: Failed to refresh Service Principal Token for request to %s (%v)", r.URL, err)
+					return r, autorest.NewErrorWithError(err,
+						"azure.ServicePrincipalToken", "WithAuthorization", "Failed to refresh Service Principal Token for request to %s",
+						r.URL)
 				}
 			}
 			return (autorest.WithBearerAuthorization(spt.AccessToken)(p)).Prepare(r)

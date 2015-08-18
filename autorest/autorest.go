@@ -50,6 +50,8 @@
   github.com/azure/go-autorest/autorest/date package provides time.Time derivations to ensure
   correct parsing and formatting.
 
+  Errors raised by autorest objects and methods will conform to the autorest.Error interface.
+
   See the included examples for more detail. For details on the suggested use of this package by
   generated clients, see the Client described below.
 
@@ -57,7 +59,6 @@
 package autorest
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 )
@@ -88,13 +89,13 @@ func ResponseRequiresPolling(resp *http.Response, codes ...int) bool {
 	return ResponseHasStatusCode(resp, codes...)
 }
 
-// CreatePollingRequest allocates and returns a new http.Request for use in polling. The
-// http.Response must include a Location header. The method will close the Body of the passed
-// http.Reponse.
-func CreatePollingRequest(resp *http.Response, authorizer Authorizer) (*http.Request, error) {
-	location := resp.Header.Get(headerLocation)
+// NewPollingRequest allocates and returns a new http.Request to poll for the passed response. If
+// it successfully creates the request, it will also close the body of the passed response,
+// otherwise the body remains open.
+func NewPollingRequest(resp *http.Response, authorizer Authorizer) (*http.Request, error) {
+	location := GetPollingLocation(resp)
 	if location == "" {
-		return nil, fmt.Errorf("autorest: Missing Location header in poll request to %s", resp.Request.URL)
+		return nil, NewError("autorest", "NewPollingRequest", "Location header missing from response that requires polling")
 	}
 
 	req, err := Prepare(&http.Request{},
@@ -102,7 +103,7 @@ func CreatePollingRequest(resp *http.Response, authorizer Authorizer) (*http.Req
 		WithBaseURL(location),
 		authorizer.WithAuthorization())
 	if err != nil {
-		return nil, fmt.Errorf("autorest: Failure creating poll request to %s (%v)", location, err)
+		return nil, NewErrorWithError(err, "autorest", "NewPollingRequest", "Failure creating poll request to %s", location)
 	}
 
 	Respond(resp,
@@ -111,9 +112,14 @@ func CreatePollingRequest(resp *http.Response, authorizer Authorizer) (*http.Req
 	return req, nil
 }
 
-// GetRetryDelay extracts the polling delay from the Retry-After header of the passed request. If
+// GetPollingLocation retrieves the polling URL from the Location header of the passed response.
+func GetPollingLocation(resp *http.Response) string {
+	return resp.Header.Get(headerLocation)
+}
+
+// GetPollingDelay extracts the polling delay from the Retry-After header of the passed response. If
 // the header is absent or is malformed, it will return the supplied default delay time.Duration.
-func GetRetryDelay(resp *http.Response, defaultDelay time.Duration) time.Duration {
+func GetPollingDelay(resp *http.Response, defaultDelay time.Duration) time.Duration {
 	retry := resp.Header.Get(headerRetryAfter)
 	if retry == "" {
 		return defaultDelay

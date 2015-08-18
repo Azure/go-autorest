@@ -22,7 +22,7 @@ func TestTokenExpires(t *testing.T) {
 	tk := newTokenExpiresAt(tt)
 
 	if tk.Expires().Equal(tt) {
-		t.Errorf("azure: Token miscalculated expiration time -- received %v, expected %v", tk.Expires(), tt)
+		t.Errorf("azure: Token#Expires miscalculated expiration time -- received %v, expected %v", tk.Expires(), tt)
 	}
 }
 
@@ -30,7 +30,8 @@ func TestTokenIsExpired(t *testing.T) {
 	tk := newTokenExpiresAt(time.Now().Add(-5 * time.Second))
 
 	if !tk.IsExpired() {
-		t.Errorf("azure: Token failed to mark a stale token as expired -- now %v, token expires at %v", time.Now().UTC(), tk.Expires())
+		t.Errorf("azure: Token#IsExpired failed to mark a stale token as expired -- now %v, token expires at %v",
+			time.Now().UTC(), tk.Expires())
 	}
 }
 
@@ -55,7 +56,7 @@ func TestTokenWillExpireIn(t *testing.T) {
 	tk := newTokenExpiresIn(d)
 
 	if !tk.WillExpireIn(d) {
-		t.Error("azure: Token mismeasured expiration time")
+		t.Error("azure: Token#WillExpireIn mismeasured expiration time")
 	}
 }
 
@@ -64,9 +65,9 @@ func TestTokenWithAuthorization(t *testing.T) {
 
 	req, err := autorest.Prepare(&http.Request{}, tk.WithAuthorization())
 	if err != nil {
-		t.Errorf("azure: Token WithAuthorization returned an error (%v)", err)
+		t.Errorf("azure: Token#WithAuthorization returned an error (%v)", err)
 	} else if req.Header.Get(http.CanonicalHeaderKey("Authorization")) != fmt.Sprintf("Bearer %s", tk.AccessToken) {
-		t.Error("azure: Token WithAuthorization failed to set Authorization header")
+		t.Error("azure: Token#WithAuthorization failed to set Authorization header")
 	}
 }
 
@@ -100,7 +101,7 @@ func TestServicePrincipalTokenSetSender(t *testing.T) {
 	spt := newServicePrincipalToken()
 
 	var s autorest.Sender
-	s = mocks.NewClient()
+	s = mocks.NewSender()
 	spt.SetSender(s)
 	if !reflect.DeepEqual(s, spt.sender) {
 		t.Error("azure: ServicePrincipalToken#SetSender did not set the sender")
@@ -110,7 +111,7 @@ func TestServicePrincipalTokenSetSender(t *testing.T) {
 func TestServicePrincipalTokenRefreshUsesPOST(t *testing.T) {
 	spt := newServicePrincipalToken()
 
-	c := mocks.NewClient()
+	c := mocks.NewSender()
 	s := autorest.DecorateSender(c,
 		(func() autorest.SendDecorator {
 			return func(s autorest.Sender) autorest.Sender {
@@ -129,7 +130,7 @@ func TestServicePrincipalTokenRefreshUsesPOST(t *testing.T) {
 func TestServicePrincipalTokenRefreshSetsMimeType(t *testing.T) {
 	spt := newServicePrincipalToken()
 
-	c := mocks.NewClient()
+	c := mocks.NewSender()
 	s := autorest.DecorateSender(c,
 		(func() autorest.SendDecorator {
 			return func(s autorest.Sender) autorest.Sender {
@@ -150,7 +151,7 @@ func TestServicePrincipalTokenRefreshSetsMimeType(t *testing.T) {
 func TestServicePrincipalTokenRefreshSetsURL(t *testing.T) {
 	spt := newServicePrincipalToken()
 
-	c := mocks.NewClient()
+	c := mocks.NewSender()
 	s := autorest.DecorateSender(c,
 		(func() autorest.SendDecorator {
 			return func(s autorest.Sender) autorest.Sender {
@@ -171,7 +172,7 @@ func TestServicePrincipalTokenRefreshSetsURL(t *testing.T) {
 func TestServicePrincipalTokenRefreshSetsBody(t *testing.T) {
 	spt := newServicePrincipalToken()
 
-	c := mocks.NewClient()
+	c := mocks.NewSender()
 	s := autorest.DecorateSender(c,
 		(func() autorest.SendDecorator {
 			return func(s autorest.Sender) autorest.Sender {
@@ -195,7 +196,7 @@ func TestServicePrincipalTokenRefreshClosesRequestBody(t *testing.T) {
 	spt := newServicePrincipalToken()
 
 	resp := mocks.NewResponse()
-	c := mocks.NewClient()
+	c := mocks.NewSender()
 	s := autorest.DecorateSender(c,
 		(func() autorest.SendDecorator {
 			return func(s autorest.Sender) autorest.Sender {
@@ -215,7 +216,7 @@ func TestServicePrincipalTokenRefreshClosesRequestBody(t *testing.T) {
 func TestServicePrincipalTokenRefreshPropagatesErrors(t *testing.T) {
 	spt := newServicePrincipalToken()
 
-	c := mocks.NewClient()
+	c := mocks.NewSender()
 	c.EmitErrors(1)
 	spt.SetSender(c)
 
@@ -228,7 +229,7 @@ func TestServicePrincipalTokenRefreshPropagatesErrors(t *testing.T) {
 func TestServicePrincipalTokenRefreshReturnsErrorIfNotOk(t *testing.T) {
 	spt := newServicePrincipalToken()
 
-	c := mocks.NewClient()
+	c := mocks.NewSender()
 	c.EmitStatus("401 NotAuthorized", 401)
 	spt.SetSender(c)
 
@@ -244,7 +245,7 @@ func TestServicePrincipalTokenRefreshUnmarshals(t *testing.T) {
 	expiresOn := strconv.Itoa(int(time.Now().Add(3600 * time.Second).Sub(expirationBase).Seconds()))
 	j := newTokenJSON(expiresOn, "resource")
 	resp := mocks.NewResponseWithContent(j)
-	c := mocks.NewClient()
+	c := mocks.NewSender()
 	s := autorest.DecorateSender(c,
 		(func() autorest.SendDecorator {
 			return func(s autorest.Sender) autorest.Sender {
@@ -266,6 +267,71 @@ func TestServicePrincipalTokenRefreshUnmarshals(t *testing.T) {
 		spt.Type != "Bearer" {
 		t.Errorf("azure: ServicePrincipalToken#Refresh failed correctly unmarshal the JSON -- expected %v, received %v",
 			j, *spt)
+	}
+}
+
+func TestServicePrincipalTokenEnsureFreshRefreshes(t *testing.T) {
+	spt := newServicePrincipalToken()
+	expireToken(&spt.Token)
+
+	f := false
+	c := mocks.NewSender()
+	s := autorest.DecorateSender(c,
+		(func() autorest.SendDecorator {
+			return func(s autorest.Sender) autorest.Sender {
+				return autorest.SenderFunc(func(r *http.Request) (*http.Response, error) {
+					f = true
+					return mocks.NewResponse(), nil
+				})
+			}
+		})())
+	spt.SetSender(s)
+	spt.EnsureFresh()
+	if !f {
+		t.Error("azure: ServicePrincipalToken#EnsureFresh failed to call Refresh for stale token")
+	}
+}
+
+func TestServicePrincipalTokenEnsureFreshSkipsIfFresh(t *testing.T) {
+	spt := newServicePrincipalToken()
+	setTokenToExpireIn(&spt.Token, 1000*time.Second)
+
+	f := false
+	c := mocks.NewSender()
+	s := autorest.DecorateSender(c,
+		(func() autorest.SendDecorator {
+			return func(s autorest.Sender) autorest.Sender {
+				return autorest.SenderFunc(func(r *http.Request) (*http.Response, error) {
+					f = true
+					return mocks.NewResponse(), nil
+				})
+			}
+		})())
+	spt.SetSender(s)
+	spt.EnsureFresh()
+	if f {
+		t.Error("azure: ServicePrincipalToken#EnsureFresh invoked Refresh for fresh token")
+	}
+}
+
+func TestServicePrincipalTokenWithAuthorization(t *testing.T) {
+	spt := newServicePrincipalToken()
+	setTokenToExpireIn(&spt.Token, 1000*time.Second)
+
+	req, err := autorest.Prepare(&http.Request{}, spt.WithAuthorization())
+	if err != nil {
+		t.Errorf("azure: ServicePrincipalToken#WithAuthorization returned an error (%v)", err)
+	} else if req.Header.Get(http.CanonicalHeaderKey("Authorization")) != fmt.Sprintf("Bearer %s", spt.AccessToken) {
+		t.Error("azure: ServicePrincipalToken#WithAuthorization failed to set Authorization header")
+	}
+}
+
+func TestServicePrincipalTokenWithAuthorizationReturnsErrorIfCannotRefresh(t *testing.T) {
+	spt := newServicePrincipalToken()
+
+	_, err := autorest.Prepare(&http.Request{}, spt.WithAuthorization())
+	if err == nil {
+		t.Error("azure: ServicePrincipalToken#WithAuthorization failed to return an error when refresh fails")
 	}
 }
 

@@ -175,3 +175,27 @@ func TestDateToTime(t *testing.T) {
 		t.Errorf("date: ToTime failed to return a time.Time")
 	}
 }
+
+func TestDateUnmarshalJSONReturnsError(t *testing.T) {
+	var d struct {
+		Date Date `json:"date"`
+	}
+	j := `{
+    "date" : "February 3, 2001"
+  }`
+
+	err := json.Unmarshal([]byte(j), &d)
+	if err == nil {
+		t.Error("date: Date failed to return error for malformed JSON date")
+	}
+}
+
+func TestDateUnmarshalTextReturnsError(t *testing.T) {
+	d := Date{}
+	txt := "February 3, 2001"
+
+	err := d.UnmarshalText([]byte(txt))
+	if err == nil {
+		t.Error("date: Date failed to return error for malformed Text date")
+	}
+}

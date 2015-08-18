@@ -1,6 +1,7 @@
 package autorest
 
 import (
+	"fmt"
 	"net/http"
 	"reflect"
 	"testing"
@@ -10,34 +11,37 @@ import (
 )
 
 func TestClientShouldPoll(t *testing.T) {
-	c := &Client{PollingMode: PollUntilAttempts}
+	c := Client{PollingMode: PollUntilAttempts}
 	r := mocks.NewResponseWithStatus("202 Accepted", 202)
 
-	if !c.ShouldPoll(r) {
-		t.Error("autorest: Client#ShouldPoll failed to return true for an http.Response that requires polling")
+	err := c.ShouldPoll(r)
+	if err != nil {
+		t.Errorf("autorest: Client#ShouldPoll returned an error for an http.Response that requires polling (%v)", err)
 	}
 }
 
 func TestClientShouldPollIgnoresOk(t *testing.T) {
-	c := &Client{PollingMode: PollUntilAttempts}
+	c := Client{PollingMode: PollUntilAttempts}
 	r := mocks.NewResponse()
 
-	if c.ShouldPoll(r) {
-		t.Error("autorest: Client#ShouldPoll failed to return false for an http.Response that does not require polling")
+	err := c.ShouldPoll(r)
+	if err == nil {
+		t.Error("autorest: Client#ShouldPoll failed to return an error for an http.Response that does not require polling")
 	}
 }
 
 func TestClientShouldPollIgnoredPollingMode(t *testing.T) {
-	c := &Client{PollingMode: DoNotPoll}
+	c := Client{PollingMode: DoNotPoll}
 	r := mocks.NewResponse()
 
-	if c.ShouldPoll(r) {
-		t.Error("autorest: Client#ShouldPoll failed to return false when polling is disabled")
+	err := c.ShouldPoll(r)
+	if err == nil {
+		t.Error("autorest: Client#ShouldPoll failed to return an error when polling is disabled")
 	}
 }
 
 func TestClientPollAsNeededIgnoresOk(t *testing.T) {
-	c := &Client{}
+	c := Client{}
 	s := mocks.NewSender()
 	c.Sender = s
 	r := mocks.NewResponse()
@@ -55,7 +59,7 @@ func TestClientPollAsNeededIgnoresOk(t *testing.T) {
 }
 
 func TestClientPollAsNeededLeavesBodyOpen(t *testing.T) {
-	c := &Client{}
+	c := Client{}
 	c.Sender = mocks.NewSender()
 	r := mocks.NewResponse()
 
@@ -72,7 +76,7 @@ func TestClientPollAsNeededLeavesBodyOpen(t *testing.T) {
 }
 
 func TestClientPollAsNeededReturnsErrorWhenPollingDisabled(t *testing.T) {
-	c := &Client{}
+	c := Client{}
 	c.Sender = mocks.NewSender()
 	c.PollingMode = DoNotPoll
 
@@ -89,7 +93,7 @@ func TestClientPollAsNeededReturnsErrorWhenPollingDisabled(t *testing.T) {
 }
 
 func TestClientPollAsNeededAllowsInspectionOfRequest(t *testing.T) {
-	c := &Client{}
+	c := Client{}
 	c.Sender = mocks.NewSender()
 	c.PollingMode = PollUntilAttempts
 	c.PollingAttempts = 1
@@ -110,7 +114,7 @@ func TestClientPollAsNeededAllowsInspectionOfRequest(t *testing.T) {
 }
 
 func TestClientPollAsNeededReturnsErrorIfUnableToCreateRequest(t *testing.T) {
-	c := &Client{}
+	c := Client{}
 	c.Authorizer = mockFailingAuthorizer{}
 	c.Sender = mocks.NewSender()
 	c.PollingMode = PollUntilAttempts
@@ -129,7 +133,7 @@ func TestClientPollAsNeededReturnsErrorIfUnableToCreateRequest(t *testing.T) {
 }
 
 func TestClientPollAsNeededPollsForAttempts(t *testing.T) {
-	c := &Client{}
+	c := Client{}
 	c.PollingMode = PollUntilAttempts
 	c.PollingAttempts = 5
 
@@ -151,7 +155,7 @@ func TestClientPollAsNeededPollsForAttempts(t *testing.T) {
 }
 
 func TestClientPollAsNeededPollsForDuration(t *testing.T) {
-	c := &Client{}
+	c := Client{}
 	c.PollingMode = PollUntilDuration
 	c.PollingDuration = 10 * time.Millisecond
 
@@ -176,7 +180,7 @@ func TestClientPollAsNeededPollsForDuration(t *testing.T) {
 }
 
 func TestClientDoNotPoll(t *testing.T) {
-	c := &Client{}
+	c := Client{}
 
 	if !c.DoNotPoll() {
 		t.Errorf("autorest: Client requested polling by default, expected no polling (%v)", c.PollingMode)
@@ -184,7 +188,7 @@ func TestClientDoNotPoll(t *testing.T) {
 }
 
 func TestClientDoNotPollForAttempts(t *testing.T) {
-	c := &Client{}
+	c := Client{}
 	c.PollingMode = PollUntilAttempts
 
 	if c.DoNotPoll() {
@@ -193,7 +197,7 @@ func TestClientDoNotPollForAttempts(t *testing.T) {
 }
 
 func TestClientDoNotPollForDuration(t *testing.T) {
-	c := &Client{}
+	c := Client{}
 	c.PollingMode = PollUntilDuration
 
 	if c.DoNotPoll() {
@@ -202,7 +206,7 @@ func TestClientDoNotPollForDuration(t *testing.T) {
 }
 
 func TestClientPollForAttempts(t *testing.T) {
-	c := &Client{}
+	c := Client{}
 	c.PollingMode = PollUntilAttempts
 
 	if !c.PollForAttempts() {
@@ -211,7 +215,7 @@ func TestClientPollForAttempts(t *testing.T) {
 }
 
 func TestClientPollForDuration(t *testing.T) {
-	c := &Client{}
+	c := Client{}
 	c.PollingMode = PollUntilDuration
 
 	if !c.PollForDuration() {
@@ -219,17 +223,56 @@ func TestClientPollForDuration(t *testing.T) {
 	}
 }
 
-func TestClientDoSetsDefaultSender(t *testing.T) {
-	c := &Client{}
+func TestClientSenderReturnsHttpClientByDefault(t *testing.T) {
+	c := Client{}
+
+	if fmt.Sprintf("%T", c.sender()) != "*http.Client" {
+		t.Error("autorest: Client#sender failed to return http.Client by default")
+	}
+}
+
+func TestClientSenderReturnsSetSender(t *testing.T) {
+	c := Client{}
+
+	s := mocks.NewSender()
+	c.Sender = s
+
+	if c.sender() != s {
+		t.Error("autorest: Client#sender failed to return set Sender")
+	}
+}
+
+func TestClientDoInvokesSender(t *testing.T) {
+	c := Client{}
+
+	s := mocks.NewSender()
+	c.Sender = s
 
 	c.Do(&http.Request{})
-	if !reflect.DeepEqual(c.Sender, &http.Client{}) {
-		t.Error("autorest: Client#Do failed to set the default Sender to the http.Client")
+	if s.Attempts() != 1 {
+		t.Error("autorest: Client#Do failed to invoke the Sender")
+	}
+}
+
+func TestClientAuthorizerReturnsNullAuthorizerByDefault(t *testing.T) {
+	c := Client{}
+
+	if fmt.Sprintf("%T", c.authorizer()) != "autorest.NullAuthorizer" {
+		t.Error("autorest: Client#authorizer failed to return the NullAuthorizer by default")
+	}
+}
+
+func TestClientAuthorizerReturnsSetAuthorizer(t *testing.T) {
+	c := Client{}
+	c.Authorizer = mockAuthorizer{}
+
+	if fmt.Sprintf("%T", c.authorizer()) != "autorest.mockAuthorizer" {
+		t.Error("autorest: Client#authorizer failed to return the set Authorizer")
 	}
 }
 
 func TestClientWithAuthorizer(t *testing.T) {
-	c := &Client{}
+	c := Client{}
 	c.Authorizer = mockAuthorizer{}
 
 	req, _ := Prepare(&http.Request{},
@@ -240,19 +283,8 @@ func TestClientWithAuthorizer(t *testing.T) {
 	}
 }
 
-func TestClientWithAuthorizerSetsDefaultAuthorizer(t *testing.T) {
-	c := &Client{}
-
-	Prepare(&http.Request{},
-		c.WithAuthorization())
-
-	if !reflect.DeepEqual(c.Authorizer, NullAuthorizer{}) {
-		t.Error("autorest: Client#WithAuthorizer failed to set the default Authorizer to the NullAuthorizer")
-	}
-}
-
 func TestClientWithInspection(t *testing.T) {
-	c := &Client{}
+	c := Client{}
 	r := &mockInspector{}
 	c.RequestInspector = r
 
@@ -265,7 +297,7 @@ func TestClientWithInspection(t *testing.T) {
 }
 
 func TestClientWithInspectionSetsDefault(t *testing.T) {
-	c := &Client{}
+	c := Client{}
 
 	r1 := &http.Request{}
 	r2, _ := Prepare(r1,
@@ -277,7 +309,7 @@ func TestClientWithInspectionSetsDefault(t *testing.T) {
 }
 
 func TestClientByInspecting(t *testing.T) {
-	c := &Client{}
+	c := Client{}
 	r := &mockInspector{}
 	c.ResponseInspector = r
 
@@ -290,7 +322,7 @@ func TestClientByInspecting(t *testing.T) {
 }
 
 func TestClientByInspectingSetsDefault(t *testing.T) {
-	c := &Client{}
+	c := Client{}
 
 	r := &http.Response{}
 	Respond(r,

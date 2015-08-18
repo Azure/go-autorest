@@ -62,7 +62,7 @@ func DecoratePreparer(p Preparer, decorators ...PrepareDecorator) Preparer {
 // It creates a Preparer from the decorators which it then applies to the passed http.Request.
 func Prepare(r *http.Request, decorators ...PrepareDecorator) (*http.Request, error) {
 	if r == nil {
-		return nil, fmt.Errorf("autorest: Prepare invoked without an http.Request")
+		return nil, NewError("autorest", "Prepare", "Invoked without an http.Request")
 	} else {
 		return CreatePreparer(decorators...).Prepare(r)
 	}
@@ -211,7 +211,7 @@ func WithPath(path string) PrepareDecorator {
 			r, err := p.Prepare(r)
 			if err == nil {
 				if r.URL == nil {
-					return r, fmt.Errorf("autorest: WithPath invoked with a nil URL")
+					return r, NewError("autorest", "WithPath", "Invoked with a nil URL")
 				}
 				u := r.URL
 				u.Path = strings.TrimRight(u.Path, "/")
@@ -236,7 +236,7 @@ func WithEscapedPathParameters(pathParameters map[string]interface{}) PrepareDec
 			r, err := p.Prepare(r)
 			if err == nil {
 				if r.URL == nil {
-					return r, fmt.Errorf("autorest: WithEscapedPathParameters invoked with a nil URL")
+					return r, NewError("autorest", "WithEscapedPathParameters", "Invoked with a nil URL")
 				}
 				for key, value := range parameters {
 					r.URL.Path = strings.Replace(r.URL.Path, "{"+key+"}", value, -1)
@@ -256,7 +256,7 @@ func WithPathParameters(pathParameters map[string]interface{}) PrepareDecorator 
 			r, err := p.Prepare(r)
 			if err == nil {
 				if r.URL == nil {
-					return r, fmt.Errorf("autorest: WithPathParameters invoked with a nil URL")
+					return r, NewError("autorest", "WithPathParameters", "Invoked with a nil URL")
 				}
 				for key, value := range parameters {
 					r.URL.Path = strings.Replace(r.URL.Path, "{"+key+"}", value, -1)
@@ -276,7 +276,7 @@ func WithQueryParameters(queryParameters map[string]interface{}) PrepareDecorato
 			r, err := p.Prepare(r)
 			if err == nil {
 				if r.URL == nil {
-					return r, fmt.Errorf("autorest: WithQueryParameters invoked with a nil URL")
+					return r, NewError("autorest", "WithQueryParameters", "Invoked with a nil URL")
 				}
 				v := r.URL.Query()
 				for key, value := range parameters {
