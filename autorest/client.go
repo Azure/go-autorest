@@ -171,3 +171,9 @@ func (c Client) ByInspecting() RespondDecorator {
 		return c.ResponseInspector.ByInspecting()
 	}
 }
+
+// Response serves as the base for all responses from generated clients. It provides access to the
+// last http.Response.
+type Response struct {
+	*http.Response `json:"-"`
+}
