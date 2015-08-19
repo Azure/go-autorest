@@ -8,21 +8,21 @@ import (
 	"time"
 )
 
-func ExampleParseDateTime() {
-	d, _ := ParseDateTime("2001-02-03T04:05:06Z")
+func ExampleParseTime() {
+	d, _ := ParseTime("2001-02-03T04:05:06Z")
 	fmt.Println(d)
 	// Output: 2001-02-03T04:05:06Z
 }
 
-func ExampleDateTime_MarshalBinary() {
-	d, _ := ParseDateTime("2001-02-03T04:05:06Z")
+func ExampleTime_MarshalBinary() {
+	d, _ := ParseTime("2001-02-03T04:05:06Z")
 	t, _ := d.MarshalBinary()
 	fmt.Println(string(t))
 	// Output: 2001-02-03T04:05:06Z
 }
 
-func ExampleDateTime_UnmarshalBinary() {
-	d := DateTime{}
+func ExampleTime_UnmarshalBinary() {
+	d := Time{}
 	t := "2001-02-03T04:05:06Z"
 
 	err := d.UnmarshalBinary([]byte(t))
@@ -33,16 +33,16 @@ func ExampleDateTime_UnmarshalBinary() {
 	// Output: 2001-02-03T04:05:06Z
 }
 
-func ExampleDateTime_MarshalJSON() {
-	d, _ := ParseDateTime("2001-02-03T04:05:06Z")
+func ExampleTime_MarshalJSON() {
+	d, _ := ParseTime("2001-02-03T04:05:06Z")
 	j, _ := json.Marshal(d)
 	fmt.Println(string(j))
 	// Output: "2001-02-03T04:05:06Z"
 }
 
-func ExampleDateTime_UnmarshalJSON() {
+func ExampleTime_UnmarshalJSON() {
 	var d struct {
-		DateTime DateTime `json:"datetime"`
+		Time Time `json:"datetime"`
 	}
 	j := `{
     "datetime" : "2001-02-03T04:05:06Z"
@@ -52,19 +52,19 @@ func ExampleDateTime_UnmarshalJSON() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(d.DateTime)
+	fmt.Println(d.Time)
 	// Output: 2001-02-03T04:05:06Z
 }
 
-func ExampleDateTime_MarshalText() {
-	d, _ := ParseDateTime("2001-02-03T04:05:06Z")
+func ExampleTime_MarshalText() {
+	d, _ := ParseTime("2001-02-03T04:05:06Z")
 	t, _ := d.MarshalText()
 	fmt.Println(string(t))
 	// Output: 2001-02-03T04:05:06Z
 }
 
-func ExampleDateTime_UnmarshalText() {
-	d := DateTime{}
+func ExampleTime_UnmarshalText() {
+	d := Time{}
 	t := "2001-02-03T04:05:06Z"
 
 	err := d.UnmarshalText([]byte(t))
@@ -75,28 +75,28 @@ func ExampleDateTime_UnmarshalText() {
 	// Output: 2001-02-03T04:05:06Z
 }
 
-func TestDateTimeString(t *testing.T) {
-	d, _ := ParseDateTime("2001-02-03T04:05:06Z")
+func TestTimeString(t *testing.T) {
+	d, _ := ParseTime("2001-02-03T04:05:06Z")
 	if d.String() != "2001-02-03T04:05:06Z" {
 		t.Errorf("date: String failed (%v)", d.String())
 	}
 }
 
-func TestDateTimeStringReturnsEmptyStringForError(t *testing.T) {
-	d := DateTime{Time: time.Date(20000, 01, 01, 01, 01, 01, 01, time.UTC)}
+func TestTimeStringReturnsEmptyStringForError(t *testing.T) {
+	d := Time{Time: time.Date(20000, 01, 01, 01, 01, 01, 01, time.UTC)}
 	if d.String() != "" {
-		t.Errorf("date: DateTime#String failed empty string for an error")
+		t.Errorf("date: Time#String failed empty string for an error")
 	}
 }
 
-func TestDateTimeBinaryRoundTrip(t *testing.T) {
-	d1, err := ParseDateTime("2001-02-03T04:05:06Z")
+func TestTimeBinaryRoundTrip(t *testing.T) {
+	d1, err := ParseTime("2001-02-03T04:05:06Z")
 	t1, err := d1.MarshalBinary()
 	if err != nil {
 		t.Errorf("datetime: MarshalBinary failed (%v)", err)
 	}
 
-	d2 := DateTime{}
+	d2 := Time{}
 	err = d2.UnmarshalBinary(t1)
 	if err != nil {
 		t.Errorf("datetime: UnmarshalBinary failed (%v)", err)
@@ -107,13 +107,13 @@ func TestDateTimeBinaryRoundTrip(t *testing.T) {
 	}
 }
 
-func TestDateTimeJSONRoundTrip(t *testing.T) {
+func TestTimeJSONRoundTrip(t *testing.T) {
 	type s struct {
-		DateTime DateTime `json:"datetime"`
+		Time Time `json:"datetime"`
 	}
 	var err error
 	d1 := s{}
-	d1.DateTime, err = ParseDateTime("2001-02-03T04:05:06Z")
+	d1.Time, err = ParseTime("2001-02-03T04:05:06Z")
 	j, err := json.Marshal(d1)
 	if err != nil {
 		t.Errorf("datetime: MarshalJSON failed (%v)", err)
@@ -130,14 +130,14 @@ func TestDateTimeJSONRoundTrip(t *testing.T) {
 	}
 }
 
-func TestDateTimeTextRoundTrip(t *testing.T) {
-	d1, err := ParseDateTime("2001-02-03T04:05:06Z")
+func TestTimeTextRoundTrip(t *testing.T) {
+	d1, err := ParseTime("2001-02-03T04:05:06Z")
 	t1, err := d1.MarshalText()
 	if err != nil {
 		t.Errorf("datetime: MarshalText failed (%v)", err)
 	}
 
-	d2 := DateTime{}
+	d2 := Time{}
 	err = d2.UnmarshalText(t1)
 	if err != nil {
 		t.Errorf("datetime: UnmarshalText failed (%v)", err)
@@ -148,11 +148,11 @@ func TestDateTimeTextRoundTrip(t *testing.T) {
 	}
 }
 
-func TestDateTimeToTime(t *testing.T) {
-	var d DateTime
-	d, err := ParseDateTime("2001-02-03T04:05:06Z")
+func TestTimeToTime(t *testing.T) {
+	var d Time
+	d, err := ParseTime("2001-02-03T04:05:06Z")
 	if err != nil {
-		t.Errorf("datetime: ParseDateTime failed (%v)", err)
+		t.Errorf("datetime: ParseTime failed (%v)", err)
 	}
 	var v interface{} = d.ToTime()
 	switch v.(type) {

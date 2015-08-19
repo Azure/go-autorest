@@ -263,13 +263,13 @@ func TestAsContentType(t *testing.T) {
 	}
 }
 
-func TestAsFormUrlEncoded(t *testing.T) {
-	r, err := Prepare(mocks.NewRequest(), AsFormUrlEncoded())
+func TestAsFormURLEncoded(t *testing.T) {
+	r, err := Prepare(mocks.NewRequest(), AsFormURLEncoded())
 	if err != nil {
 		fmt.Printf("ERROR: %v", err)
 	}
 	if r.Header.Get(headerContentType) != mimeTypeFormPost {
-		t.Errorf("autorest: AsFormUrlEncoded failed to add header (%s=%s)", headerContentType, r.Header.Get(headerContentType))
+		t.Errorf("autorest: AsFormURLEncoded failed to add header (%s=%s)", headerContentType, r.Header.Get(headerContentType))
 	}
 }
 

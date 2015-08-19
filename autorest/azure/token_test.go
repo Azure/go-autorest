@@ -156,7 +156,7 @@ func TestServicePrincipalTokenRefreshSetsURL(t *testing.T) {
 		(func() autorest.SendDecorator {
 			return func(s autorest.Sender) autorest.Sender {
 				return autorest.SenderFunc(func(r *http.Request) (*http.Response, error) {
-					u := fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/token?api-version=1.0", spt.tenantId)
+					u := fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/token?api-version=1.0", spt.tenantID)
 					if r.URL.String() != u {
 						t.Errorf("azure: ServicePrincipalToken#Refresh did not correctly set the URL -- expected %v, received %v",
 							u, r.URL)

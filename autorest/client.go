@@ -6,11 +6,11 @@ import (
 )
 
 const (
-	// The default delay between polling requests (only used if the http.Request lacks a well-formed
-	// Retry-After header).
+	// DefaultPollingDelay is the default delay between polling requests (only used if the
+	// http.Request lacks a well-formed Retry-After header).
 	DefaultPollingDelay = 60 * time.Second
 
-	// The default total polling duration.
+	// DefaultPollingDuration is the default total polling duration.
 	DefaultPollingDuration = 15 * time.Minute
 )
 
@@ -18,13 +18,13 @@ const (
 type PollingMode string
 
 const (
-	// Poll until reaching a maximum number of attempts
+	// PollUntilAttempts polling mode polls until reaching a maximum number of attempts.
 	PollUntilAttempts PollingMode = "poll-until-attempts"
 
-	// Poll until a specified time.Duration has passed
+	// PollUntilDuration polling mode polls until a specified time.Duration has passed.
 	PollUntilDuration PollingMode = "poll-until-duration"
 
-	// Do not poll at all
+	// DoNotPoll disables polling.
 	DoNotPoll PollingMode = "not-at-all"
 )
 
@@ -41,9 +41,9 @@ type ResponseInspector interface {
 }
 
 var (
-	// Generated clients should compose using an instance of Client initialized from the
-	// DefaultClient. Users can then established widely used Client defaults by replacing or modifying
-	// the DefaultClient before instantiating a generated client.
+	// DefaultClient is the base from which generated clients should create a Client instance. Users
+	// can then established widely used Client defaults by replacing or modifying the DefaultClient
+	// before instantiating a generated client.
 	DefaultClient = Client{PollingMode: PollUntilDuration, PollingDuration: DefaultPollingDuration}
 )
 
@@ -75,10 +75,9 @@ type Client struct {
 func (c Client) ShouldPoll(resp *http.Response, codes ...int) error {
 	if !c.DoNotPoll() && ResponseRequiresPolling(resp, codes...) {
 		return nil
-	} else {
-		return NewError("autorest.Client", "ShouldPoll", "Response to %s requires polling but polling is disabled",
-			resp.Request.URL)
 	}
+	return NewError("autorest.Client", "ShouldPoll", "Response to %s requires polling but polling is disabled",
+		resp.Request.URL)
 }
 
 // PollAsNeeded is a convenience method that will poll if the passed http.Response requires it.
@@ -105,9 +104,8 @@ func (c Client) PollAsNeeded(resp *http.Response, codes ...int) (*http.Response,
 
 	if c.PollForAttempts() {
 		return PollForAttempts(c, req, delay, c.PollingAttempts, codes...)
-	} else {
-		return PollForDuration(c, req, delay, c.PollingDuration, codes...)
 	}
+	return PollForDuration(c, req, delay, c.PollingDuration, codes...)
 }
 
 // DoNotPoll returns true if the client should not poll, false otherwise.
@@ -135,9 +133,8 @@ func (c Client) Do(r *http.Request) (*http.Response, error) {
 func (c Client) sender() Sender {
 	if c.Sender == nil {
 		return &http.Client{}
-	} else {
-		return c.Sender
 	}
+	return c.Sender
 }
 
 // WithAuthorization is a convenience method that returns the WithAuthorization PrepareDecorator
@@ -150,9 +147,8 @@ func (c Client) WithAuthorization() PrepareDecorator {
 func (c Client) authorizer() Authorizer {
 	if c.Authorizer == nil {
 		return NullAuthorizer{}
-	} else {
-		return c.Authorizer
 	}
+	return c.Authorizer
 }
 
 // WithInspection is a convenience method that passes the request to the supplied RequestInspector,
@@ -160,9 +156,8 @@ func (c Client) authorizer() Authorizer {
 func (c Client) WithInspection() PrepareDecorator {
 	if c.RequestInspector == nil {
 		return WithNothing()
-	} else {
-		return c.RequestInspector.WithInspection()
 	}
+	return c.RequestInspector.WithInspection()
 }
 
 // ByInspecting is a convenience method that passes the response to the supplied ResponseInspector,
@@ -170,9 +165,8 @@ func (c Client) WithInspection() PrepareDecorator {
 func (c Client) ByInspecting() RespondDecorator {
 	if c.ResponseInspector == nil {
 		return ByIgnoring()
-	} else {
-		return c.ResponseInspector.ByInspecting()
 	}
+	return c.ResponseInspector.ByInspecting()
 }
 
 // Response serves as the base for all responses from generated clients. It provides access to the

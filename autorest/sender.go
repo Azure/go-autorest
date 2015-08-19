@@ -147,9 +147,9 @@ func DoErrorUnlessStatusCode(codes ...int) SendDecorator {
 	}
 }
 
-// DoRetryOnStatusCodesForAttempts returns a SendDecorator that retries the request for up to the
-// specified number of attempts, exponentially backing off between requests using the supplied
-// backoff time.Duration (which may be zero).
+// DoRetryForAttempts returns a SendDecorator that retries the request for up to the specified
+// number of attempts, exponentially backing off between requests using the supplied backoff
+// time.Duration (which may be zero).
 func DoRetryForAttempts(attempts int, backoff time.Duration) SendDecorator {
 	return func(s Sender) Sender {
 		return SenderFunc(func(r *http.Request) (resp *http.Response, err error) {

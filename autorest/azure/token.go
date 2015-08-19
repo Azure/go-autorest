@@ -11,7 +11,7 @@ import (
 
 const (
 	defaultRefresh = 5 * time.Minute
-	oauthUrl       = "https://login.microsoftonline.com/{tenantId}/oauth2/{requestType}?api-version=1.0"
+	oauthURL       = "https://login.microsoftonline.com/{tenantID}/oauth2/{requestType}?api-version=1.0"
 	tokenBaseDate  = "1970-01-01T00:00:00Z"
 )
 
@@ -67,23 +67,23 @@ func (t *Token) WithAuthorization() autorest.PrepareDecorator {
 type ServicePrincipalToken struct {
 	Token
 
-	clientId      string
+	clientID      string
 	clientSecret  string
 	resource      string
-	tenantId      string
+	tenantID      string
 	autoRefresh   bool
 	refreshWithin time.Duration
 	sender        autorest.Sender
 }
 
-// NewTokenForServicePrincipal creates a ServicePrincipalToken from the supplied Service Principal
+// NewServicePrincipalToken creates a ServicePrincipalToken from the supplied Service Principal
 // credentials scoped to the named resource.
-func NewServicePrincipalToken(id string, secret string, tenentId string, resource string) (*ServicePrincipalToken, error) {
+func NewServicePrincipalToken(id string, secret string, tenantID string, resource string) (*ServicePrincipalToken, error) {
 	spt := &ServicePrincipalToken{
-		clientId:      id,
+		clientID:      id,
 		clientSecret:  secret,
 		resource:      resource,
-		tenantId:      tenentId,
+		tenantID:      tenantID,
 		autoRefresh:   true,
 		refreshWithin: defaultRefresh,
 		sender:        &http.Client{}}
@@ -102,20 +102,20 @@ func (spt *ServicePrincipalToken) EnsureFresh() error {
 // Refresh obtains a fresh token for the Service Principal.
 func (spt *ServicePrincipalToken) Refresh() error {
 	p := map[string]interface{}{
-		"tenantId":    spt.tenantId,
+		"tenantID":    spt.tenantID,
 		"requestType": "token",
 	}
 
 	v := url.Values{}
-	v.Set("client_id", spt.clientId)
+	v.Set("client_id", spt.clientID)
 	v.Set("client_secret", spt.clientSecret)
 	v.Set("grant_type", "client_credentials")
 	v.Set("resource", spt.resource)
 
 	req, _ := autorest.Prepare(&http.Request{},
 		autorest.AsPost(),
-		autorest.AsFormUrlEncoded(),
-		autorest.WithBaseURL(oauthUrl),
+		autorest.AsFormURLEncoded(),
+		autorest.WithBaseURL(oauthURL),
 		autorest.WithPathParameters(p),
 		autorest.WithFormData(v))
 
@@ -123,7 +123,7 @@ func (spt *ServicePrincipalToken) Refresh() error {
 	if err != nil {
 		return autorest.NewErrorWithError(err,
 			"azure.ServicePrincipalToken", "Refresh", "Failure sending request for Service Principal %s",
-			spt.clientId)
+			spt.clientID)
 	}
 
 	err = autorest.Respond(resp,
@@ -133,7 +133,7 @@ func (spt *ServicePrincipalToken) Refresh() error {
 	if err != nil {
 		return autorest.NewErrorWithError(err,
 			"azure.ServicePrincipalToken", "Refresh", "Failure handling response to Service Principal %s request",
-			spt.clientId)
+			spt.clientID)
 	}
 
 	return nil

@@ -90,7 +90,7 @@ func TestNewPollingRequestReturnsAnErrorWhenPrepareFails(t *testing.T) {
 func TestNewPollingRequestLeavesBodyOpenWhenPrepareFails(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
 	addAcceptedHeaders(resp)
-	resp.Header.Set(http.CanonicalHeaderKey(headerLocation), testBadUrl)
+	resp.Header.Set(http.CanonicalHeaderKey(headerLocation), testBadURL)
 
 	_, err := NewPollingRequest(resp, NullAuthorizer{})
 	if !resp.Body.(*mocks.Body).IsOpen() {
@@ -101,7 +101,7 @@ func TestNewPollingRequestLeavesBodyOpenWhenPrepareFails(t *testing.T) {
 func TestNewPollingRequestDoesNotReturnARequestWhenPrepareFails(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
 	addAcceptedHeaders(resp)
-	resp.Header.Set(http.CanonicalHeaderKey(headerLocation), testBadUrl)
+	resp.Header.Set(http.CanonicalHeaderKey(headerLocation), testBadURL)
 
 	req, _ := NewPollingRequest(resp, NullAuthorizer{})
 	if req != nil {
@@ -134,8 +134,8 @@ func TestNewPollingRequestProvidesTheURL(t *testing.T) {
 	addAcceptedHeaders(resp)
 
 	req, _ := NewPollingRequest(resp, NullAuthorizer{})
-	if req.URL.String() != testUrl {
-		t.Errorf("autorest: NewPollingRequest did not create an HTTP with the expected URL -- received %v, expected %v", req.URL, testUrl)
+	if req.URL.String() != testURL {
+		t.Errorf("autorest: NewPollingRequest did not create an HTTP with the expected URL -- received %v, expected %v", req.URL, testURL)
 	}
 }
 
@@ -156,7 +156,7 @@ func TestGetPollingLocation(t *testing.T) {
 
 	l := GetPollingLocation(resp)
 	if len(l) == 0 {
-		t.Errorf("autorest: GetPollingLocation failed to return Location header -- expected %v, received %v", testUrl, l)
+		t.Errorf("autorest: GetPollingLocation failed to return Location header -- expected %v, received %v", testURL, l)
 	}
 }
 

@@ -41,18 +41,18 @@ func NewError(packageType string, method string, message string, args ...interfa
 	return NewErrorWithError(nil, packageType, method, message, args...)
 }
 
-// NewError creates a new Error conforming object from the passed packageType, method, message, and
-// original error. message is treated as a format string to which the optional args apply.
+// NewErrorWithError creates a new Error conforming object from the passed packageType, method,
+// message, and original error. message is treated as a format string to which the optional args
+// apply.
 func NewErrorWithError(original error, packageType string, method string, message string, args ...interface{}) Error {
 	if _, ok := original.(Error); ok {
 		return original.(Error)
-	} else {
-		return baseError{
-			packageType: packageType,
-			method:      method,
-			message:     fmt.Sprintf(message, args...),
-			original:    original,
-		}
+	}
+	return baseError{
+		packageType: packageType,
+		method:      method,
+		message:     fmt.Sprintf(message, args...),
+		original:    original,
 	}
 }
 
@@ -88,7 +88,6 @@ func (be baseError) Error() string {
 func (be baseError) String() string {
 	if be.original == nil {
 		return fmt.Sprintf("%s:%s %s", be.packageType, be.method, be.message)
-	} else {
-		return fmt.Sprintf("%s:%s %s -- Original Error: %v", be.packageType, be.method, be.message, be.original)
 	}
+	return fmt.Sprintf("%s:%s %s -- Original Error: %v", be.packageType, be.method, be.message, be.original)
 }

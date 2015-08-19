@@ -13,8 +13,8 @@ import (
 const (
 	testAuthorizationHeader = "BEARER SECRETTOKEN"
 	testDelay               = 0 * time.Second
-	testBadUrl              = ""
-	testUrl                 = "https://microsoft.com/a/b/c/"
+	testBadURL              = ""
+	testURL                 = "https://microsoft.com/a/b/c/"
 	jsonT                   = `
     {
       "name":"Rob Pike",
@@ -73,7 +73,7 @@ func TestEnsureStrings(t *testing.T) {
 }
 
 func addAcceptedHeaders(resp *http.Response) {
-	mocks.AddResponseHeader(resp, http.CanonicalHeaderKey(headerLocation), testUrl)
+	mocks.AddResponseHeader(resp, http.CanonicalHeaderKey(headerLocation), testURL)
 	mocks.AddResponseHeader(resp, http.CanonicalHeaderKey(headerRetryAfter), fmt.Sprintf("%v", int(testDelay.Seconds())))
 }
 

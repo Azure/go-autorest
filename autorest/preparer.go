@@ -63,9 +63,8 @@ func DecoratePreparer(p Preparer, decorators ...PrepareDecorator) Preparer {
 func Prepare(r *http.Request, decorators ...PrepareDecorator) (*http.Request, error) {
 	if r == nil {
 		return nil, NewError("autorest", "Prepare", "Invoked without an http.Request")
-	} else {
-		return CreatePreparer(decorators...).Prepare(r)
 	}
+	return CreatePreparer(decorators...).Prepare(r)
 }
 
 // WithNothing returns a "do nothing" PrepareDecorator that makes no changes to the passed
@@ -108,9 +107,9 @@ func AsContentType(contentType string) PrepareDecorator {
 	return WithHeader(headerContentType, contentType)
 }
 
-// AsFormUrlEncoded returns a PrepareDecorator that adds an HTTP Content-Type header whose value is
+// AsFormURLEncoded returns a PrepareDecorator that adds an HTTP Content-Type header whose value is
 // "application/x-www-form-urlencoded".
-func AsFormUrlEncoded() PrepareDecorator {
+func AsFormURLEncoded() PrepareDecorator {
 	return AsContentType(mimeTypeFormPost)
 }
 
@@ -152,14 +151,14 @@ func AsPost() PrepareDecorator { return WithMethod("POST") }
 // AsPut returns a PrepareDecorator that sets the HTTP method to PUT.
 func AsPut() PrepareDecorator { return WithMethod("PUT") }
 
-// WithURL returns a PrepareDecorator that populates the http.Request with a url.URL constructed
+// WithBaseURL returns a PrepareDecorator that populates the http.Request with a url.URL constructed
 // from the supplied baseUrl.
-func WithBaseURL(baseUrl string) PrepareDecorator {
+func WithBaseURL(baseURL string) PrepareDecorator {
 	return func(p Preparer) Preparer {
 		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
 			r, err := p.Prepare(r)
 			if err == nil {
-				u, err := url.Parse(baseUrl)
+				u, err := url.Parse(baseURL)
 				if err == nil {
 					r.URL = u
 				}

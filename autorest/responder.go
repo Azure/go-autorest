@@ -54,9 +54,8 @@ func DecorateResponder(r Responder, decorators ...RespondDecorator) Responder {
 func Respond(r *http.Response, decorators ...RespondDecorator) error {
 	if r == nil {
 		return nil
-	} else {
-		return CreateResponder(decorators...).Respond(r)
 	}
+	return CreateResponder(decorators...).Respond(r)
 }
 
 // ByIgnoring returns a RespondDecorator that ignores the passed http.Response passing it unexamined
@@ -98,7 +97,7 @@ func ByClosingIfError() RespondDecorator {
 	}
 }
 
-// ByUnmarshallingJson returns a RespondDecorator that decodes a JSON document returned in the
+// ByUnmarshallingJSON returns a RespondDecorator that decodes a JSON document returned in the
 // response Body into the value pointed to by v.
 func ByUnmarshallingJSON(v interface{}) RespondDecorator {
 	return func(r Responder) Responder {

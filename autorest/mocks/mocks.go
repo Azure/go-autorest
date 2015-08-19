@@ -1,5 +1,5 @@
 /*
-	This package provides mocks and helpers used in testing.
+Package mocks provides mocks and helpers used in testing.
 */
 package mocks
 
@@ -9,6 +9,7 @@ import (
 	"net/http"
 )
 
+// Body implements acceptable body over a string.
 type Body struct {
 	s             string
 	b             []byte
@@ -16,10 +17,12 @@ type Body struct {
 	closeAttempts int
 }
 
+// NewBody creates a new instance of Body.
 func NewBody(s string) *Body {
 	return (&Body{s: s}).reset()
 }
 
+// Read reads into the passed byte slice and returns the bytes read.
 func (body *Body) Read(b []byte) (n int, err error) {
 	if !body.IsOpen() {
 		return 0, fmt.Errorf("ERROR: Body has been closed\n")
@@ -32,18 +35,21 @@ func (body *Body) Read(b []byte) (n int, err error) {
 	return n, nil
 }
 
+// Close closes the body.
 func (body *Body) Close() error {
 	if body.isOpen {
 		body.isOpen = false
-		body.closeAttempts += 1
+		body.closeAttempts++
 	}
 	return nil
 }
 
+// CloseAttempts returns the number of times Close was called.
 func (body *Body) CloseAttempts() int {
 	return body.closeAttempts
 }
 
+// IsOpen returns true if the Body has not been closed, false otherwise.
 func (body *Body) IsOpen() bool {
 	return body.isOpen
 }
@@ -54,6 +60,7 @@ func (body *Body) reset() *Body {
 	return body
 }
 
+// Sender implements a simple null sender.
 type Sender struct {
 	attempts      int
 	content       string
@@ -65,12 +72,14 @@ type Sender struct {
 	err           error
 }
 
+// NewSender creates a new instance of Sender.
 func NewSender() *Sender {
 	return &Sender{status: "200 OK", statusCode: 200}
 }
 
+// Do accepts the passed request and, based on settings, emits a response and possible error.
 func (c *Sender) Do(r *http.Request) (*http.Response, error) {
-	c.attempts += 1
+	c.attempts++
 
 	if !c.reuseResponse || c.resp == nil {
 		resp := NewResponse()
@@ -84,46 +93,52 @@ func (c *Sender) Do(r *http.Request) (*http.Response, error) {
 	}
 
 	if c.emitErrors > 0 || c.emitErrors < 0 {
-		c.emitErrors -= 1
+		c.emitErrors--
 		if c.err == nil {
 			return c.resp, fmt.Errorf("Faux Error")
-		} else {
-			return c.resp, c.err
 		}
-	} else {
-		return c.resp, nil
+		return c.resp, c.err
 	}
+	return c.resp, nil
 }
 
+// Attempts returns the number of times Do was called.
 func (c *Sender) Attempts() int {
 	return c.attempts
 }
 
+// EmitErrors sets the number times Do should emit an error.
 func (c *Sender) EmitErrors(emit int) {
 	c.emitErrors = emit
 }
 
+// SetError sets the error Do should return.
 func (c *Sender) SetError(err error) {
 	c.err = err
 }
 
+// ClearError clears the error Do emits.
 func (c *Sender) ClearError() {
 	c.SetError(nil)
 }
 
+// EmitContent sets the content to be returned by Do in the response body.
 func (c *Sender) EmitContent(s string) {
 	c.content = s
 }
 
+// EmitStatus sets the status of the response Do emits.
 func (c *Sender) EmitStatus(status string, code int) {
 	c.status = status
 	c.statusCode = code
 }
 
+// ReuseResponse sets if the just one response object should be reused by all calls to Do.
 func (c *Sender) ReuseResponse(reuseResponse bool) {
 	c.reuseResponse = reuseResponse
 }
 
+// T is a simple testing struct.
 type T struct {
 	Name string `json:"name"`
 	Age  int    `json:"age"`
