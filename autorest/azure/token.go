@@ -13,6 +13,9 @@ const (
 	defaultRefresh = 5 * time.Minute
 	oauthURL       = "https://login.microsoftonline.com/{tenantID}/oauth2/{requestType}?api-version=1.0"
 	tokenBaseDate  = "1970-01-01T00:00:00Z"
+
+	// AzureResourceManagerScope is the OAuth scope for the Azure Resource Manager.
+	AzureResourceManagerScope = "https://management.azure.com/"
 )
 
 var expirationBase time.Time
