@@ -10,7 +10,7 @@ generated Go code.
 The package breaks sending and responding to HTTP requests into three phases: Preparing, Sending,
 and Responding. A typical pattern is:
 
-```
+```go
   req, err := Prepare(&http.Request{},
     WithAuthorization())
 
@@ -29,7 +29,7 @@ and then pass the data along, pass the data first and then modify the result, or
 around passing the data (such as a logger might do). Decorators run in the order provided. For
 example, the following:
 
-```
+```go
   req, err := Prepare(&http.Request{},
     WithBaseURL("https://microsoft.com/"),
     WithPath("a"),
