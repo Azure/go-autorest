@@ -52,6 +52,9 @@ var (
 // standard, undecorated http.Client as a default Sender. Lastly, it supports basic request polling,
 // limited to a maximum number of attempts or a specified duration.
 //
+// Generated clients should also use Error (see NewError and NewErrorWithError) for errors and
+// return responses that compose with Response.
+//
 // Most customization of generated clients is best achieved by supplying a custom Authorizer, custom
 // RequestInspector, and / or custom ResponseInspector. Users may log requests, implement circuit
 // breakers (see https://msdn.microsoft.com/en-us/library/dn589784.aspx) or otherwise influence

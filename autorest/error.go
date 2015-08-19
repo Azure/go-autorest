@@ -9,7 +9,7 @@ type Error interface {
 	error
 
 	// PackageType should return the package type of the object emitting the error. For types, the
-	// value matches that produced the the '%T' format specifier of the fmt package. For other
+	// value should match that produced the the '%T' format specifier of the fmt package. For other
 	// elements, such as functions, it returns just the package name (e.g., "autorest").
 	PackageType() string
 
