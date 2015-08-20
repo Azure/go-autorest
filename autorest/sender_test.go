@@ -16,7 +16,7 @@ func ExampleSendWithSender() {
 	client := mocks.NewSender()
 	client.EmitStatus("202 Accepted", 202)
 
-	logger := log.New(os.Stdout, "", 0)
+	logger := log.New(os.Stdout, "autorest: ", 0)
 	na := NullAuthorizer{}
 
 	req, _ := Prepare(&http.Request{},
@@ -25,7 +25,7 @@ func ExampleSendWithSender() {
 		na.WithAuthorization())
 
 	r, _ := SendWithSender(client, req,
-		WithLogging("autorest", logger),
+		WithLogging(logger),
 		DoErrorIfStatusCode(202),
 		DoCloseIfError(),
 		DoRetryForAttempts(5, time.Duration(0)))

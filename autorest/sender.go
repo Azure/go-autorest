@@ -86,12 +86,12 @@ func AsIs() SendDecorator {
 
 // WithLogging returns a SendDecorator that implements simple before and after logging of the
 // request.
-func WithLogging(scope string, logger *log.Logger) SendDecorator {
+func WithLogging(logger *log.Logger) SendDecorator {
 	return func(s Sender) Sender {
 		return SenderFunc(func(r *http.Request) (*http.Response, error) {
-			logger.Printf("%s: Sending %s %s\n", scope, r.Method, r.URL)
+			logger.Printf("Sending %s %s\n", r.Method, r.URL)
 			resp, err := s.Do(r)
-			logger.Printf("%s: %s %s received %s\n", scope, r.Method, r.URL, resp.Status)
+			logger.Printf("%s %s received %s\n", r.Method, r.URL, resp.Status)
 			return resp, err
 		})
 	}
