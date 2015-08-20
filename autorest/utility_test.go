@@ -72,9 +72,17 @@ func TestEnsureStrings(t *testing.T) {
 	}
 }
 
-func addAcceptedHeaders(resp *http.Response) {
-	mocks.AddResponseHeader(resp, http.CanonicalHeaderKey(headerLocation), testURL)
-	mocks.AddResponseHeader(resp, http.CanonicalHeaderKey(headerRetryAfter), fmt.Sprintf("%v", int(testDelay.Seconds())))
+func setAcceptedHeaders(resp *http.Response) {
+	setLocationHeader(resp, testURL)
+	setRetryHeader(resp, testDelay)
+}
+
+func setLocationHeader(resp *http.Response, location string) {
+	mocks.SetResponseHeader(resp, http.CanonicalHeaderKey(headerLocation), location)
+}
+
+func setRetryHeader(resp *http.Response, delay time.Duration) {
+	mocks.SetResponseHeader(resp, http.CanonicalHeaderKey(headerRetryAfter), fmt.Sprintf("%v", delay.Seconds()))
 }
 
 func doEnsureBodyClosed(t *testing.T) SendDecorator {

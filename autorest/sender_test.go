@@ -139,19 +139,39 @@ func TestSend(t *testing.T) {
 func TestAfterDelayWaits(t *testing.T) {
 	client := mocks.NewSender()
 
-	// Establish a baseline and then set the wait to 10x that amount
-	// -- Waiting 10x the baseline should be long enough for a real test while not slowing the
-	//    tests down too much
-	tt := time.Now()
-	SendWithSender(client, mocks.NewRequest())
-	d := 10 * time.Since(tt)
+	d := 10 * time.Millisecond
 
-	tt = time.Now()
+	tt := time.Now()
 	r, _ := SendWithSender(client, mocks.NewRequest(),
 		AfterDelay(d))
 	s := time.Since(tt)
 	if s < d {
 		t.Error("autorest: AfterDelay failed to wait for at least the specified duration")
+	}
+
+	Respond(r,
+		ByClosing())
+}
+
+func TestAfterRetryDelayWaits(t *testing.T) {
+	client := mocks.NewSender()
+	client.EmitErrors(-1)
+
+	d := 10 * time.Millisecond
+
+	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	setAcceptedHeaders(resp)
+	setRetryHeader(resp, d)
+	client.SetResponse(resp)
+	client.ReuseResponse(true)
+
+	tt := time.Now()
+	r, _ := SendWithSender(client, mocks.NewRequest(),
+		AfterRetryDelay(d),
+		DoRetryForAttempts(2, time.Duration(0)))
+	s := time.Since(tt)
+	if s < d {
+		t.Error("autorest: AfterRetryDelay failed to wait for at least the specified duration")
 	}
 
 	Respond(r,

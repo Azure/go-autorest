@@ -97,15 +97,13 @@ func (c Client) PollAsNeeded(resp *http.Response, codes ...int) (*http.Response,
 			resp.Request.URL)
 	}
 
-	delay := GetPollingDelay(resp, DefaultPollingDelay)
-
 	Prepare(req,
 		c.WithInspection())
 
 	if c.PollForAttempts() {
-		return PollForAttempts(c, req, delay, c.PollingAttempts, codes...)
+		return PollForAttempts(c, req, DefaultPollingDelay, c.PollingAttempts, codes...)
 	}
-	return PollForDuration(c, req, delay, c.PollingDuration, codes...)
+	return PollForDuration(c, req, DefaultPollingDelay, c.PollingDuration, codes...)
 }
 
 // DoNotPoll returns true if the client should not poll, false otherwise.

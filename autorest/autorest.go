@@ -134,9 +134,9 @@ func GetPollingDelay(resp *http.Response, defaultDelay time.Duration) time.Durat
 // PollForAttempts will retry the passed http.Request until it receives an HTTP status code outside
 // the passed set or has made the specified number of attempts. The set of status codes defaults to
 // HTTP 202 Accepted.
-func PollForAttempts(s Sender, req *http.Request, delay time.Duration, attempts int, codes ...int) (*http.Response, error) {
+func PollForAttempts(s Sender, req *http.Request, defaultDelay time.Duration, attempts int, codes ...int) (*http.Response, error) {
 	return SendWithSender(
-		decorateForPolling(s, delay, codes...),
+		decorateForPolling(s, defaultDelay, codes...),
 		req,
 		DoRetryForAttempts(attempts, time.Duration(0)))
 }
@@ -144,20 +144,20 @@ func PollForAttempts(s Sender, req *http.Request, delay time.Duration, attempts 
 // PollForDuration will retry the passed http.Request until it receives an HTTP status code outside
 // the passed set or the total time meets or exceeds the specified duration. The set of status codes
 // defaults to HTTP 202 Accepted.
-func PollForDuration(s Sender, req *http.Request, delay time.Duration, total time.Duration, codes ...int) (*http.Response, error) {
+func PollForDuration(s Sender, req *http.Request, defaultDelay time.Duration, total time.Duration, codes ...int) (*http.Response, error) {
 	return SendWithSender(
-		decorateForPolling(s, delay, codes...),
+		decorateForPolling(s, defaultDelay, codes...),
 		req,
 		DoRetryForDuration(total, time.Duration(0)))
 }
 
-func decorateForPolling(s Sender, delay time.Duration, codes ...int) Sender {
+func decorateForPolling(s Sender, defaultDelay time.Duration, codes ...int) Sender {
 	if len(codes) == 0 {
 		codes = []int{202}
 	}
 
 	return DecorateSender(s,
-		AfterDelay(delay),
+		AfterRetryDelay(defaultDelay),
 		DoErrorIfStatusCode(codes...),
 		DoCloseIfError())
 }

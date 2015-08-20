@@ -138,6 +138,11 @@ func (c *Sender) ReuseResponse(reuseResponse bool) {
 	c.reuseResponse = reuseResponse
 }
 
+// SetResponse sets the response from Do.
+func (c *Sender) SetResponse(resp *http.Response) {
+	c.resp = resp
+}
+
 // T is a simple testing struct.
 type T struct {
 	Name string `json:"name"`

@@ -81,7 +81,7 @@ func TestClientPollAsNeededReturnsErrorWhenPollingDisabled(t *testing.T) {
 	c.PollingMode = DoNotPoll
 
 	r := mocks.NewResponseWithStatus("202 Accepted", 202)
-	addAcceptedHeaders(r)
+	setAcceptedHeaders(r)
 
 	_, err := c.PollAsNeeded(r)
 	if err == nil {
@@ -102,7 +102,7 @@ func TestClientPollAsNeededAllowsInspectionOfRequest(t *testing.T) {
 	c.RequestInspector = mi
 
 	r := mocks.NewResponseWithStatus("202 Accepted", 202)
-	addAcceptedHeaders(r)
+	setAcceptedHeaders(r)
 
 	c.PollAsNeeded(r)
 	if !mi.wasInvoked {
@@ -121,7 +121,7 @@ func TestClientPollAsNeededReturnsErrorIfUnableToCreateRequest(t *testing.T) {
 	c.PollingAttempts = 1
 
 	r := mocks.NewResponseWithStatus("202 Accepted", 202)
-	addAcceptedHeaders(r)
+	setAcceptedHeaders(r)
 
 	_, err := c.PollAsNeeded(r)
 	if err == nil {
@@ -142,7 +142,9 @@ func TestClientPollAsNeededPollsForAttempts(t *testing.T) {
 	c.Sender = s
 
 	r := mocks.NewResponseWithStatus("202 Accepted", 202)
-	addAcceptedHeaders(r)
+	setAcceptedHeaders(r)
+	s.SetResponse(r)
+	s.ReuseResponse(true)
 
 	resp, _ := c.PollAsNeeded(r)
 	if s.Attempts() != 5 {
@@ -164,7 +166,9 @@ func TestClientPollAsNeededPollsForDuration(t *testing.T) {
 	c.Sender = s
 
 	r := mocks.NewResponseWithStatus("202 Accepted", 202)
-	addAcceptedHeaders(r)
+	setAcceptedHeaders(r)
+	s.SetResponse(r)
+	s.ReuseResponse(true)
 
 	d1 := 10 * time.Millisecond
 	start := time.Now()

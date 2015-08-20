@@ -52,10 +52,10 @@ func NewResponseWithStatus(s string, c int) *http.Response {
 	return resp
 }
 
-// AddResponseHeader adds a header to the passed response.
-func AddResponseHeader(resp *http.Response, h string, v string) {
+// SetResponseHeader adds a header to the passed response.
+func SetResponseHeader(resp *http.Response, h string, v string) {
 	if resp.Header == nil {
 		resp.Header = make(http.Header)
 	}
-	resp.Header.Add(h, v)
+	resp.Header.Set(h, v)
 }

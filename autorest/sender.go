@@ -75,6 +75,26 @@ func AfterDelay(d time.Duration) SendDecorator {
 	}
 }
 
+// AfterRetryDelay returns a SendDecorator that delays for the number of seconds specified in the
+// Retry-After header of the prior response when polling is required.
+func AfterRetryDelay(defaultDelay time.Duration, codes ...int) SendDecorator {
+	delay := time.Duration(0)
+	return func(s Sender) Sender {
+		return SenderFunc(func(r *http.Request) (*http.Response, error) {
+			if delay > time.Duration(0) {
+				time.Sleep(delay)
+			}
+			resp, err := s.Do(r)
+			if ResponseRequiresPolling(resp, codes...) {
+				delay = GetPollingDelay(resp, defaultDelay)
+			} else {
+				delay = time.Duration(0)
+			}
+			return resp, err
+		})
+	}
+}
+
 // AsIs returns a SendDecorator that invokes the passed Sender without modifying the http.Request.
 func AsIs() SendDecorator {
 	return func(s Sender) Sender {
