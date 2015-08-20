@@ -7,7 +7,7 @@ The package breaks sending and responding to HTTP requests into three phases: Pr
 and Responding. A typical pattern is:
 
   req, err := Prepare(&http.Request{},
-    WithAuthorization())
+    token.WithAuthorization())
 
   resp, err := Send(req,
     WithLogging(logger),

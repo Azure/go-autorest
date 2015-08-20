@@ -3,7 +3,7 @@
 [![GoDoc](https://godoc.org/github.com/azure/go-autorest/autorest?status.png)](https://godoc.org/github.com/azure/go-autorest/autorest) [![Build Status](https://travis-ci.org/Azure/go-autorest.svg?branch=master)](https://travis-ci.org/Azure/go-autorest)
 
 ## Usage
-This package implements an HTTP request pipeline suitable for use across multiple go-routines
+Package autorest implements an HTTP request pipeline suitable for use across multiple go-routines
 and provides the shared routines relied on by AutoRest (see https://github.com/azure/autorest/)
 generated Go code.
 
@@ -12,7 +12,7 @@ and Responding. A typical pattern is:
 
 ```go
   req, err := Prepare(&http.Request{},
-    WithAuthorization())
+    token.WithAuthorization())
 
   resp, err := Send(req,
     WithLogging(logger),
