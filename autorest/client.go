@@ -172,3 +172,14 @@ func (c Client) ByInspecting() RespondDecorator {
 type Response struct {
 	*http.Response `json:"-"`
 }
+
+// GetPollingDelay extracts the polling delay from the Retry-After header of the response. If
+// the header is absent or is malformed, it will return the supplied default delay time.Duration.
+func (r Response) GetPollingDelay(defaultDelay time.Duration) time.Duration {
+	return GetPollingDelay(r.Response, defaultDelay)
+}
+
+// GetPollingLocation retrieves the polling URL from the Location header of the response.
+func (r Response) GetPollingLocation() string {
+	return GetPollingLocation(r.Response)
+}

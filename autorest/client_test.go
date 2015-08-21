@@ -336,3 +336,39 @@ func TestClientByInspectingSetsDefault(t *testing.T) {
 		t.Error("autorest: Client#ByInspecting failed to provide a default ResponseInspector")
 	}
 }
+
+func TestResponseGetPollingDelay(t *testing.T) {
+	d1 := 10 * time.Second
+
+	r := mocks.NewResponse()
+	setRetryHeader(r, d1)
+	ar := Response{Response: r}
+
+	d2 := ar.GetPollingDelay(time.Duration(0))
+	if d1 != d2 {
+		t.Errorf("autorest: Response#GetPollingDelay failed to return the correct delay -- expected %v, received %v",
+			d1, d2)
+	}
+}
+
+func TestResponseGetPollingDelayReturnsDefault(t *testing.T) {
+	ar := Response{Response: mocks.NewResponse()}
+
+	d1 := 10 * time.Second
+	d2 := ar.GetPollingDelay(d1)
+	if d1 != d2 {
+		t.Errorf("autorest: Response#GetPollingDelay failed to return the default delay -- expected %v, received %v",
+			d1, d2)
+	}
+}
+
+func TestResponseGetPollingLocation(t *testing.T) {
+	r := mocks.NewResponse()
+	setLocationHeader(r, testURL)
+	ar := Response{Response: r}
+
+	if ar.GetPollingLocation() != testURL {
+		t.Errorf("autorest: Response#GetPollingLocation failed to return correct URL -- expected %v, received %v",
+			testURL, ar.GetPollingLocation())
+	}
+}

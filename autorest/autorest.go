@@ -110,11 +110,6 @@ func NewPollingRequest(resp *http.Response, authorizer Authorizer) (*http.Reques
 	return req, nil
 }
 
-// GetPollingLocation retrieves the polling URL from the Location header of the passed response.
-func GetPollingLocation(resp *http.Response) string {
-	return resp.Header.Get(headerLocation)
-}
-
 // GetPollingDelay extracts the polling delay from the Retry-After header of the passed response. If
 // the header is absent or is malformed, it will return the supplied default delay time.Duration.
 func GetPollingDelay(resp *http.Response, defaultDelay time.Duration) time.Duration {
@@ -129,6 +124,11 @@ func GetPollingDelay(resp *http.Response, defaultDelay time.Duration) time.Durat
 	}
 
 	return d
+}
+
+// GetPollingLocation retrieves the polling URL from the Location header of the passed response.
+func GetPollingLocation(resp *http.Response) string {
+	return resp.Header.Get(headerLocation)
 }
 
 // PollForAttempts will retry the passed http.Request until it receives an HTTP status code outside
