@@ -11,7 +11,7 @@ and Responding. A typical pattern is:
 
   resp, err := Send(req,
     WithLogging(logger),
-    DoErrorIfStatusCode(500),
+    DoErrorIfStatusCode(http.StatusInternalServerError),
     DoCloseIfError(),
     DoRetryForAttempts(5, time.Second))
 
@@ -76,12 +76,12 @@ func ResponseHasStatusCode(resp *http.Response, codes ...int) bool {
 // request (as determined by the status code being in the passed set, which defaults to HTTP 202
 // Accepted).
 func ResponseRequiresPolling(resp *http.Response, codes ...int) bool {
-	if resp.StatusCode == 200 {
+	if resp.StatusCode == http.StatusOK {
 		return false
 	}
 
 	if len(codes) == 0 {
-		codes = []int{202}
+		codes = []int{http.StatusAccepted}
 	}
 
 	return ResponseHasStatusCode(resp, codes...)
@@ -153,7 +153,7 @@ func PollForDuration(s Sender, req *http.Request, defaultDelay time.Duration, to
 
 func decorateForPolling(s Sender, defaultDelay time.Duration, codes ...int) Sender {
 	if len(codes) == 0 {
-		codes = []int{202}
+		codes = []int{http.StatusAccepted}
 	}
 
 	return DecorateSender(s,

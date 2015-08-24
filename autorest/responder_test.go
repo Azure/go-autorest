@@ -266,10 +266,10 @@ func TestWithErrorUnlessStatusCode(t *testing.T) {
 	r := mocks.NewResponse()
 	r.Request = mocks.NewRequest()
 	r.Status = "400 BadRequest"
-	r.StatusCode = 400
+	r.StatusCode = http.StatusBadRequest
 
 	err := Respond(r,
-		WithErrorUnlessStatusCode(300, 400, 500),
+		WithErrorUnlessStatusCode(http.StatusBadRequest, http.StatusUnauthorized, http.StatusInternalServerError),
 		ByClosingIfError())
 
 	if err != nil {
@@ -281,10 +281,10 @@ func TestWithErrorUnlessStatusCodeEmitsErrorForUnacceptableStatusCode(t *testing
 	r := mocks.NewResponse()
 	r.Request = mocks.NewRequest()
 	r.Status = "400 BadRequest"
-	r.StatusCode = 400
+	r.StatusCode = http.StatusBadRequest
 
 	err := Respond(r,
-		WithErrorUnlessStatusCode(200, 300, 500),
+		WithErrorUnlessStatusCode(http.StatusOK, http.StatusUnauthorized, http.StatusInternalServerError),
 		ByClosingIfError())
 
 	if err == nil {
@@ -309,7 +309,7 @@ func TestWithErrorUnlessOKEmitsErrorIfNotOK(t *testing.T) {
 	r := mocks.NewResponse()
 	r.Request = mocks.NewRequest()
 	r.Status = "400 BadRequest"
-	r.StatusCode = 400
+	r.StatusCode = http.StatusBadRequest
 
 	err := Respond(r,
 		WithErrorUnlessOK(),

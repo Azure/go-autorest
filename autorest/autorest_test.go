@@ -9,16 +9,16 @@ import (
 )
 
 func TestResponseHasStatusCode(t *testing.T) {
-	codes := []int{200, 202}
-	resp := &http.Response{StatusCode: 202}
+	codes := []int{http.StatusOK, http.StatusAccepted}
+	resp := &http.Response{StatusCode: http.StatusAccepted}
 	if !ResponseHasStatusCode(resp, codes...) {
 		t.Errorf("autorest: ResponseHasStatusCode failed to find %v in %v", resp.StatusCode, codes)
 	}
 }
 
 func TestResponseHasStatusCodeNotPresent(t *testing.T) {
-	codes := []int{200, 202}
-	resp := &http.Response{StatusCode: 500}
+	codes := []int{http.StatusOK, http.StatusAccepted}
+	resp := &http.Response{StatusCode: http.StatusInternalServerError}
 	if ResponseHasStatusCode(resp, codes...) {
 		t.Errorf("autorest: ResponseHasStatusCode unexpectedly found %v in %v", resp.StatusCode, codes)
 	}
@@ -42,7 +42,7 @@ func TestResponseRequiresPollingLeavesBodyOpen(t *testing.T) {
 }
 
 func TestResponseRequiresPollingDefaultsToAcceptedStatusCode(t *testing.T) {
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 
 	if !ResponseRequiresPolling(resp) {
@@ -51,7 +51,7 @@ func TestResponseRequiresPollingDefaultsToAcceptedStatusCode(t *testing.T) {
 }
 
 func TestResponseRequiresPollingReturnsFalseForUnexpectedStatusCodes(t *testing.T) {
-	resp := mocks.NewResponseWithStatus("500 ServerError", 500)
+	resp := mocks.NewResponseWithStatus("500 InternalServerError", http.StatusInternalServerError)
 	setAcceptedHeaders(resp)
 
 	if ResponseRequiresPolling(resp) {
@@ -60,7 +60,7 @@ func TestResponseRequiresPollingReturnsFalseForUnexpectedStatusCodes(t *testing.
 }
 
 func TestNewPollingRequestLeavesBodyOpenWhenLocationHeaderIsMissing(t *testing.T) {
-	resp := mocks.NewResponseWithStatus("500 ServerError", 500)
+	resp := mocks.NewResponseWithStatus("500 InternalServerError", http.StatusInternalServerError)
 
 	NewPollingRequest(resp, NullAuthorizer{})
 	if !resp.Body.(*mocks.Body).IsOpen() {
@@ -69,7 +69,7 @@ func TestNewPollingRequestLeavesBodyOpenWhenLocationHeaderIsMissing(t *testing.T
 }
 
 func TestNewPollingRequestDoesNotReturnARequestWhenLocationHeaderIsMissing(t *testing.T) {
-	resp := mocks.NewResponseWithStatus("500 ServerError", 500)
+	resp := mocks.NewResponseWithStatus("500 InternalServerError", http.StatusInternalServerError)
 
 	req, _ := NewPollingRequest(resp, NullAuthorizer{})
 	if req != nil {
@@ -78,7 +78,7 @@ func TestNewPollingRequestDoesNotReturnARequestWhenLocationHeaderIsMissing(t *te
 }
 
 func TestNewPollingRequestReturnsAnErrorWhenPrepareFails(t *testing.T) {
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 
 	_, err := NewPollingRequest(resp, mockFailingAuthorizer{})
@@ -88,7 +88,7 @@ func TestNewPollingRequestReturnsAnErrorWhenPrepareFails(t *testing.T) {
 }
 
 func TestNewPollingRequestLeavesBodyOpenWhenPrepareFails(t *testing.T) {
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 	resp.Header.Set(http.CanonicalHeaderKey(headerLocation), testBadURL)
 
@@ -99,7 +99,7 @@ func TestNewPollingRequestLeavesBodyOpenWhenPrepareFails(t *testing.T) {
 }
 
 func TestNewPollingRequestDoesNotReturnARequestWhenPrepareFails(t *testing.T) {
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 	resp.Header.Set(http.CanonicalHeaderKey(headerLocation), testBadURL)
 
@@ -110,7 +110,7 @@ func TestNewPollingRequestDoesNotReturnARequestWhenPrepareFails(t *testing.T) {
 }
 
 func TestNewPollingRequestClosesTheResponseBody(t *testing.T) {
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 
 	NewPollingRequest(resp, NullAuthorizer{})
@@ -120,7 +120,7 @@ func TestNewPollingRequestClosesTheResponseBody(t *testing.T) {
 }
 
 func TestNewPollingRequestReturnsAGetRequest(t *testing.T) {
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 
 	req, _ := NewPollingRequest(resp, NullAuthorizer{})
@@ -130,7 +130,7 @@ func TestNewPollingRequestReturnsAGetRequest(t *testing.T) {
 }
 
 func TestNewPollingRequestProvidesTheURL(t *testing.T) {
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 
 	req, _ := NewPollingRequest(resp, NullAuthorizer{})
@@ -140,7 +140,7 @@ func TestNewPollingRequestProvidesTheURL(t *testing.T) {
 }
 
 func TestNewPollingRequestAppliesAuthorization(t *testing.T) {
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 
 	req, _ := NewPollingRequest(resp, mockAuthorizer{})
@@ -151,7 +151,7 @@ func TestNewPollingRequestAppliesAuthorization(t *testing.T) {
 }
 
 func TestGetPollingLocation(t *testing.T) {
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 
 	l := GetPollingLocation(resp)
@@ -161,7 +161,7 @@ func TestGetPollingLocation(t *testing.T) {
 }
 
 func TestGetPollingLocationReturnsEmptyStringForMissingLocation(t *testing.T) {
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 
 	l := GetPollingLocation(resp)
 	if len(l) != 0 {
@@ -170,7 +170,7 @@ func TestGetPollingLocationReturnsEmptyStringForMissingLocation(t *testing.T) {
 }
 
 func TestGetPollingDelay(t *testing.T) {
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 
 	d := GetPollingDelay(resp, DefaultPollingDelay)
@@ -180,7 +180,7 @@ func TestGetPollingDelay(t *testing.T) {
 }
 
 func TestGetPollingDelayReturnsDefaultDelayIfRetryHeaderIsMissing(t *testing.T) {
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 
 	d := GetPollingDelay(resp, DefaultPollingDelay)
 	if d != DefaultPollingDelay {
@@ -190,7 +190,7 @@ func TestGetPollingDelayReturnsDefaultDelayIfRetryHeaderIsMissing(t *testing.T) 
 }
 
 func TestGetPollingDelayReturnsDefaultDelayIfRetryHeaderIsMalformed(t *testing.T) {
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 	resp.Header.Set(http.CanonicalHeaderKey(headerRetryAfter), "a very bad non-integer value")
 
@@ -205,7 +205,7 @@ func TestPollForAttemptsStops(t *testing.T) {
 	client := mocks.NewSender()
 	client.EmitErrors(-1)
 
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 
 	req, _ := NewPollingRequest(resp, NullAuthorizer{})
@@ -221,7 +221,7 @@ func TestPollForDurationsStops(t *testing.T) {
 	client.EmitErrors(-1)
 
 	d := 10 * time.Millisecond
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 
 	req, _ := NewPollingRequest(resp, NullAuthorizer{})
@@ -238,7 +238,7 @@ func TestPollForDurationsStopsWithinReason(t *testing.T) {
 	client.EmitErrors(-1)
 
 	d := 10 * time.Millisecond
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 	setRetryHeader(resp, d)
 	client.SetResponse(resp)
@@ -258,7 +258,7 @@ func TestPollingHonorsDelay(t *testing.T) {
 	client.EmitErrors(-1)
 
 	d1 := 10 * time.Millisecond
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 	setRetryHeader(resp, d1)
 	client.SetResponse(resp)
@@ -277,14 +277,14 @@ func TestPollingHonorsDelay(t *testing.T) {
 func TestPollingReturnsErrorForExpectedStatusCode(t *testing.T) {
 	client := mocks.NewSender()
 
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 	client.SetResponse(resp)
 	client.ReuseResponse(true)
 
 	req, _ := NewPollingRequest(resp, NullAuthorizer{})
 
-	resp, err := PollForAttempts(client, req, time.Duration(0), 1, 202)
+	resp, err := PollForAttempts(client, req, time.Duration(0), 1, http.StatusAccepted)
 	if err == nil {
 		t.Error("autorest: Polling failed to emit error for known status code")
 	}
@@ -292,14 +292,14 @@ func TestPollingReturnsErrorForExpectedStatusCode(t *testing.T) {
 
 func TestPollingReturnsNoErrorForUnexpectedStatusCode(t *testing.T) {
 	client := mocks.NewSender()
-	client.EmitStatus("500 ServerError", 500)
+	client.EmitStatus("500 InternalServerError", http.StatusInternalServerError)
 
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 
 	req, _ := NewPollingRequest(resp, NullAuthorizer{})
 
-	resp, err := PollForAttempts(client, req, time.Duration(0), 1, 202)
+	resp, err := PollForAttempts(client, req, time.Duration(0), 1, http.StatusAccepted)
 	if err != nil {
 		t.Error("autorest: Polling emitted error for unknown status code")
 	}
@@ -308,7 +308,7 @@ func TestPollingReturnsNoErrorForUnexpectedStatusCode(t *testing.T) {
 func TestPollingReturnsDefaultsToAcceptedStatusCode(t *testing.T) {
 	client := mocks.NewSender()
 
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 	client.SetResponse(resp)
 	client.ReuseResponse(true)
@@ -323,9 +323,9 @@ func TestPollingReturnsDefaultsToAcceptedStatusCode(t *testing.T) {
 
 func TestPollingLeavesFinalBodyOpen(t *testing.T) {
 	client := mocks.NewSender()
-	client.EmitStatus("500 ServerError", 500)
+	client.EmitStatus("500 InternalServerError", http.StatusInternalServerError)
 
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 
 	req, _ := NewPollingRequest(resp, NullAuthorizer{})
@@ -339,7 +339,7 @@ func TestPollingLeavesFinalBodyOpen(t *testing.T) {
 func TestDecorateForPollingCloseBodyOnEachAttempt(t *testing.T) {
 	client := mocks.NewSender()
 
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 	client.SetResponse(resp)
 	client.ReuseResponse(true)

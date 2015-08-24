@@ -14,7 +14,7 @@ import (
 
 func ExampleSendWithSender() {
 	client := mocks.NewSender()
-	client.EmitStatus("202 Accepted", 202)
+	client.EmitStatus("202 Accepted", http.StatusAccepted)
 
 	logger := log.New(os.Stdout, "autorest: ", 0)
 	na := NullAuthorizer{}
@@ -26,7 +26,7 @@ func ExampleSendWithSender() {
 
 	r, _ := SendWithSender(client, req,
 		WithLogging(logger),
-		DoErrorIfStatusCode(202),
+		DoErrorIfStatusCode(http.StatusAccepted),
 		DoCloseIfError(),
 		DoRetryForAttempts(5, time.Duration(0)))
 
@@ -64,11 +64,11 @@ func ExampleDoRetryForAttempts() {
 
 func ExampleDoErrorIfStatusCode() {
 	client := mocks.NewSender()
-	client.EmitStatus("204 NoContent", 204)
+	client.EmitStatus("204 NoContent", http.StatusNoContent)
 
 	// Chain decorators to retry the request, up to five times, if the status code is 204
 	r, _ := SendWithSender(client, mocks.NewRequest(),
-		DoErrorIfStatusCode(204),
+		DoErrorIfStatusCode(http.StatusNoContent),
 		DoCloseIfError(),
 		DoRetryForAttempts(5, time.Duration(0)))
 
@@ -159,7 +159,7 @@ func TestAfterRetryDelayWaits(t *testing.T) {
 
 	d := 10 * time.Millisecond
 
-	resp := mocks.NewResponseWithStatus("202 Accepted", 202)
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(resp)
 	setRetryHeader(resp, d)
 	client.SetResponse(resp)
@@ -228,10 +228,10 @@ func TestAsIs(t *testing.T) {
 
 func TestDoCloseIfError(t *testing.T) {
 	client := mocks.NewSender()
-	client.EmitStatus("400 BadRequest", 400)
+	client.EmitStatus("400 BadRequest", http.StatusBadRequest)
 
 	r, _ := SendWithSender(client, mocks.NewRequest(),
-		DoErrorIfStatusCode(400),
+		DoErrorIfStatusCode(http.StatusBadRequest),
 		DoCloseIfError())
 
 	if r.Body.(*mocks.Body).IsOpen() {
@@ -281,10 +281,10 @@ func TestDoCloseIfErrorAcceptsNilBody(t *testing.T) {
 
 func TestDoErrorIfStatusCode(t *testing.T) {
 	client := mocks.NewSender()
-	client.EmitStatus("400 BadRequest", 400)
+	client.EmitStatus("400 BadRequest", http.StatusBadRequest)
 
 	r, err := SendWithSender(client, mocks.NewRequest(),
-		DoErrorIfStatusCode(400),
+		DoErrorIfStatusCode(http.StatusBadRequest),
 		DoCloseIfError())
 	if err == nil {
 		t.Error("autorest: DoErrorIfStatusCode failed to emit an error for passed code")
@@ -296,10 +296,10 @@ func TestDoErrorIfStatusCode(t *testing.T) {
 
 func TestDoErrorIfStatusCodeIgnoresStatusCodes(t *testing.T) {
 	client := mocks.NewSender()
-	client.EmitStatus("202 Accepted", 202)
+	client.EmitStatus("202 Accepted", http.StatusAccepted)
 
 	r, err := SendWithSender(client, mocks.NewRequest(),
-		DoErrorIfStatusCode(400),
+		DoErrorIfStatusCode(http.StatusBadRequest),
 		DoCloseIfError())
 	if err != nil {
 		t.Error("autorest: DoErrorIfStatusCode failed to ignore a status code")
@@ -311,10 +311,10 @@ func TestDoErrorIfStatusCodeIgnoresStatusCodes(t *testing.T) {
 
 func TestDoErrorUnlessStatusCode(t *testing.T) {
 	client := mocks.NewSender()
-	client.EmitStatus("400 BadRequest", 400)
+	client.EmitStatus("400 BadRequest", http.StatusBadRequest)
 
 	r, err := SendWithSender(client, mocks.NewRequest(),
-		DoErrorUnlessStatusCode(202),
+		DoErrorUnlessStatusCode(http.StatusAccepted),
 		DoCloseIfError())
 	if err == nil {
 		t.Error("autorest: DoErrorUnlessStatusCode failed to emit an error for an unknown status code")
@@ -326,10 +326,10 @@ func TestDoErrorUnlessStatusCode(t *testing.T) {
 
 func TestDoErrorUnlessStatusCodeIgnoresStatusCodes(t *testing.T) {
 	client := mocks.NewSender()
-	client.EmitStatus("202 Accepted", 202)
+	client.EmitStatus("202 Accepted", http.StatusAccepted)
 
 	r, err := SendWithSender(client, mocks.NewRequest(),
-		DoErrorUnlessStatusCode(202),
+		DoErrorUnlessStatusCode(http.StatusAccepted),
 		DoCloseIfError())
 	if err != nil {
 		t.Error("autorest: DoErrorUnlessStatusCode emitted an error for a knonwn status code")

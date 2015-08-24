@@ -16,7 +16,7 @@ and Responding. A typical pattern is:
 
   resp, err := Send(req,
     WithLogging(logger),
-    DoErrorIfStatusCode(500),
+    DoErrorIfStatusCode(http.StatusInternalServerError),
     DoCloseIfError(),
     DoRetryForAttempts(5, time.Second))
 

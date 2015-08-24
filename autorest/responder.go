@@ -133,5 +133,5 @@ func WithErrorUnlessStatusCode(codes ...int) RespondDecorator {
 // WithErrorUnlessOK returns a RespondDecorator that emits an error if the response StatusCode is
 // anything other than HTTP 200.
 func WithErrorUnlessOK() RespondDecorator {
-	return WithErrorUnlessStatusCode(200)
+	return WithErrorUnlessStatusCode(http.StatusOK)
 }
