@@ -1,6 +1,6 @@
 # go-autorest
 
-[![GoDoc](https://godoc.org/github.com/azure/go-autorest/autorest?status.png)](https://godoc.org/github.com/azure/go-autorest/autorest) [![Build Status](https://travis-ci.org/Azure/go-autorest.svg?branch=master)](https://travis-ci.org/Azure/go-autorest)
+[![GoDoc](https://godoc.org/github.com/azure/go-autorest/autorest?status.png)](https://godoc.org/github.com/azure/go-autorest/autorest) [![Build Status](https://travis-ci.org/Azure/go-autorest.svg?branch=master)](https://travis-ci.org/Azure/go-autorest) [![Go Report Card](http://goreportcard.com/badge/Azure/go-autorest)](http://goreportcard.com/report/Azure/go-autorest)
 
 ## Usage
 Package autorest implements an HTTP request pipeline suitable for use across multiple go-routines
