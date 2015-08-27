@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest"
 )
 
 const (
