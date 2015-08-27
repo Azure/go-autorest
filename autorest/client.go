@@ -70,14 +70,14 @@ type Client struct {
 	PollingDuration time.Duration
 }
 
-// ShouldPoll returns an error if the client allows polling and the passed http.Response requires
-// it, otherwise it returns nil.
-func (c Client) ShouldPoll(resp *http.Response, codes ...int) error {
-	if !c.DoNotPoll() && ResponseRequiresPolling(resp, codes...) {
-		return nil
+// IsPollingAllowed returns an error if the client allows polling and the passed http.Response
+// requires it, otherwise it returns nil.
+func (c Client) IsPollingAllowed(resp *http.Response, codes ...int) error {
+	if c.DoNotPoll() && ResponseRequiresPolling(resp, codes...) {
+		return NewError("autorest.Client", "IsPollingAllowed", "Response to %s requires polling but polling is disabled",
+			resp.Request.URL)
 	}
-	return NewError("autorest.Client", "ShouldPoll", "Response to %s requires polling but polling is disabled",
-		resp.Request.URL)
+	return nil
 }
 
 // PollAsNeeded is a convenience method that will poll if the passed http.Response requires it.

@@ -10,33 +10,43 @@ import (
 	"github.com/azure/go-autorest/autorest/mocks"
 )
 
-func TestClientShouldPoll(t *testing.T) {
+func TestClientIsPollingAllowed(t *testing.T) {
 	c := Client{PollingMode: PollUntilAttempts}
-	r := mocks.NewResponseWithStatus("202 Accepted", 202)
+	r := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 
-	err := c.ShouldPoll(r)
+	err := c.IsPollingAllowed(r)
 	if err != nil {
-		t.Errorf("autorest: Client#ShouldPoll returned an error for an http.Response that requires polling (%v)", err)
+		t.Errorf("autorest: Client#IsPollingAllowed returned an error for an http.Response that requires polling (%v)", err)
 	}
 }
 
-func TestClientShouldPollIgnoresOk(t *testing.T) {
+func TestClientIsPollingAllowedIgnoresOk(t *testing.T) {
 	c := Client{PollingMode: PollUntilAttempts}
 	r := mocks.NewResponse()
 
-	err := c.ShouldPoll(r)
-	if err == nil {
-		t.Error("autorest: Client#ShouldPoll failed to return an error for an http.Response that does not require polling")
+	err := c.IsPollingAllowed(r)
+	if err != nil {
+		t.Error("autorest: Client#IsPollingAllowed returned an error for an http.Response that does not require polling")
 	}
 }
 
-func TestClientShouldPollIgnoredPollingMode(t *testing.T) {
-	c := Client{PollingMode: DoNotPoll}
-	r := mocks.NewResponse()
+func TestClientIsPollingAllowedIgnoresDisabledForIgnoredStatusCode(t *testing.T) {
+	c := Client{PollingMode: PollUntilAttempts}
+	r := mocks.NewResponseWithStatus("400 BadRequest", http.StatusBadRequest)
 
-	err := c.ShouldPoll(r)
+	err := c.IsPollingAllowed(r)
+	if err != nil {
+		t.Errorf("autorest: Client#IsPollingAllowed returned an error for an http.Response that requires polling (%v)", err)
+	}
+}
+
+func TestClientIsPollingAllowedIgnoredPollingMode(t *testing.T) {
+	c := Client{PollingMode: DoNotPoll}
+	r := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
+
+	err := c.IsPollingAllowed(r)
 	if err == nil {
-		t.Error("autorest: Client#ShouldPoll failed to return an error when polling is disabled")
+		t.Error("autorest: Client#IsPollingAllowed failed to return an error when polling is disabled")
 	}
 }
 
@@ -80,7 +90,7 @@ func TestClientPollAsNeededReturnsErrorWhenPollingDisabled(t *testing.T) {
 	c.Sender = mocks.NewSender()
 	c.PollingMode = DoNotPoll
 
-	r := mocks.NewResponseWithStatus("202 Accepted", 202)
+	r := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(r)
 
 	_, err := c.PollAsNeeded(r)
@@ -101,7 +111,7 @@ func TestClientPollAsNeededAllowsInspectionOfRequest(t *testing.T) {
 	mi := &mockInspector{}
 	c.RequestInspector = mi
 
-	r := mocks.NewResponseWithStatus("202 Accepted", 202)
+	r := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(r)
 
 	c.PollAsNeeded(r)
@@ -120,7 +130,7 @@ func TestClientPollAsNeededReturnsErrorIfUnableToCreateRequest(t *testing.T) {
 	c.PollingMode = PollUntilAttempts
 	c.PollingAttempts = 1
 
-	r := mocks.NewResponseWithStatus("202 Accepted", 202)
+	r := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(r)
 
 	_, err := c.PollAsNeeded(r)
@@ -138,10 +148,10 @@ func TestClientPollAsNeededPollsForAttempts(t *testing.T) {
 	c.PollingAttempts = 5
 
 	s := mocks.NewSender()
-	s.EmitStatus("202 Accepted", 202)
+	s.EmitStatus("202 Accepted", http.StatusAccepted)
 	c.Sender = s
 
-	r := mocks.NewResponseWithStatus("202 Accepted", 202)
+	r := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(r)
 	s.SetResponse(r)
 	s.ReuseResponse(true)
@@ -162,10 +172,10 @@ func TestClientPollAsNeededPollsForDuration(t *testing.T) {
 	c.PollingDuration = 10 * time.Millisecond
 
 	s := mocks.NewSender()
-	s.EmitStatus("202 Accepted", 202)
+	s.EmitStatus("202 Accepted", http.StatusAccepted)
 	c.Sender = s
 
-	r := mocks.NewResponseWithStatus("202 Accepted", 202)
+	r := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	setAcceptedHeaders(r)
 	s.SetResponse(r)
 	s.ReuseResponse(true)
