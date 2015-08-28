@@ -1,10 +1,10 @@
 # go-autorest
 
-[![GoDoc](https://godoc.org/github.com/azure/go-autorest/autorest?status.png)](https://godoc.org/github.com/azure/go-autorest/autorest) [![Build Status](https://travis-ci.org/Azure/go-autorest.svg?branch=master)](https://travis-ci.org/Azure/go-autorest) [![Go Report Card](http://goreportcard.com/badge/Azure/go-autorest)](http://goreportcard.com/report/Azure/go-autorest)
+[![GoDoc](https://godoc.org/github.com/Azure/go-autorest/autorest?status.png)](https://godoc.org/github.com/Azure/go-autorest/autorest) [![Build Status](https://travis-ci.org/Azure/go-autorest.svg?branch=master)](https://travis-ci.org/Azure/go-autorest) [![Go Report Card](http://goreportcard.com/badge/Azure/go-autorest)](http://goreportcard.com/report/Azure/go-autorest)
 
 ## Usage
 Package autorest implements an HTTP request pipeline suitable for use across multiple go-routines
-and provides the shared routines relied on by AutoRest (see https://github.com/azure/autorest/)
+and provides the shared routines relied on by AutoRest (see https://github.com/Azure/autorest/)
 generated Go code.
 
 The package breaks sending and responding to HTTP requests into three phases: Preparing, Sending,
@@ -55,8 +55,8 @@ fixed set of values. Similarly, sharing a Responder that reads the response body
 struct (e.g., ByUnmarshallingJson) is likely incorrect.
 
 Lastly, the Swagger specification (https://swagger.io) that drives AutoRest
-(https://github.com/azure/autorest/) precisely defines two date forms: date and date-time. The
-github.com/azure/go-autorest/autorest/date package provides time.Time derivations to ensure
+(https://github.com/Azure/autorest/) precisely defines two date forms: date and date-time. The
+github.com/Azure/go-autorest/autorest/date package provides time.Time derivations to ensure
 correct parsing and formatting.
 
 Errors raised by autorest objects and methods will conform to the autorest.Error interface.
@@ -68,7 +68,7 @@ generated clients, see the Client described below.
 ## Install
 
 ```bash
-go get github.com/azure/go-autorest/autorest
+go get github.com/Azure/go-autorest/autorest
 ```
 
 ## License
