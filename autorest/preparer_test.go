@@ -8,34 +8,52 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/azure/go-autorest/autorest/mocks"
+	"github.com/Azure/go-autorest/autorest/mocks"
 )
 
 // PrepareDecorators wrap and invoke a Preparer. Most often, the decorator invokes the passed
 // Preparer and decorates the response.
-func ExamplePrepareDecorator(path string) PrepareDecorator {
-	return func(p Preparer) Preparer {
-		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
-			r, err := p.Prepare(r)
-			if err == nil {
-				if r.URL == nil {
-					return r, fmt.Errorf("ERROR: URL is not set")
+func ExamplePrepareDecorator() {
+	path := "a/b/c/"
+	pd := func() PrepareDecorator {
+		return func(p Preparer) Preparer {
+			return PreparerFunc(func(r *http.Request) (*http.Request, error) {
+				r, err := p.Prepare(r)
+				if err == nil {
+					if r.URL == nil {
+						return r, fmt.Errorf("ERROR: URL is not set")
+					}
+					r.URL.Path += path
 				}
-				r.URL.Path += path
-			}
-			return r, err
-		})
+				return r, err
+			})
+		}
 	}
+
+	r, _ := Prepare(&http.Request{},
+		WithBaseURL("https://microsoft.com/"),
+		pd())
+
+	fmt.Printf("Path is %s\n", r.URL)
+	// Output: Path is https://microsoft.com/a/b/c/
 }
 
 // PrepareDecorators may also modify and then invoke the Preparer.
-func ExamplePrepareDecorator_pre(path string) PrepareDecorator {
-	return func(p Preparer) Preparer {
-		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
-			r.Header.Add(http.CanonicalHeaderKey("ContentType"), "application/json")
-			return p.Prepare(r)
-		})
+func ExamplePrepareDecorator_pre() {
+	pd := func() PrepareDecorator {
+		return func(p Preparer) Preparer {
+			return PreparerFunc(func(r *http.Request) (*http.Request, error) {
+				r.Header.Add(http.CanonicalHeaderKey("ContentType"), "application/json")
+				return p.Prepare(r)
+			})
+		}
 	}
+
+	r, _ := Prepare(&http.Request{Header: http.Header{}},
+		pd())
+
+	fmt.Printf("ContentType is %s\n", r.Header.Get("ContentType"))
+	// Output: ContentType is application/json
 }
 
 // Create a sequence of three Preparers that build up the URL path.
@@ -302,6 +320,16 @@ func TestWithBearerAuthorization(t *testing.T) {
 	}
 	if r.Header.Get(headerAuthorization) != "Bearer SOME-TOKEN" {
 		t.Errorf("autorest: WithBearerAuthorization failed to add header (%s=%s)", headerAuthorization, r.Header.Get(headerAuthorization))
+	}
+}
+
+func TestWithUserAgent(t *testing.T) {
+	r, err := Prepare(mocks.NewRequest(), WithUserAgent("User Agent Go"))
+	if err != nil {
+		fmt.Printf("ERROR: %v", err)
+	}
+	if r.Header.Get(headerUserAgent) != "User Agent Go" {
+		t.Errorf("autorest: WithUserAgent failed to add header (%s=%s)", headerUserAgent, r.Header.Get(headerUserAgent))
 	}
 }
 

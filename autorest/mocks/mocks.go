@@ -63,6 +63,7 @@ func (body *Body) reset() *Body {
 // Sender implements a simple null sender.
 type Sender struct {
 	attempts      int
+	pollAttempts  int
 	content       string
 	reuseResponse bool
 	resp          *http.Response
@@ -90,6 +91,13 @@ func (c *Sender) Do(r *http.Request) (*http.Response, error) {
 		c.resp = resp
 	} else {
 		c.resp.Body.(*Body).reset()
+	}
+
+	if c.pollAttempts > 0 {
+		c.pollAttempts--
+		c.resp.Status = "Accepted"
+		c.resp.StatusCode = http.StatusAccepted
+		SetAcceptedHeaders(c.resp)
 	}
 
 	if c.emitErrors > 0 || c.emitErrors < 0 {
@@ -133,6 +141,12 @@ func (c *Sender) EmitStatus(status string, code int) {
 	c.statusCode = code
 }
 
+// SetPollAttempts sets the number of times the returned response emits the default polling
+// status code (i.e., 202 Accepted).
+func (c *Sender) SetPollAttempts(pa int) {
+	c.pollAttempts = pa
+}
+
 // ReuseResponse sets if the just one response object should be reused by all calls to Do.
 func (c *Sender) ReuseResponse(reuseResponse bool) {
 	c.reuseResponse = reuseResponse
@@ -141,6 +155,7 @@ func (c *Sender) ReuseResponse(reuseResponse bool) {
 // SetResponse sets the response from Do.
 func (c *Sender) SetResponse(resp *http.Response) {
 	c.resp = resp
+	c.reuseResponse = true
 }
 
 // T is a simple testing struct.

@@ -1,7 +1,10 @@
 package autorest
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -104,8 +107,12 @@ func ByUnmarshallingJSON(v interface{}) RespondDecorator {
 		return ResponderFunc(func(resp *http.Response) error {
 			err := r.Respond(resp)
 			if err == nil {
-				d := json.NewDecoder(resp.Body)
+				b := bytes.Buffer{}
+				d := json.NewDecoder(io.TeeReader(resp.Body, &b))
 				err = d.Decode(v)
+				if err != nil {
+					err = fmt.Errorf("Error (%v) occurred decoding JSON (\"%s\")", err, b.String())
+				}
 			}
 			return err
 		})
@@ -134,4 +141,23 @@ func WithErrorUnlessStatusCode(codes ...int) RespondDecorator {
 // anything other than HTTP 200.
 func WithErrorUnlessOK() RespondDecorator {
 	return WithErrorUnlessStatusCode(http.StatusOK)
+}
+
+// ExtractHeader extracts all values of the specified header from the http.Response. It returns an
+// empty string slice if the passed http.Response is nil or the header does not exist.
+func ExtractHeader(header string, resp *http.Response) []string {
+	if resp != nil && resp.Header != nil {
+		return resp.Header[http.CanonicalHeaderKey(header)]
+	}
+	return nil
+}
+
+// ExtractHeaderValue extracts the first value of the specified header from the http.Response. It
+// returns an empty string if the passed http.Response is nil or the header does not exist.
+func ExtractHeaderValue(header string, resp *http.Response) string {
+	h := ExtractHeader(header, resp)
+	if len(h) > 0 {
+		return h[0]
+	}
+	return ""
 }

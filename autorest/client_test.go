@@ -1,14 +1,119 @@
 package autorest
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"reflect"
 	"testing"
 	"time"
 
-	"github.com/azure/go-autorest/autorest/mocks"
+	"github.com/Azure/go-autorest/autorest/mocks"
 )
+
+func TestLoggingInspectorWithInspection(t *testing.T) {
+	b := bytes.Buffer{}
+	c := Client{}
+	li := LoggingInspector{Logger: log.New(&b, "", 0)}
+	c.RequestInspector = li.WithInspection()
+
+	Prepare(mocks.NewRequestWithContent("Content"),
+		c.WithInspection())
+
+	if len(b.String()) <= 0 {
+		t.Error("autorest: LoggingInspector#WithInspection did not record Request to the log")
+	}
+}
+
+func TestLoggingInspectorWithInspectionEmitsErrors(t *testing.T) {
+	b := bytes.Buffer{}
+	c := Client{}
+	r := mocks.NewRequestWithContent("Content")
+	li := LoggingInspector{Logger: log.New(&b, "", 0)}
+	c.RequestInspector = li.WithInspection()
+
+	r.Body.Close()
+	Prepare(r,
+		c.WithInspection())
+
+	if len(b.String()) <= 0 {
+		t.Error("autorest: LoggingInspector#WithInspection did not record Request to the log")
+	}
+}
+
+func TestLoggingInspectorWithInspectionRestoresBody(t *testing.T) {
+	b := bytes.Buffer{}
+	c := Client{}
+	r := mocks.NewRequestWithContent("Content")
+	li := LoggingInspector{Logger: log.New(&b, "", 0)}
+	c.RequestInspector = li.WithInspection()
+
+	Prepare(r,
+		c.WithInspection())
+
+	s, _ := ioutil.ReadAll(r.Body)
+	if len(s) <= 0 {
+		t.Error("autorest: LoggingInspector#WithInspection did not restore the Request body")
+	}
+}
+
+func TestLoggingInspectorByInspecting(t *testing.T) {
+	b := bytes.Buffer{}
+	c := Client{}
+	li := LoggingInspector{Logger: log.New(&b, "", 0)}
+	c.ResponseInspector = li.ByInspecting()
+
+	Respond(mocks.NewResponseWithContent("Content"),
+		c.ByInspecting())
+
+	if len(b.String()) <= 0 {
+		t.Error("autorest: LoggingInspector#ByInspection did not record Response to the log")
+	}
+}
+
+func TestLoggingInspectorByInspectingEmitsErrors(t *testing.T) {
+	b := bytes.Buffer{}
+	c := Client{}
+	r := mocks.NewResponseWithContent("Content")
+	li := LoggingInspector{Logger: log.New(&b, "", 0)}
+	c.ResponseInspector = li.ByInspecting()
+
+	r.Body.Close()
+	Respond(r,
+		c.ByInspecting())
+
+	if len(b.String()) <= 0 {
+		t.Error("autorest: LoggingInspector#ByInspection did not record Response to the log")
+	}
+}
+
+func TestLoggingInspectorByInspectingRestoresBody(t *testing.T) {
+	b := bytes.Buffer{}
+	c := Client{}
+	r := mocks.NewResponseWithContent("Content")
+	li := LoggingInspector{Logger: log.New(&b, "", 0)}
+	c.ResponseInspector = li.ByInspecting()
+
+	Respond(r,
+		c.ByInspecting())
+
+	s, _ := ioutil.ReadAll(r.Body)
+	if len(s) <= 0 {
+		t.Error("autorest: LoggingInspector#ByInspecting did not restore the Response body")
+	}
+}
+
+func TestNewClientWithUserAgent(t *testing.T) {
+	ua := "UserAgent"
+	c := NewClientWithUserAgent(ua)
+
+	if c.UserAgent != ua {
+		t.Errorf("autorest: NewClientWithUserAgent failed to set the UserAgent -- expected %s, received %s",
+			ua, c.UserAgent)
+	}
+}
 
 func TestClientIsPollingAllowed(t *testing.T) {
 	c := Client{PollingMode: PollUntilAttempts}
@@ -91,7 +196,7 @@ func TestClientPollAsNeededReturnsErrorWhenPollingDisabled(t *testing.T) {
 	c.PollingMode = DoNotPoll
 
 	r := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
-	setAcceptedHeaders(r)
+	mocks.SetAcceptedHeaders(r)
 
 	_, err := c.PollAsNeeded(r)
 	if err == nil {
@@ -109,10 +214,10 @@ func TestClientPollAsNeededAllowsInspectionOfRequest(t *testing.T) {
 	c.PollingAttempts = 1
 
 	mi := &mockInspector{}
-	c.RequestInspector = mi
+	c.RequestInspector = mi.WithInspection()
 
 	r := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
-	setAcceptedHeaders(r)
+	mocks.SetAcceptedHeaders(r)
 
 	c.PollAsNeeded(r)
 	if !mi.wasInvoked {
@@ -131,7 +236,7 @@ func TestClientPollAsNeededReturnsErrorIfUnableToCreateRequest(t *testing.T) {
 	c.PollingAttempts = 1
 
 	r := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
-	setAcceptedHeaders(r)
+	mocks.SetAcceptedHeaders(r)
 
 	_, err := c.PollAsNeeded(r)
 	if err == nil {
@@ -152,9 +257,8 @@ func TestClientPollAsNeededPollsForAttempts(t *testing.T) {
 	c.Sender = s
 
 	r := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
-	setAcceptedHeaders(r)
+	mocks.SetAcceptedHeaders(r)
 	s.SetResponse(r)
-	s.ReuseResponse(true)
 
 	resp, _ := c.PollAsNeeded(r)
 	if s.Attempts() != 5 {
@@ -176,9 +280,8 @@ func TestClientPollAsNeededPollsForDuration(t *testing.T) {
 	c.Sender = s
 
 	r := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
-	setAcceptedHeaders(r)
+	mocks.SetAcceptedHeaders(r)
 	s.SetResponse(r)
-	s.ReuseResponse(true)
 
 	d1 := 10 * time.Millisecond
 	start := time.Now()
@@ -245,6 +348,127 @@ func TestClientSenderReturnsHttpClientByDefault(t *testing.T) {
 	}
 }
 
+func TestClientSendSetsAuthorization(t *testing.T) {
+	r := mocks.NewRequest()
+	s := mocks.NewSender()
+	c := Client{Authorizer: mockAuthorizer{}, Sender: s}
+
+	c.Send(r)
+	if len(r.Header.Get(http.CanonicalHeaderKey(headerAuthorization))) <= 0 {
+		t.Errorf("autorest: Client#Send failed to set Authorization header -- %s=%s",
+			http.CanonicalHeaderKey(headerAuthorization),
+			r.Header.Get(http.CanonicalHeaderKey(headerAuthorization)))
+	}
+}
+
+func TestClientSendInvokesInspector(t *testing.T) {
+	r := mocks.NewRequest()
+	s := mocks.NewSender()
+	i := &mockInspector{}
+	c := Client{RequestInspector: i.WithInspection(), Sender: s}
+
+	c.Send(r)
+	if !i.wasInvoked {
+		t.Error("autorest: Client#Send failed to invoke the RequestInspector")
+	}
+}
+
+func TestClientSendReturnsPrepareError(t *testing.T) {
+	r := mocks.NewRequest()
+	s := mocks.NewSender()
+	c := Client{Authorizer: mockFailingAuthorizer{}, Sender: s}
+
+	_, err := c.Send(r)
+	if err == nil {
+		t.Error("autorest: Client#Send failed to return an error the Prepare error")
+	}
+}
+
+func TestClientSendSends(t *testing.T) {
+	r := mocks.NewRequest()
+	s := mocks.NewSender()
+	c := Client{Sender: s}
+
+	c.Send(r)
+	if s.Attempts() <= 0 {
+		t.Error("autorest: Client#Send failed to invoke the Sender")
+	}
+}
+
+func TestClientSendDefaultsToUsingStatusCodeOK(t *testing.T) {
+	r := mocks.NewRequest()
+	s := mocks.NewSender()
+	c := Client{Authorizer: mockAuthorizer{}, Sender: s}
+
+	_, err := c.Send(r)
+	if err != nil {
+		t.Errorf("autorest: Client#Send returned an error for Status Code OK -- %v",
+			err)
+	}
+}
+
+func TestClientSendClosesReponseBodyWhenReturningError(t *testing.T) {
+	s := mocks.NewSender()
+	r := mocks.NewResponseWithStatus("500 InternalServerError", http.StatusInternalServerError)
+	s.SetResponse(r)
+	c := Client{Sender: s}
+
+	c.Send(mocks.NewRequest())
+	if r.Body.(*mocks.Body).IsOpen() {
+		t.Error("autorest: Client#Send failed to close the response body when returning an error")
+	}
+}
+
+func TestClientSendReturnsErrorWithUnexpectedStatusCode(t *testing.T) {
+	r := mocks.NewRequest()
+	s := mocks.NewSender()
+	s.EmitStatus("500 InternalServerError", http.StatusInternalServerError)
+	c := Client{Sender: s}
+
+	_, err := c.Send(r)
+	if err == nil {
+		t.Error("autorest: Client#Send failed to return an error for an unexpected Status Code")
+	}
+}
+
+func TestClientSendDoesNotReturnErrorForExpectedStatusCode(t *testing.T) {
+	r := mocks.NewRequest()
+	s := mocks.NewSender()
+	s.EmitStatus("500 InternalServerError", http.StatusInternalServerError)
+	c := Client{Sender: s}
+
+	_, err := c.Send(r, http.StatusInternalServerError)
+	if err != nil {
+		t.Errorf("autorest: Client#Send returned an error for an expected Status Code -- %v",
+			err)
+	}
+}
+
+func TestClientSendPollsIfNeeded(t *testing.T) {
+	r := mocks.NewRequest()
+	s := mocks.NewSender()
+	s.SetPollAttempts(5)
+	c := Client{Sender: s, PollingMode: PollUntilAttempts, PollingAttempts: 10}
+
+	c.Send(r, http.StatusOK, http.StatusAccepted)
+	if s.Attempts() != (5 + 1) {
+		t.Errorf("autorest: Client#Send failed to poll the expected number of times -- attempts %d",
+			s.Attempts())
+	}
+}
+
+func TestClientSendDoesNotPollIfUnnecessary(t *testing.T) {
+	r := mocks.NewRequest()
+	s := mocks.NewSender()
+	c := Client{Sender: s, PollingMode: PollUntilAttempts, PollingAttempts: 10}
+
+	c.Send(r, http.StatusOK, http.StatusAccepted)
+	if s.Attempts() != 1 {
+		t.Errorf("autorest: Client#Send unexpectedly polled -- attempts %d",
+			s.Attempts())
+	}
+}
+
 func TestClientSenderReturnsSetSender(t *testing.T) {
 	c := Client{}
 
@@ -265,6 +489,19 @@ func TestClientDoInvokesSender(t *testing.T) {
 	c.Do(&http.Request{})
 	if s.Attempts() != 1 {
 		t.Error("autorest: Client#Do failed to invoke the Sender")
+	}
+}
+
+func TestClientDoSetsUserAgent(t *testing.T) {
+	c := Client{UserAgent: "UserAgent"}
+	r := mocks.NewRequest()
+
+	c.Do(r)
+
+	if r.Header.Get(http.CanonicalHeaderKey(headerUserAgent)) != "UserAgent" {
+		t.Errorf("autorest: Client#Do failed to correctly set User-Agent header: %s=%s",
+			http.CanonicalHeaderKey(headerUserAgent),
+			r.Header.Get(http.CanonicalHeaderKey(headerUserAgent)))
 	}
 }
 
@@ -300,7 +537,7 @@ func TestClientWithAuthorizer(t *testing.T) {
 func TestClientWithInspection(t *testing.T) {
 	c := Client{}
 	r := &mockInspector{}
-	c.RequestInspector = r
+	c.RequestInspector = r.WithInspection()
 
 	Prepare(&http.Request{},
 		c.WithInspection())
@@ -325,7 +562,7 @@ func TestClientWithInspectionSetsDefault(t *testing.T) {
 func TestClientByInspecting(t *testing.T) {
 	c := Client{}
 	r := &mockInspector{}
-	c.ResponseInspector = r
+	c.ResponseInspector = r.ByInspecting()
 
 	Respond(&http.Response{},
 		c.ByInspecting())
@@ -351,7 +588,7 @@ func TestResponseGetPollingDelay(t *testing.T) {
 	d1 := 10 * time.Second
 
 	r := mocks.NewResponse()
-	setRetryHeader(r, d1)
+	mocks.SetRetryHeader(r, d1)
 	ar := Response{Response: r}
 
 	d2 := ar.GetPollingDelay(time.Duration(0))
@@ -374,11 +611,11 @@ func TestResponseGetPollingDelayReturnsDefault(t *testing.T) {
 
 func TestResponseGetPollingLocation(t *testing.T) {
 	r := mocks.NewResponse()
-	setLocationHeader(r, testURL)
+	mocks.SetLocationHeader(r, mocks.TestURL)
 	ar := Response{Response: r}
 
-	if ar.GetPollingLocation() != testURL {
+	if ar.GetPollingLocation() != mocks.TestURL {
 		t.Errorf("autorest: Response#GetPollingLocation failed to return correct URL -- expected %v, received %v",
-			testURL, ar.GetPollingLocation())
+			mocks.TestURL, ar.GetPollingLocation())
 	}
 }

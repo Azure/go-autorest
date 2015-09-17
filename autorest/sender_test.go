@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/azure/go-autorest/autorest/mocks"
+	"github.com/Azure/go-autorest/autorest/mocks"
 )
 
 func ExampleSendWithSender() {
@@ -160,10 +160,9 @@ func TestAfterRetryDelayWaits(t *testing.T) {
 	d := 10 * time.Millisecond
 
 	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
-	setAcceptedHeaders(resp)
-	setRetryHeader(resp, d)
+	mocks.SetAcceptedHeaders(resp)
+	mocks.SetRetryHeader(resp, d)
 	client.SetResponse(resp)
-	client.ReuseResponse(true)
 
 	tt := time.Now()
 	r, _ := SendWithSender(client, mocks.NewRequest(),

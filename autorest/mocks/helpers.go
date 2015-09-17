@@ -3,6 +3,23 @@ package mocks
 import (
 	"fmt"
 	"net/http"
+	"time"
+)
+
+const (
+	// TestDelay is the Retry-After delay used in tests.
+	TestDelay = 0 * time.Second
+
+	// TestHeader is the header used in tests.
+	TestHeader = "x-test-header"
+
+	// TestURL is the URL used in tests.
+	TestURL = "https://microsoft.com/a/b/c/"
+)
+
+const (
+	headerLocation   = "Location"
+	headerRetryAfter = "Retry-After"
 )
 
 // NewRequest instantiates a new request.
@@ -58,4 +75,30 @@ func SetResponseHeader(resp *http.Response, h string, v string) {
 		resp.Header = make(http.Header)
 	}
 	resp.Header.Set(h, v)
+}
+
+// SetResponseHeaderValues adds a header containing all the passed string values.
+func SetResponseHeaderValues(resp *http.Response, h string, values []string) {
+	if resp.Header == nil {
+		resp.Header = make(http.Header)
+	}
+	for _, v := range values {
+		resp.Header.Add(h, v)
+	}
+}
+
+// SetAcceptedHeaders adds the headers usually associated with a 202 Accepted response.
+func SetAcceptedHeaders(resp *http.Response) {
+	SetLocationHeader(resp, TestURL)
+	SetRetryHeader(resp, TestDelay)
+}
+
+// SetLocationHeader adds the Location header.
+func SetLocationHeader(resp *http.Response, location string) {
+	SetResponseHeader(resp, http.CanonicalHeaderKey(headerLocation), location)
+}
+
+// SetRetryHeader adds the Retry-After header.
+func SetRetryHeader(resp *http.Response, delay time.Duration) {
+	SetResponseHeader(resp, http.CanonicalHeaderKey(headerRetryAfter), fmt.Sprintf("%v", delay.Seconds()))
 }

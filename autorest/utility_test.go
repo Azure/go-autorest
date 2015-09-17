@@ -5,16 +5,13 @@ import (
 	"net/http"
 	"reflect"
 	"testing"
-	"time"
 
-	"github.com/azure/go-autorest/autorest/mocks"
+	"github.com/Azure/go-autorest/autorest/mocks"
 )
 
 const (
 	testAuthorizationHeader = "BEARER SECRETTOKEN"
-	testDelay               = 0 * time.Second
 	testBadURL              = ""
-	testURL                 = "https://microsoft.com/a/b/c/"
 	jsonT                   = `
     {
       "name":"Rob Pike",
@@ -70,19 +67,6 @@ func TestEnsureStrings(t *testing.T) {
 	if !reflect.DeepEqual(v, r) {
 		t.Errorf("autorest: ensureValueStrings returned %v\n", v)
 	}
-}
-
-func setAcceptedHeaders(resp *http.Response) {
-	setLocationHeader(resp, testURL)
-	setRetryHeader(resp, testDelay)
-}
-
-func setLocationHeader(resp *http.Response, location string) {
-	mocks.SetResponseHeader(resp, http.CanonicalHeaderKey(headerLocation), location)
-}
-
-func setRetryHeader(resp *http.Response, delay time.Duration) {
-	mocks.SetResponseHeader(resp, http.CanonicalHeaderKey(headerRetryAfter), fmt.Sprintf("%v", delay.Seconds()))
 }
 
 func doEnsureBodyClosed(t *testing.T) SendDecorator {
@@ -154,7 +138,7 @@ func withErrorRespondDecorator(e *error) RespondDecorator {
 			if err != nil {
 				return err
 			}
-			*e = fmt.Errorf("autorest: Faux Error")
+			*e = fmt.Errorf("autorest: Faux Respond Error")
 			return *e
 		})
 	}
