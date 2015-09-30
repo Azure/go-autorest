@@ -1,6 +1,10 @@
 package autorest
 
 import (
+	"bytes"
+	"io"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"time"
 )
@@ -28,16 +32,67 @@ const (
 	DoNotPoll PollingMode = "not-at-all"
 )
 
-// RequestInspector defines a single method that returns a PrepareDecorator used to inspect the
-// http.Request prior to sending.
-type RequestInspector interface {
-	WithInspection() PrepareDecorator
+const (
+	requestFormat = `HTTP Request Begin ===================================================
+%s
+===================================================== HTTP Request End
+`
+	responseFormat = `HTTP Response Begin ===================================================
+%s
+===================================================== HTTP Response End
+`
+)
+
+// LoggingInspector implements request and response inspectors that log the full request and
+// response to a supplied log.
+type LoggingInspector struct {
+	Logger *log.Logger
 }
 
-// ResponseInspector defines a single method that returns a ResponseDecorator used to inspect the
-// http.Response prior to responding.
-type ResponseInspector interface {
-	ByInspecting() RespondDecorator
+// WithInspection returns a PrepareDecorator that emits the http.Request to the supplied logger. The
+// body is restored after being emitted.
+//
+// Note: Since it reads the entire Body, this decorator should not be used where body streaming is
+// important. It is best used to trace JSON or similar body values.
+func (li LoggingInspector) WithInspection() PrepareDecorator {
+	return func(p Preparer) Preparer {
+		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
+			var body, b bytes.Buffer
+
+			defer r.Body.Close()
+
+			r.Body = ioutil.NopCloser(io.TeeReader(r.Body, &body))
+			r.Write(&b)
+
+			li.Logger.Printf(requestFormat, b.String())
+
+			r.Body = ioutil.NopCloser(&body)
+			return p.Prepare(r)
+		})
+	}
+}
+
+// ByInspecting returns a RespondDecorator that emits the http.Response to the supplied logger. The
+// body is restored after being emitted.
+//
+// Note: Since it reads the entire Body, this decorator should not be used where body streaming is
+// important. It is best used to trace JSON or similar body values.
+func (li LoggingInspector) ByInspecting() RespondDecorator {
+	return func(r Responder) Responder {
+		return ResponderFunc(func(resp *http.Response) error {
+			var body, b bytes.Buffer
+
+			defer resp.Body.Close()
+
+			resp.Body = ioutil.NopCloser(io.TeeReader(resp.Body, &body))
+			resp.Write(&b)
+
+			li.Logger.Printf(responseFormat, b.String())
+
+			resp.Body = ioutil.NopCloser(&body)
+			return r.Respond(resp)
+		})
+	}
 }
 
 var (
@@ -62,19 +117,31 @@ var (
 type Client struct {
 	Authorizer        Authorizer
 	Sender            Sender
-	RequestInspector  RequestInspector
-	ResponseInspector ResponseInspector
+	RequestInspector  PrepareDecorator
+	ResponseInspector RespondDecorator
 
 	PollingMode     PollingMode
 	PollingAttempts int
 	PollingDuration time.Duration
+
+	// UserAgent, if not empty, will be set as the HTTP User-Agent header on all requests sent
+	// through the Do method.
+	UserAgent string
+}
+
+// NewClientWithUserAgent returns an instance of the DefaultClient with the UserAgent set to the
+// passed string.
+func NewClientWithUserAgent(ua string) Client {
+	c := DefaultClient
+	c.UserAgent = ua
+	return c
 }
 
 // IsPollingAllowed returns an error if the client allows polling and the passed http.Response
 // requires it, otherwise it returns nil.
 func (c Client) IsPollingAllowed(resp *http.Response, codes ...int) error {
 	if c.DoNotPoll() && ResponseRequiresPolling(resp, codes...) {
-		return NewError("autorest.Client", "IsPollingAllowed", "Response to %s requires polling but polling is disabled",
+		return NewError("autorest/Client", "IsPollingAllowed", "Response to %s requires polling but polling is disabled",
 			resp.Request.URL)
 	}
 	return nil
@@ -87,13 +154,13 @@ func (c Client) PollAsNeeded(resp *http.Response, codes ...int) (*http.Response,
 	}
 
 	if c.DoNotPoll() {
-		return resp, NewError("autorest.Client", "PollAsNeeded", "Polling for %s is required, but polling is disabled",
+		return resp, NewError("autorest/Client", "PollAsNeeded", "Polling for %s is required, but polling is disabled",
 			resp.Request.URL)
 	}
 
 	req, err := NewPollingRequest(resp, c)
 	if err != nil {
-		return resp, NewErrorWithError(err, "autorest.Client", "PollAsNeeded", "Unable to create polling request for response to %s",
+		return resp, NewErrorWithError(err, "autorest/Client", "PollAsNeeded", "Unable to create polling request for response to %s",
 			resp.Request.URL)
 	}
 
@@ -121,9 +188,45 @@ func (c Client) PollForDuration() bool {
 	return c.PollingMode == PollUntilDuration
 }
 
-// Do is a convenience method that invokes the Sender of the Client. If no Sender is set, it uses
-// a new instance of http.Client.
+// Send sends the passed http.Request after applying authorization. It will poll if the client
+// allows polling and the http.Response status code requires it. It will close the http.Response
+// Body if the request returns an error.
+func (c Client) Send(req *http.Request, codes ...int) (*http.Response, error) {
+	if len(codes) == 0 {
+		codes = []int{http.StatusOK}
+	}
+
+	req, err := Prepare(req,
+		c.WithAuthorization(),
+		c.WithInspection())
+	if err != nil {
+		return nil, NewErrorWithError(err, "autorest/Client", "Send", "Preparing request failed")
+	}
+
+	resp, err := SendWithSender(c, req,
+		DoErrorUnlessStatusCode(codes...))
+	if err == nil {
+		err = c.IsPollingAllowed(resp)
+		if err == nil {
+			resp, err = c.PollAsNeeded(resp)
+		}
+	}
+
+	if err != nil {
+		Respond(resp,
+			ByClosing())
+	}
+
+	return resp, err
+}
+
+// Do implements the Sender interface by invoking the active Sender. If Sender is not set, it uses
+// a new instance of http.Client. In both cases it will, if UserAgent is set, apply set the
+// User-Agent header.
 func (c Client) Do(r *http.Request) (*http.Response, error) {
+	if len(c.UserAgent) > 0 {
+		r, _ = Prepare(r, WithUserAgent(c.UserAgent))
+	}
 	return c.sender().Do(r)
 }
 
@@ -155,7 +258,7 @@ func (c Client) WithInspection() PrepareDecorator {
 	if c.RequestInspector == nil {
 		return WithNothing()
 	}
-	return c.RequestInspector.WithInspection()
+	return c.RequestInspector
 }
 
 // ByInspecting is a convenience method that passes the response to the supplied ResponseInspector,
@@ -164,7 +267,7 @@ func (c Client) ByInspecting() RespondDecorator {
 	if c.ResponseInspector == nil {
 		return ByIgnoring()
 	}
-	return c.ResponseInspector.ByInspecting()
+	return c.ResponseInspector
 }
 
 // Response serves as the base for all responses from generated clients. It provides access to the

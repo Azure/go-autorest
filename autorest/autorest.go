@@ -1,6 +1,6 @@
 /*
 Package autorest implements an HTTP request pipeline suitable for use across multiple go-routines
-and provides the shared routines relied on by AutoRest (see https://github.com/azure/autorest/)
+and provides the shared routines relied on by AutoRest (see https://github.com/Azure/autorest/)
 generated Go code.
 
 The package breaks sending and responding to HTTP requests into three phases: Preparing, Sending,
@@ -45,8 +45,8 @@ fixed set of values. Similarly, sharing a Responder that reads the response body
 struct (e.g., ByUnmarshallingJson) is likely incorrect.
 
 Lastly, the Swagger specification (https://swagger.io) that drives AutoRest
-(https://github.com/azure/autorest/) precisely defines two date forms: date and date-time. The
-github.com/azure/go-autorest/autorest/date package provides time.Time derivations to ensure
+(https://github.com/Azure/autorest/) precisely defines two date forms: date and date-time. The
+github.com/Azure/go-autorest/autorest/date package provides time.Time derivations to ensure
 correct parsing and formatting.
 
 Errors raised by autorest objects and methods will conform to the autorest.Error interface.

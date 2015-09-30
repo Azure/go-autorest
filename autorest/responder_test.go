@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strings"
 	"testing"
 
-	"github.com/azure/go-autorest/autorest/mocks"
+	"github.com/Azure/go-autorest/autorest/mocks"
 )
 
 func ExampleWithErrorUnlessOK() {
@@ -255,6 +256,18 @@ func TestByUnmarhallingJSON(t *testing.T) {
 	}
 }
 
+func TestByUnmarhallingJSONIncludesJSONInErrors(t *testing.T) {
+	v := &mocks.T{}
+	j := jsonT[0 : len(jsonT)-2]
+	r := mocks.NewResponseWithContent(j)
+	err := Respond(r,
+		ByUnmarshallingJSON(v),
+		ByClosing())
+	if err == nil || !strings.Contains(err.Error(), j) {
+		t.Errorf("autorest: ByUnmarshallingJSON failed to return JSON in error (%v)", err)
+	}
+}
+
 func TestRespondAcceptsNullResponse(t *testing.T) {
 	err := Respond(nil)
 	if err != nil {
@@ -317,5 +330,58 @@ func TestWithErrorUnlessOKEmitsErrorIfNotOK(t *testing.T) {
 
 	if err == nil {
 		t.Errorf("autorest: WithErrorUnlessOK failed to return an error for a non-OK status code (%v)", err)
+	}
+}
+
+func TestExtractHeader(t *testing.T) {
+	r := mocks.NewResponse()
+	v := []string{"v1", "v2", "v3"}
+	mocks.SetResponseHeaderValues(r, mocks.TestHeader, v)
+
+	if !reflect.DeepEqual(ExtractHeader(mocks.TestHeader, r), v) {
+		t.Errorf("autorest: ExtractHeader failed to retrieve the expected header -- expected [%s]%v, received [%s]%v",
+			mocks.TestHeader, v, mocks.TestHeader, ExtractHeader(mocks.TestHeader, r))
+	}
+}
+
+func TestExtractHeaderHandlesMissingHeader(t *testing.T) {
+	var v []string
+	r := mocks.NewResponse()
+
+	if !reflect.DeepEqual(ExtractHeader(mocks.TestHeader, r), v) {
+		t.Errorf("autorest: ExtractHeader failed to handle a missing header -- expected %v, received %v",
+			v, ExtractHeader(mocks.TestHeader, r))
+	}
+}
+
+func TestExtractHeaderValue(t *testing.T) {
+	r := mocks.NewResponse()
+	v := "v1"
+	mocks.SetResponseHeader(r, mocks.TestHeader, v)
+
+	if ExtractHeaderValue(mocks.TestHeader, r) != v {
+		t.Errorf("autorest: ExtractHeader failed to retrieve the expected header -- expected [%s]%v, received [%s]%v",
+			mocks.TestHeader, v, mocks.TestHeader, ExtractHeaderValue(mocks.TestHeader, r))
+	}
+}
+
+func TestExtractHeaderValueHandlesMissingHeader(t *testing.T) {
+	r := mocks.NewResponse()
+	v := ""
+
+	if ExtractHeaderValue(mocks.TestHeader, r) != v {
+		t.Errorf("autorest: ExtractHeader failed to retrieve the expected header -- expected [%s]%v, received [%s]%v",
+			mocks.TestHeader, v, mocks.TestHeader, ExtractHeaderValue(mocks.TestHeader, r))
+	}
+}
+
+func TestExtractHeaderValueRetrievesFirstValue(t *testing.T) {
+	r := mocks.NewResponse()
+	v := []string{"v1", "v2", "v3"}
+	mocks.SetResponseHeaderValues(r, mocks.TestHeader, v)
+
+	if ExtractHeaderValue(mocks.TestHeader, r) != v[0] {
+		t.Errorf("autorest: ExtractHeader failed to retrieve the expected header -- expected [%s]%v, received [%s]%v",
+			mocks.TestHeader, v[0], mocks.TestHeader, ExtractHeaderValue(mocks.TestHeader, r))
 	}
 }

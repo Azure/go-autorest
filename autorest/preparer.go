@@ -16,6 +16,7 @@ const (
 
 	headerAuthorization = "Authorization"
 	headerContentType   = "Content-Type"
+	headerUserAgent     = "User-Agent"
 )
 
 // Preparer is the interface that wraps the Prepare method.
@@ -77,8 +78,8 @@ func WithNothing() PrepareDecorator {
 	}
 }
 
-// WithHeader returns a PrepareDecorator that adds the specified HTTP header and value to the
-// http.Request. It will canonicalize the passed header name (via http.CanonicalHeaderKey) before
+// WithHeader returns a PrepareDecorator that sets the specified HTTP header of the http.Request to
+// the passed value. It canonicalizes the passed header name (via http.CanonicalHeaderKey) before
 // adding the header.
 func WithHeader(header string, value string) PrepareDecorator {
 	return func(p Preparer) Preparer {
@@ -88,7 +89,7 @@ func WithHeader(header string, value string) PrepareDecorator {
 				if r.Header == nil {
 					r.Header = make(http.Header)
 				}
-				r.Header.Add(http.CanonicalHeaderKey(header), value)
+				r.Header.Set(http.CanonicalHeaderKey(header), value)
 			}
 			return r, err
 		})
@@ -105,6 +106,12 @@ func WithBearerAuthorization(token string) PrepareDecorator {
 // is the passed contentType.
 func AsContentType(contentType string) PrepareDecorator {
 	return WithHeader(headerContentType, contentType)
+}
+
+// WithUserAgent returns a PrepareDecorator that adds an HTTP User-Agent header whose value is the
+// passed string.
+func WithUserAgent(ua string) PrepareDecorator {
+	return WithHeader(headerUserAgent, ua)
 }
 
 // AsFormURLEncoded returns a PrepareDecorator that adds an HTTP Content-Type header whose value is
