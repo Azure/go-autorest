@@ -14,3 +14,9 @@
 ## v1.0.1
 
 - Added CHANGELOG.md
+
+## v1.1.0
+
+- Added mechanism to retrieve a ServicePrincipalToken using a certificate-signed JWT
+- Added an example of creating a certificate-based ServicePrincipal and retrieving an OAuth token using the certificate
+
