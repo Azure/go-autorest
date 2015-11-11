@@ -1,0 +1,18 @@
+{
+	"ImportPath": "github.com/Azure/go-autorest",
+	"GoVersion": "go1.5.1",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/dgrijalva/jwt-go",
+			"Comment": "v2.3.0-12-g52c68d1",
+			"Rev": "52c68d1293c6de749708778de956009490672f6e"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/pkcs12",
+			"Rev": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
+		}
+	]
+}
