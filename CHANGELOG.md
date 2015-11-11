@@ -20,3 +20,6 @@
 - Added mechanism to retrieve a ServicePrincipalToken using a certificate-signed JWT
 - Added an example of creating a certificate-based ServicePrincipal and retrieving an OAuth token using the certificate
 
+## v1.1.1
+
+- Introduce godeps and vendor dependencies introduced in v1.1.1
