@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v2.0.0
+
+- Changed `to.StringMapPtr` method signature to return a pointer
+
 ## v1.0.0
 
 - Added Logging inspectors to trace http.Request / Response
