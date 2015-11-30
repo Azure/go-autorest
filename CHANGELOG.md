@@ -3,6 +3,7 @@
 ## v2.0.0
 
 - Changed `to.StringMapPtr` method signature to return a pointer
+- Changed `ServicePrincipalCertificateSecret` and `NewServicePrincipalTokenFromCertificate` to support generic certificate and private keys
 
 ## v1.0.0
 
