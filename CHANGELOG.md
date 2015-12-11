@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v2.1.0
+
+- Added `StatusCode` to `Error` for more easily obtaining the HTTP Reponse StatusCode (if any)
+
 ## v2.0.0
 
 - Changed `to.StringMapPtr` method signature to return a pointer

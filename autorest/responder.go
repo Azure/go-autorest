@@ -127,7 +127,7 @@ func WithErrorUnlessStatusCode(codes ...int) RespondDecorator {
 		return ResponderFunc(func(resp *http.Response) error {
 			err := r.Respond(resp)
 			if err == nil && !ResponseHasStatusCode(resp, codes...) {
-				err = NewError("autorest", "WithErrorUnlessStatusCode", "%v %v failed with %s",
+				err = NewErrorWithStatusCode("autorest", "WithErrorUnlessStatusCode", resp.StatusCode, "%v %v failed with %s",
 					resp.Request.Method,
 					resp.Request.URL,
 					resp.Status)
