@@ -52,6 +52,28 @@ func ExampleByUnmarshallingJSON() {
 	// Output: Rob Pike is 42 years old
 }
 
+func ExampleByUnmarshallingXML() {
+	c := `<?xml version="1.0" encoding="UTF-8"?>
+	<Person>
+	  <Name>Rob Pike</Name>
+	  <Age>42</Age>
+	</Person>`
+
+	type V struct {
+		Name string `xml:"Name"`
+		Age  int    `xml:"Age"`
+	}
+
+	v := &V{}
+
+	Respond(mocks.NewResponseWithContent(c),
+		ByUnmarshallingXML(v),
+		ByClosing())
+
+	fmt.Printf("%s is %d years old\n", v.Name, v.Age)
+	// Output: Rob Pike is 42 years old
+}
+
 func TestCreateResponderDoesNotModify(t *testing.T) {
 	r1 := mocks.NewResponse()
 	r2 := mocks.NewResponse()
@@ -242,7 +264,7 @@ func TestByClosingIfErrorDoesNotClosesIfNoErrorOccurs(t *testing.T) {
 	}
 }
 
-func TestByUnmarhallingJSON(t *testing.T) {
+func TestByUnmarshallingJSON(t *testing.T) {
 	v := &mocks.T{}
 	r := mocks.NewResponseWithContent(jsonT)
 	err := Respond(r,
@@ -256,7 +278,7 @@ func TestByUnmarhallingJSON(t *testing.T) {
 	}
 }
 
-func TestByUnmarhallingJSONIncludesJSONInErrors(t *testing.T) {
+func TestByUnmarshallingJSONIncludesJSONInErrors(t *testing.T) {
 	v := &mocks.T{}
 	j := jsonT[0 : len(jsonT)-2]
 	r := mocks.NewResponseWithContent(j)
@@ -265,6 +287,32 @@ func TestByUnmarhallingJSONIncludesJSONInErrors(t *testing.T) {
 		ByClosing())
 	if err == nil || !strings.Contains(err.Error(), j) {
 		t.Errorf("autorest: ByUnmarshallingJSON failed to return JSON in error (%v)", err)
+	}
+}
+
+func TestByUnmarshallingXML(t *testing.T) {
+	v := &mocks.T{}
+	r := mocks.NewResponseWithContent(xmlT)
+	err := Respond(r,
+		ByUnmarshallingXML(v),
+		ByClosing())
+	if err != nil {
+		t.Errorf("autorest: ByUnmarshallingXML failed (%v)", err)
+	}
+	if v.Name != "Rob Pike" || v.Age != 42 {
+		t.Errorf("autorest: ByUnmarshallingXML failed to properly unmarshal")
+	}
+}
+
+func TestByUnmarshallingXMLIncludesXMLInErrors(t *testing.T) {
+	v := &mocks.T{}
+	x := xmlT[0 : len(xmlT)-2]
+	r := mocks.NewResponseWithContent(x)
+	err := Respond(r,
+		ByUnmarshallingXML(v),
+		ByClosing())
+	if err == nil || !strings.Contains(err.Error(), x) {
+		t.Errorf("autorest: ByUnmarshallingXML failed to return XML in error (%v)", err)
 	}
 }
 

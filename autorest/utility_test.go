@@ -17,6 +17,11 @@ const (
       "name":"Rob Pike",
       "age":42
     }`
+	xmlT = `<?xml version="1.0" encoding="UTF-8"?>
+	<Person>
+		<Name>Rob Pike</Name>
+		<Age>42</Age>
+	</Person>`
 )
 
 func TestContainsIntFindsValue(t *testing.T) {
