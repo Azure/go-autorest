@@ -235,8 +235,12 @@ func (spt *ServicePrincipalToken) Refresh() error {
 
 	resp, err := autorest.SendWithSender(spt.sender, req)
 	if err != nil {
+		statusCode := autorest.UndefinedStatusCode
+		if resp != nil {
+			statusCode = resp.StatusCode
+		}
 		return autorest.NewErrorWithError(err,
-			"azure.ServicePrincipalToken", "Refresh", resp.StatusCode, "Failure sending request for Service Principal %s",
+			"azure.ServicePrincipalToken", "Refresh", statusCode, "Failure sending request for Service Principal %s",
 			spt.clientID)
 	}
 
@@ -247,8 +251,12 @@ func (spt *ServicePrincipalToken) Refresh() error {
 		autorest.ByUnmarshallingJSON(&newToken),
 		autorest.ByClosing())
 	if err != nil {
+		statusCode := autorest.UndefinedStatusCode
+		if resp != nil {
+			statusCode = resp.StatusCode
+		}
 		return autorest.NewErrorWithError(err,
-			"azure.ServicePrincipalToken", "Refresh", resp.StatusCode, "Failure handling response to Service Principal %s request",
+			"azure.ServicePrincipalToken", "Refresh", statusCode, "Failure handling response to Service Principal %s request",
 			spt.clientID)
 	}
 
