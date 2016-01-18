@@ -2,22 +2,23 @@ package azure
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"testing"
 
-	. "github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/mocks"
 )
 
 // Use a Client Inspector to set the request identifier.
 func ExampleWithClientID() {
 	uuid := "71FDB9F4-5E49-4C12-B266-DE7B4FD999A6"
-	req, _ := Prepare(&http.Request{},
-		AsGet(),
-		WithBaseURL("https://microsoft.com/a/b/c/"))
+	req, _ := autorest.Prepare(&http.Request{},
+		autorest.AsGet(),
+		autorest.WithBaseURL("https://microsoft.com/a/b/c/"))
 
-	c := Client{Sender: mocks.NewSender()}
+	c := autorest.Client{Sender: mocks.NewSender()}
 	c.RequestInspector = WithReturningClientID(uuid)
 
 	c.Send(req)
@@ -33,7 +34,7 @@ func ExampleWithClientID() {
 func TestWithReturningClientIDReturnsError(t *testing.T) {
 	var errIn error
 	uuid := "71FDB9F4-5E49-4C12-B266-DE7B4FD999A6"
-	_, errOut := Prepare(&http.Request{},
+	_, errOut := autorest.Prepare(&http.Request{},
 		withErrorPrepareDecorator(&errIn),
 		WithReturningClientID(uuid))
 
@@ -45,7 +46,7 @@ func TestWithReturningClientIDReturnsError(t *testing.T) {
 
 func TestWithClientID(t *testing.T) {
 	uuid := "71FDB9F4-5E49-4C12-B266-DE7B4FD999A6"
-	req, _ := Prepare(&http.Request{},
+	req, _ := autorest.Prepare(&http.Request{},
 		WithClientID(uuid))
 
 	if req.Header.Get(HeaderClientID) != uuid {
@@ -56,7 +57,7 @@ func TestWithClientID(t *testing.T) {
 
 func TestWithReturnClientID(t *testing.T) {
 	b := false
-	req, _ := Prepare(&http.Request{},
+	req, _ := autorest.Prepare(&http.Request{},
 		WithReturnClientID(b))
 
 	if req.Header.Get(HeaderReturnClientID) != strconv.FormatBool(b) {
@@ -87,9 +88,90 @@ func TestExtractRequestID(t *testing.T) {
 	}
 }
 
-func withErrorPrepareDecorator(e *error) PrepareDecorator {
-	return func(p Preparer) Preparer {
-		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
+func TestWithErrorUnlessStatusCode_NotAnAzureError(t *testing.T) {
+	body := `<html>
+		<head>
+			<title>IIS Error page</title>
+		</head>
+		<body>Some non-JSON error page</body>
+	</html>`
+	r := mocks.NewResponseWithContent(body)
+	r.Request = mocks.NewRequest()
+	r.StatusCode = http.StatusBadRequest
+	r.Status = http.StatusText(r.StatusCode)
+
+	err := autorest.Respond(r,
+		WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByClosing())
+	ok, _ := err.(*Error)
+	if ok != nil {
+		t.Fatalf("azure: azure.Error returned from malformed response: %v", err)
+	}
+
+	// the error body should still be there
+	defer r.Body.Close()
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(b) != body {
+		t.Fatalf("response body is wrong. got=%q exptected=%q", string(b), body)
+	}
+}
+
+func TestWithErrorUnlessStatusCode_FoundAzureError(t *testing.T) {
+	j := `{
+		"error": {
+			"code": "InternalError",
+			"message": "Azure is having trouble right now."
+		}
+	}`
+	uuid := "71FDB9F4-5E49-4C12-B266-DE7B4FD999A6"
+	r := mocks.NewResponseWithContent(j)
+	mocks.SetResponseHeader(r, HeaderRequestID, uuid)
+	r.Request = mocks.NewRequest()
+	r.StatusCode = http.StatusInternalServerError
+	r.Status = http.StatusText(r.StatusCode)
+
+	err := autorest.Respond(r,
+		WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByClosing())
+
+	if err == nil {
+		t.Fatalf("azure: returned nil error for proper error response")
+	}
+	azErr, ok := err.(*Error)
+	if !ok {
+		t.Fatalf("azure: returned error is not azure.Error: %T", err)
+	}
+	if expected := "InternalError"; azErr.ServiceError.Code != expected {
+		t.Fatalf("azure: wrong error code. expected=%q; got=%q", expected, azErr.ServiceError.Code)
+	}
+	if azErr.ServiceError.Message == "" {
+		t.Fatalf("azure: error message is not unmarshaled properly")
+	}
+	if expected := http.StatusInternalServerError; azErr.StatusCode != expected {
+		t.Fatalf("azure: got wrong StatusCode=%d Expected=%d", azErr.StatusCode, expected)
+	}
+	if expected := uuid; azErr.RequestID != expected {
+		t.Fatalf("azure: wrong request ID in error. expected=%q; got=%q", expected, azErr.RequestID)
+	}
+
+	// the error body should still be there
+	defer r.Body.Close()
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		t.Error(err)
+	}
+	if string(b) != j {
+		t.Fatalf("response body is wrong. got=%q expected=%q", string(b), j)
+	}
+
+}
+
+func withErrorPrepareDecorator(e *error) autorest.PrepareDecorator {
+	return func(p autorest.Preparer) autorest.Preparer {
+		return autorest.PreparerFunc(func(r *http.Request) (*http.Request, error) {
 			*e = fmt.Errorf("autorest: Faux Prepare Error")
 			return r, *e
 		})
