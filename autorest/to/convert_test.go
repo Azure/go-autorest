@@ -1,6 +1,7 @@
 package to
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -24,6 +25,29 @@ func TestStringPtr(t *testing.T) {
 	if *StringPtr(v) != v {
 		t.Errorf("to: StringPtr failed to return the correct string -- expected %v, received %v",
 			v, *StringPtr(v))
+	}
+}
+
+func TestStringSlice(t *testing.T) {
+	v := []string{}
+	if out := StringSlice(&v); !reflect.DeepEqual(out, v) {
+		t.Errorf("to: StringSlice failed to return the correct slice -- expected %v, received %v",
+			v, out)
+	}
+}
+
+func TestStringSliceHandlesNil(t *testing.T) {
+	if out := StringSlice(nil); out != nil {
+		t.Errorf("to: StringSlice failed to correctly convert nil -- expected %v, received %v",
+			nil, out)
+	}
+}
+
+func TestStringSlicePtr(t *testing.T) {
+	v := []string{"a", "b"}
+	if out := StringSlicePtr(v); !reflect.DeepEqual(*out, v) {
+		t.Errorf("to: StringSlicePtr failed to return the correct slice -- expected %v, received %v",
+			v, *out)
 	}
 }
 
