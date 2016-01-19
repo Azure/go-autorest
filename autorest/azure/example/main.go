@@ -10,9 +10,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Azure/go-autorest/Godeps/_workspace/src/golang.org/x/crypto/pkcs12"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"golang.org/x/crypto/pkcs12"
 )
 
 const resourceGroupURLTemplate = "https://management.azure.com/subscriptions/{subscription-id}/resourcegroups"
