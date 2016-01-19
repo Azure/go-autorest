@@ -1,9 +1,12 @@
 package autorest
 
 import (
+	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"net/http"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/Azure/go-autorest/autorest/mocks"
@@ -23,6 +26,64 @@ const (
 		<Age>42</Age>
 	</Person>`
 )
+
+func TestNewDecoderCreatesJSONDecoder(t *testing.T) {
+	d := NewDecoder(EncodedAsJSON, strings.NewReader(jsonT))
+	_, ok := d.(*json.Decoder)
+	if d == nil || !ok {
+		t.Error("autorest: NewDecoder failed to create a JSON decoder when requested")
+	}
+}
+
+func TestNewDecoderCreatesXMLDecoder(t *testing.T) {
+	d := NewDecoder(EncodedAsXML, strings.NewReader(xmlT))
+	_, ok := d.(*xml.Decoder)
+	if d == nil || !ok {
+		t.Error("autorest: NewDecoder failed to create an XML decoder when requested")
+	}
+}
+
+func TestNewDecoderReturnsNilForUnknownEncoding(t *testing.T) {
+	d := NewDecoder("unknown", strings.NewReader(xmlT))
+	if d != nil {
+		t.Error("autorest: NewDecoder created a decoder for an unknown encoding")
+	}
+}
+
+func TestCopyAndDecodeDecodesJSON(t *testing.T) {
+	_, err := CopyAndDecode(EncodedAsJSON, strings.NewReader(jsonT), &mocks.T{})
+	if err != nil {
+		t.Errorf("autorest: CopyAndDecode returned an error with valid JSON - %v", err)
+	}
+}
+
+func TestCopyAndDecodeDecodesXML(t *testing.T) {
+	_, err := CopyAndDecode(EncodedAsXML, strings.NewReader(xmlT), &mocks.T{})
+	if err != nil {
+		t.Errorf("autorest: CopyAndDecode returned an error with valid XML - %v", err)
+	}
+}
+
+func TestCopyAndDecodeReturnsJSONDecodingErrors(t *testing.T) {
+	_, err := CopyAndDecode(EncodedAsJSON, strings.NewReader(jsonT[0:len(jsonT)-2]), &mocks.T{})
+	if err == nil {
+		t.Errorf("autorest: CopyAndDecode failed to return an error with invalid JSON")
+	}
+}
+
+func TestCopyAndDecodeReturnsXMLDecodingErrors(t *testing.T) {
+	_, err := CopyAndDecode(EncodedAsXML, strings.NewReader(xmlT[0:len(xmlT)-2]), &mocks.T{})
+	if err == nil {
+		t.Errorf("autorest: CopyAndDecode failed to return an error with invalid XML")
+	}
+}
+
+func TestCopyAndDecodeAlwaysReturnsACopy(t *testing.T) {
+	b, _ := CopyAndDecode(EncodedAsJSON, strings.NewReader(jsonT), &mocks.T{})
+	if b.String() != jsonT {
+		t.Errorf("autorest: CopyAndDecode failed to return a valid copy of the data - %v", b.String())
+	}
+}
 
 func TestContainsIntFindsValue(t *testing.T) {
 	ints := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
