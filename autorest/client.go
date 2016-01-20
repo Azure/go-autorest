@@ -191,11 +191,7 @@ func (c Client) PollForDuration() bool {
 // Send sends the passed http.Request after applying authorization. It will poll if the client
 // allows polling and the http.Response status code requires it. It will close the http.Response
 // Body if the request returns an error.
-func (c Client) Send(req *http.Request, codes ...int) (*http.Response, error) {
-	if len(codes) == 0 {
-		codes = []int{http.StatusOK}
-	}
-
+func (c Client) Send(req *http.Request) (*http.Response, error) {
 	req, err := Prepare(req,
 		c.WithAuthorization(),
 		c.WithInspection())
@@ -203,8 +199,7 @@ func (c Client) Send(req *http.Request, codes ...int) (*http.Response, error) {
 		return nil, NewErrorWithError(err, "autorest/Client", "Send", UndefinedStatusCode, "Preparing request failed")
 	}
 
-	resp, err := SendWithSender(c, req,
-		DoErrorUnlessStatusCode(codes...))
+	resp, err := SendWithSender(c, req)
 	if err == nil {
 		err = c.IsPollingAllowed(resp)
 		if err == nil {
