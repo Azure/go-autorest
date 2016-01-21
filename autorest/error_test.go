@@ -85,7 +85,16 @@ func TestNewErrorWithResponse_nilResponse_ReportsUndefinedStatusCode(t *testing.
 	}
 }
 
-func TestNewErrorForwards(t *testing.T) {
+func TestNewErrorWithResponse_Forwards(t *testing.T) {
+	e1 := NewError("packageType", "method", "message %s", "arg")
+	e2 := NewErrorWithResponse("packageType", "method", nil, "message %s", "arg")
+
+	if !reflect.DeepEqual(e1, e2) {
+		t.Error("autorest: NewError did not return an error equivelent to NewErrorWithError")
+	}
+}
+
+func TestNewErrorWithError_Forwards(t *testing.T) {
 	e1 := NewError("packageType", "method", "message %s", "arg")
 	e2 := NewErrorWithError(nil, "packageType", "method", nil, "message %s", "arg")
 
