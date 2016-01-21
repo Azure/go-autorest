@@ -139,7 +139,7 @@ func DoErrorIfStatusCode(codes ...int) SendDecorator {
 		return SenderFunc(func(r *http.Request) (*http.Response, error) {
 			resp, err := s.Do(r)
 			if err == nil && ResponseHasStatusCode(resp, codes...) {
-				err = NewErrorWithStatusCode("autorest", "DoErrorIfStatusCode", resp.StatusCode, "%v %v failed with %s",
+				err = NewErrorWithResponse("autorest", "DoErrorIfStatusCode", resp, "%v %v failed with %s",
 					resp.Request.Method,
 					resp.Request.URL,
 					resp.Status)
@@ -157,7 +157,7 @@ func DoErrorUnlessStatusCode(codes ...int) SendDecorator {
 		return SenderFunc(func(r *http.Request) (*http.Response, error) {
 			resp, err := s.Do(r)
 			if err == nil && !ResponseHasStatusCode(resp, codes...) {
-				err = NewErrorWithStatusCode("autorest", "DoErrorUnlessStatusCode", resp.StatusCode, "%v %v failed with %s",
+				err = NewErrorWithResponse("autorest", "DoErrorUnlessStatusCode", resp, "%v %v failed with %s",
 					resp.Request.Method,
 					resp.Request.URL,
 					resp.Status)

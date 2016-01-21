@@ -2,6 +2,7 @@ package autorest
 
 import (
 	"fmt"
+	"net/http"
 )
 
 const (
@@ -47,21 +48,28 @@ type baseError struct {
 // NewError creates a new Error conforming object from the passed packageType, method, and
 // message. message is treated as a format string to which the optional args apply.
 func NewError(packageType string, method string, message string, args ...interface{}) Error {
-	return NewErrorWithError(nil, packageType, method, UndefinedStatusCode, message, args...)
+	return NewErrorWithError(nil, packageType, method, nil, message, args...)
 }
 
-// NewErrorWithStatusCode creates a new Error conforming object from the passed packageType, method,
-// statusCode, and message. message is treated as a format string to which the optional args apply.
-func NewErrorWithStatusCode(packageType string, method string, statusCode int, message string, args ...interface{}) Error {
-	return NewErrorWithError(nil, packageType, method, statusCode, message, args...)
-}
-
-// NewErrorWithError creates a new Error conforming object from the passed packageType, method,
-// statusCode, message, and original error. message is treated as a format string to which the
+// NewErrorWithResponse creates a new Error conforming object from the passed
+// packageType, method, statusCode of the given resp (UndefinedStatusCode if
+// resp is nil), and message. message is treated as a format string to which the
 // optional args apply.
-func NewErrorWithError(original error, packageType string, method string, statusCode int, message string, args ...interface{}) Error {
-	if _, ok := original.(Error); ok {
-		return original.(Error)
+func NewErrorWithResponse(packageType string, method string, resp *http.Response, message string, args ...interface{}) Error {
+	return NewErrorWithError(nil, packageType, method, resp, message, args...)
+}
+
+// NewErrorWithError creates a new Error conforming object from the
+// passed packageType, method, statusCode of the given resp (UndefinedStatusCode
+// if resp is nil), message, and original error. message is treated as a format
+// string to which the optional args apply.
+func NewErrorWithError(original error, packageType string, method string, resp *http.Response, message string, args ...interface{}) Error {
+	if v, ok := original.(Error); ok {
+		return v
+	}
+	statusCode := UndefinedStatusCode
+	if resp != nil {
+		statusCode = resp.StatusCode
 	}
 	return baseError{
 		packageType: packageType,
