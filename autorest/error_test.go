@@ -8,40 +8,49 @@ import (
 	"testing"
 )
 
-func TestNewErrorWithErrorAssignsPackageType(t *testing.T) {
-	e := NewErrorWithError(fmt.Errorf("original"), "packageType", "method", http.StatusBadRequest, "message")
+func TestNewErrorWithError_AssignsPackageType(t *testing.T) {
+	e := NewErrorWithError(fmt.Errorf("original"), "packageType", "method", nil, "message")
 
 	if e.PackageType() != "packageType" {
 		t.Errorf("autorest: Error failed to set package type -- expected %v, received %v", "packageType", e.PackageType())
 	}
 }
 
-func TestNewErrorWithErrorAssignsMethod(t *testing.T) {
-	e := NewErrorWithError(fmt.Errorf("original"), "packageType", "method", http.StatusBadRequest, "message")
+func TestNewErrorWithError_AssignsMethod(t *testing.T) {
+	e := NewErrorWithError(fmt.Errorf("original"), "packageType", "method", nil, "message")
 
 	if e.Method() != "method" {
 		t.Errorf("autorest: Error failed to set method -- expected %v, received %v", "method", e.Method())
 	}
 }
 
-func TestNewErrorWithErrorAssignsMessage(t *testing.T) {
-	e := NewErrorWithError(fmt.Errorf("original"), "packageType", "method", http.StatusBadRequest, "message")
+func TestNewErrorWithError_AssignsMessage(t *testing.T) {
+	e := NewErrorWithError(fmt.Errorf("original"), "packageType", "method", nil, "message")
 
 	if e.Message() != "message" {
 		t.Errorf("autorest: Error failed to set message -- expected %v, received %v", "message", e.Message())
 	}
 }
 
-func TestNewErrorWithErrorAssignsStatusCode(t *testing.T) {
-	e := NewErrorWithError(fmt.Errorf("original"), "packageType", "method", http.StatusBadRequest, "message")
+func TestNewErrorWithError_AssignsUndefinedStatusCodeIfRespNil(t *testing.T) {
+	e := NewErrorWithError(nil, "packageType", "method", nil, "message")
+	if e.StatusCode() != UndefinedStatusCode {
+		t.Errorf("autorest: Error failed to set status code -- expected %v, received %v", UndefinedStatusCode, e.StatusCode())
+	}
+}
+
+func TestNewErrorWithError_AssignsStatusCode(t *testing.T) {
+	e := NewErrorWithError(fmt.Errorf("original"), "packageType", "method", &http.Response{
+		StatusCode: http.StatusBadRequest,
+		Status:     http.StatusText(http.StatusBadRequest)}, "message")
 
 	if e.StatusCode() != http.StatusBadRequest {
 		t.Errorf("autorest: Error failed to set status code -- expected %v, received %v", http.StatusBadRequest, e.StatusCode())
 	}
 }
 
-func TestNewErrorWithErrorAcceptsArgs(t *testing.T) {
-	e := NewErrorWithError(fmt.Errorf("original"), "packageType", "method", http.StatusBadRequest, "message %s", "arg")
+func TestNewErrorWithError_AcceptsArgs(t *testing.T) {
+	e := NewErrorWithError(fmt.Errorf("original"), "packageType", "method", nil, "message %s", "arg")
 
 	if matched, _ := regexp.MatchString(`.*arg.*`, e.Message()); !matched {
 		t.Errorf("autorest: Error failed to apply message arguments -- expected %v, received %v",
@@ -49,18 +58,45 @@ func TestNewErrorWithErrorAcceptsArgs(t *testing.T) {
 	}
 }
 
-func TestNewErrorWithErrorAssignsError(t *testing.T) {
+func TestNewErrorWithError_AssignsError(t *testing.T) {
 	err := fmt.Errorf("original")
-	e := NewErrorWithError(err, "packageType", "method", http.StatusBadRequest, "message")
+	e := NewErrorWithError(err, "packageType", "method", nil, "message")
 
 	if e.Original() != err {
 		t.Errorf("autorest: Error failed to set error -- expected %v, received %v", err, e.Original())
 	}
 }
 
-func TestNewErrorForwards(t *testing.T) {
+func TestNewErrorWithResponse_ContainsStatusCode(t *testing.T) {
+	e := NewErrorWithResponse("packageType", "method", &http.Response{
+		StatusCode: http.StatusBadRequest,
+		Status:     http.StatusText(http.StatusBadRequest)}, "message")
+
+	if e.StatusCode() != http.StatusBadRequest {
+		t.Errorf("autorest: Error failed to set status code -- expected %v, received %v", http.StatusBadRequest, e.StatusCode())
+	}
+}
+
+func TestNewErrorWithResponse_nilResponse_ReportsUndefinedStatusCode(t *testing.T) {
+	e := NewErrorWithResponse("packageType", "method", nil, "message")
+
+	if e.StatusCode() != UndefinedStatusCode {
+		t.Errorf("autorest: Error failed to set status code -- expected %v, received %v", UndefinedStatusCode, e.StatusCode())
+	}
+}
+
+func TestNewErrorWithResponse_Forwards(t *testing.T) {
 	e1 := NewError("packageType", "method", "message %s", "arg")
-	e2 := NewErrorWithError(nil, "packageType", "method", UndefinedStatusCode, "message %s", "arg")
+	e2 := NewErrorWithResponse("packageType", "method", nil, "message %s", "arg")
+
+	if !reflect.DeepEqual(e1, e2) {
+		t.Error("autorest: NewError did not return an error equivelent to NewErrorWithError")
+	}
+}
+
+func TestNewErrorWithError_Forwards(t *testing.T) {
+	e1 := NewError("packageType", "method", "message %s", "arg")
+	e2 := NewErrorWithError(nil, "packageType", "method", nil, "message %s", "arg")
 
 	if !reflect.DeepEqual(e1, e2) {
 		t.Error("autorest: NewError did not return an error equivelent to NewErrorWithError")
@@ -69,7 +105,7 @@ func TestNewErrorForwards(t *testing.T) {
 
 func TestErrorError(t *testing.T) {
 	err := fmt.Errorf("original")
-	e := NewErrorWithError(err, "packageType", "method", http.StatusBadRequest, "message")
+	e := NewErrorWithError(err, "packageType", "method", nil, "message")
 
 	if matched, _ := regexp.MatchString(`.*original.*`, e.Error()); !matched {
 		t.Errorf("autorest: Error#Error failed to return original error message -- expected %v, received %v",
@@ -78,7 +114,7 @@ func TestErrorError(t *testing.T) {
 }
 
 func TestErrorStringConstainsPackageType(t *testing.T) {
-	e := NewErrorWithError(fmt.Errorf("original"), "packageType", "method", http.StatusBadRequest, "message")
+	e := NewErrorWithError(fmt.Errorf("original"), "packageType", "method", nil, "message")
 
 	if matched, _ := regexp.MatchString(`.*packageType.*`, e.String()); !matched {
 		t.Errorf("autorest: Error#String failed to include PackageType -- expected %v, received %v",
@@ -87,7 +123,7 @@ func TestErrorStringConstainsPackageType(t *testing.T) {
 }
 
 func TestErrorStringConstainsMethod(t *testing.T) {
-	e := NewErrorWithError(fmt.Errorf("original"), "packageType", "method", http.StatusBadRequest, "message")
+	e := NewErrorWithError(fmt.Errorf("original"), "packageType", "method", nil, "message")
 
 	if matched, _ := regexp.MatchString(`.*method.*`, e.String()); !matched {
 		t.Errorf("autorest: Error#String failed to include Method -- expected %v, received %v",
@@ -96,7 +132,7 @@ func TestErrorStringConstainsMethod(t *testing.T) {
 }
 
 func TestErrorStringConstainsMessage(t *testing.T) {
-	e := NewErrorWithError(fmt.Errorf("original"), "packageType", "method", http.StatusBadRequest, "message")
+	e := NewErrorWithError(fmt.Errorf("original"), "packageType", "method", nil, "message")
 
 	if matched, _ := regexp.MatchString(`.*message.*`, e.String()); !matched {
 		t.Errorf("autorest: Error#String failed to include Message -- expected %v, received %v",
@@ -105,7 +141,9 @@ func TestErrorStringConstainsMessage(t *testing.T) {
 }
 
 func TestErrorStringConstainsStatusCode(t *testing.T) {
-	e := NewErrorWithError(fmt.Errorf("original"), "packageType", "method", http.StatusBadRequest, "message")
+	e := NewErrorWithError(fmt.Errorf("original"), "packageType", "method", &http.Response{
+		StatusCode: http.StatusBadRequest,
+		Status:     http.StatusText(http.StatusBadRequest)}, "message")
 
 	if matched, _ := regexp.MatchString(`.*400.*`, e.String()); !matched {
 		t.Errorf("autorest: Error#String failed to include Status Code -- expected %v, received %v",
@@ -114,7 +152,7 @@ func TestErrorStringConstainsStatusCode(t *testing.T) {
 }
 
 func TestErrorStringConstainsOriginal(t *testing.T) {
-	e := NewErrorWithError(fmt.Errorf("original"), "packageType", "method", http.StatusBadRequest, "message")
+	e := NewErrorWithError(fmt.Errorf("original"), "packageType", "method", nil, "message")
 
 	if matched, _ := regexp.MatchString(`.*original.*`, e.String()); !matched {
 		t.Errorf("autorest: Error#String failed to include Original error -- expected %v, received %v",
