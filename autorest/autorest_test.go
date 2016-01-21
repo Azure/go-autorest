@@ -62,7 +62,7 @@ func TestResponseRequiresPollingReturnsFalseForUnexpectedStatusCodes(t *testing.
 func TestNewPollingRequestLeavesBodyOpenWhenLocationHeaderIsMissing(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("500 InternalServerError", http.StatusInternalServerError)
 
-	NewPollingRequest(resp, NullAuthorizer{})
+	NewPollingRequest(resp, Client{Authorizer: NullAuthorizer{}})
 	if !resp.Body.(*mocks.Body).IsOpen() {
 		t.Error("autorest: NewPollingRequest closed the http.Request Body when the Location header was missing")
 	}
@@ -71,7 +71,7 @@ func TestNewPollingRequestLeavesBodyOpenWhenLocationHeaderIsMissing(t *testing.T
 func TestNewPollingRequestDoesNotReturnARequestWhenLocationHeaderIsMissing(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("500 InternalServerError", http.StatusInternalServerError)
 
-	req, _ := NewPollingRequest(resp, NullAuthorizer{})
+	req, _ := NewPollingRequest(resp, Client{Authorizer: NullAuthorizer{}})
 	if req != nil {
 		t.Error("autorest: NewPollingRequest returned an http.Request when the Location header was missing")
 	}
@@ -81,7 +81,7 @@ func TestNewPollingRequestReturnsAnErrorWhenPrepareFails(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	mocks.SetAcceptedHeaders(resp)
 
-	_, err := NewPollingRequest(resp, mockFailingAuthorizer{})
+	_, err := NewPollingRequest(resp, Client{Authorizer: mockFailingAuthorizer{}})
 	if err == nil {
 		t.Error("autorest: NewPollingRequest failed to return an error when Prepare fails")
 	}
@@ -92,7 +92,7 @@ func TestNewPollingRequestLeavesBodyOpenWhenPrepareFails(t *testing.T) {
 	mocks.SetAcceptedHeaders(resp)
 	resp.Header.Set(http.CanonicalHeaderKey(headerLocation), testBadURL)
 
-	_, err := NewPollingRequest(resp, NullAuthorizer{})
+	_, err := NewPollingRequest(resp, Client{Authorizer: NullAuthorizer{}})
 	if !resp.Body.(*mocks.Body).IsOpen() {
 		t.Errorf("autorest: NewPollingRequest closed the http.Request Body when Prepare returned an error (%v)", err)
 	}
@@ -103,7 +103,7 @@ func TestNewPollingRequestDoesNotReturnARequestWhenPrepareFails(t *testing.T) {
 	mocks.SetAcceptedHeaders(resp)
 	resp.Header.Set(http.CanonicalHeaderKey(headerLocation), testBadURL)
 
-	req, _ := NewPollingRequest(resp, NullAuthorizer{})
+	req, _ := NewPollingRequest(resp, Client{Authorizer: NullAuthorizer{}})
 	if req != nil {
 		t.Error("autorest: NewPollingRequest returned an http.Request when Prepare failed")
 	}
@@ -113,7 +113,7 @@ func TestNewPollingRequestClosesTheResponseBody(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	mocks.SetAcceptedHeaders(resp)
 
-	NewPollingRequest(resp, NullAuthorizer{})
+	NewPollingRequest(resp, Client{Authorizer: NullAuthorizer{}})
 	if resp.Body.(*mocks.Body).IsOpen() {
 		t.Error("autorest: NewPollingRequest failed to close the response body when creating a new request")
 	}
@@ -123,7 +123,7 @@ func TestNewPollingRequestReturnsAGetRequest(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	mocks.SetAcceptedHeaders(resp)
 
-	req, _ := NewPollingRequest(resp, NullAuthorizer{})
+	req, _ := NewPollingRequest(resp, Client{Authorizer: NullAuthorizer{}})
 	if req.Method != "GET" {
 		t.Errorf("autorest: NewPollingRequest did not create an HTTP GET request -- actual method %v", req.Method)
 	}
@@ -133,7 +133,7 @@ func TestNewPollingRequestProvidesTheURL(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	mocks.SetAcceptedHeaders(resp)
 
-	req, _ := NewPollingRequest(resp, NullAuthorizer{})
+	req, _ := NewPollingRequest(resp, Client{Authorizer: NullAuthorizer{}})
 	if req.URL.String() != mocks.TestURL {
 		t.Errorf("autorest: NewPollingRequest did not create an HTTP with the expected URL -- received %v, expected %v", req.URL, mocks.TestURL)
 	}
@@ -143,7 +143,7 @@ func TestNewPollingRequestAppliesAuthorization(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	mocks.SetAcceptedHeaders(resp)
 
-	req, _ := NewPollingRequest(resp, mockAuthorizer{})
+	req, _ := NewPollingRequest(resp, Client{Authorizer: mockAuthorizer{}})
 	if req.Header.Get(http.CanonicalHeaderKey(headerAuthorization)) != testAuthorizationHeader {
 		t.Errorf("autorest: NewPollingRequest did not apply authorization -- received %v, expected %v",
 			req.Header.Get(http.CanonicalHeaderKey(headerAuthorization)), testAuthorizationHeader)
@@ -208,7 +208,7 @@ func TestPollForAttemptsStops(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	mocks.SetAcceptedHeaders(resp)
 
-	req, _ := NewPollingRequest(resp, NullAuthorizer{})
+	req, _ := NewPollingRequest(resp, Client{Authorizer: NullAuthorizer{}})
 
 	PollForAttempts(client, req, time.Duration(0), 5)
 	if client.Attempts() < 5 || client.Attempts() > 5 {
@@ -224,7 +224,7 @@ func TestPollForDurationsStops(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	mocks.SetAcceptedHeaders(resp)
 
-	req, _ := NewPollingRequest(resp, NullAuthorizer{})
+	req, _ := NewPollingRequest(resp, Client{Authorizer: NullAuthorizer{}})
 
 	start := time.Now()
 	PollForDuration(client, req, time.Duration(0), d)
@@ -243,7 +243,7 @@ func TestPollForDurationsStopsWithinReason(t *testing.T) {
 	mocks.SetRetryHeader(resp, d)
 	client.SetResponse(resp)
 
-	req, _ := NewPollingRequest(resp, NullAuthorizer{})
+	req, _ := NewPollingRequest(resp, Client{Authorizer: NullAuthorizer{}})
 
 	start := time.Now()
 	PollForDuration(client, req, time.Duration(0), d)
@@ -262,7 +262,7 @@ func TestPollingHonorsDelay(t *testing.T) {
 	mocks.SetRetryHeader(resp, d1)
 	client.SetResponse(resp)
 
-	req, _ := NewPollingRequest(resp, NullAuthorizer{})
+	req, _ := NewPollingRequest(resp, Client{Authorizer: NullAuthorizer{}})
 
 	start := time.Now()
 	PollForAttempts(client, req, time.Duration(0), 2)
@@ -279,7 +279,7 @@ func TestPollingReturnsErrorForExpectedStatusCode(t *testing.T) {
 	mocks.SetAcceptedHeaders(resp)
 	client.SetResponse(resp)
 
-	req, _ := NewPollingRequest(resp, NullAuthorizer{})
+	req, _ := NewPollingRequest(resp, Client{Authorizer: NullAuthorizer{}})
 
 	resp, err := PollForAttempts(client, req, time.Duration(0), 1, http.StatusAccepted)
 	if err == nil {
@@ -294,7 +294,7 @@ func TestPollingReturnsNoErrorForUnexpectedStatusCode(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	mocks.SetAcceptedHeaders(resp)
 
-	req, _ := NewPollingRequest(resp, NullAuthorizer{})
+	req, _ := NewPollingRequest(resp, Client{Authorizer: NullAuthorizer{}})
 
 	resp, err := PollForAttempts(client, req, time.Duration(0), 1, http.StatusAccepted)
 	if err != nil {
@@ -309,7 +309,7 @@ func TestPollingReturnsDefaultsToAcceptedStatusCode(t *testing.T) {
 	mocks.SetAcceptedHeaders(resp)
 	client.SetResponse(resp)
 
-	req, _ := NewPollingRequest(resp, NullAuthorizer{})
+	req, _ := NewPollingRequest(resp, Client{Authorizer: NullAuthorizer{}})
 
 	resp, err := PollForAttempts(client, req, time.Duration(0), 1)
 	if err == nil {
@@ -324,7 +324,7 @@ func TestPollingLeavesFinalBodyOpen(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	mocks.SetAcceptedHeaders(resp)
 
-	req, _ := NewPollingRequest(resp, NullAuthorizer{})
+	req, _ := NewPollingRequest(resp, Client{Authorizer: NullAuthorizer{}})
 
 	resp, _ = PollForAttempts(client, req, time.Duration(0), 1)
 	if !resp.Body.(*mocks.Body).IsOpen() {
@@ -339,7 +339,7 @@ func TestDecorateForPollingCloseBodyOnEachAttempt(t *testing.T) {
 	mocks.SetAcceptedHeaders(resp)
 	client.SetResponse(resp)
 
-	req, _ := NewPollingRequest(resp, NullAuthorizer{})
+	req, _ := NewPollingRequest(resp, Client{Authorizer: NullAuthorizer{}})
 	resp, _ = PollForAttempts(client, req, time.Duration(0), 5)
 	if resp.Body.(*mocks.Body).CloseAttempts() < 5 {
 		t.Errorf("autorest: decorateForPolling failed to close the response Body between requests -- expected %v, received %v",

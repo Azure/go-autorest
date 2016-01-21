@@ -90,7 +90,7 @@ func ResponseRequiresPolling(resp *http.Response, codes ...int) bool {
 // NewPollingRequest allocates and returns a new http.Request to poll for the passed response. If
 // it successfully creates the request, it will also close the body of the passed response,
 // otherwise the body remains open.
-func NewPollingRequest(resp *http.Response, authorizer Authorizer) (*http.Request, error) {
+func NewPollingRequest(resp *http.Response, c Client) (*http.Request, error) {
 	location := GetPollingLocation(resp)
 	if location == "" {
 		return nil, NewErrorWithStatusCode("autorest", "NewPollingRequest", resp.StatusCode, "Location header missing from response that requires polling")
@@ -99,12 +99,13 @@ func NewPollingRequest(resp *http.Response, authorizer Authorizer) (*http.Reques
 	req, err := Prepare(&http.Request{},
 		AsGet(),
 		WithBaseURL(location),
-		authorizer.WithAuthorization())
+		c.WithAuthorization())
 	if err != nil {
 		return nil, NewErrorWithError(err, "autorest", "NewPollingRequest", UndefinedStatusCode, "Failure creating poll request to %s", location)
 	}
 
 	Respond(resp,
+		c.ByInspecting(),
 		ByClosing())
 
 	return req, nil
