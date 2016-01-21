@@ -407,50 +407,13 @@ func TestClientSendDefaultsToUsingStatusCodeOK(t *testing.T) {
 	}
 }
 
-func TestClientSendClosesReponseBodyWhenReturningError(t *testing.T) {
-	s := mocks.NewSender()
-	r := mocks.NewResponseWithStatus("500 InternalServerError", http.StatusInternalServerError)
-	s.SetResponse(r)
-	c := Client{Sender: s}
-
-	c.Send(mocks.NewRequest())
-	if r.Body.(*mocks.Body).IsOpen() {
-		t.Error("autorest: Client#Send failed to close the response body when returning an error")
-	}
-}
-
-func TestClientSendReturnsErrorWithUnexpectedStatusCode(t *testing.T) {
-	r := mocks.NewRequest()
-	s := mocks.NewSender()
-	s.EmitStatus("500 InternalServerError", http.StatusInternalServerError)
-	c := Client{Sender: s}
-
-	_, err := c.Send(r)
-	if err == nil {
-		t.Error("autorest: Client#Send failed to return an error for an unexpected Status Code")
-	}
-}
-
-func TestClientSendDoesNotReturnErrorForExpectedStatusCode(t *testing.T) {
-	r := mocks.NewRequest()
-	s := mocks.NewSender()
-	s.EmitStatus("500 InternalServerError", http.StatusInternalServerError)
-	c := Client{Sender: s}
-
-	_, err := c.Send(r, http.StatusInternalServerError)
-	if err != nil {
-		t.Errorf("autorest: Client#Send returned an error for an expected Status Code -- %v",
-			err)
-	}
-}
-
 func TestClientSendPollsIfNeeded(t *testing.T) {
 	r := mocks.NewRequest()
 	s := mocks.NewSender()
 	s.SetPollAttempts(5)
 	c := Client{Sender: s, PollingMode: PollUntilAttempts, PollingAttempts: 10}
 
-	c.Send(r, http.StatusOK, http.StatusAccepted)
+	c.Send(r)
 	if s.Attempts() != (5 + 1) {
 		t.Errorf("autorest: Client#Send failed to poll the expected number of times -- attempts %d",
 			s.Attempts())
@@ -462,7 +425,7 @@ func TestClientSendDoesNotPollIfUnnecessary(t *testing.T) {
 	s := mocks.NewSender()
 	c := Client{Sender: s, PollingMode: PollUntilAttempts, PollingAttempts: 10}
 
-	c.Send(r, http.StatusOK, http.StatusAccepted)
+	c.Send(r)
 	if s.Attempts() != 1 {
 		t.Errorf("autorest: Client#Send unexpectedly polled -- attempts %d",
 			s.Attempts())

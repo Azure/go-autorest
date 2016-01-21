@@ -99,7 +99,7 @@ func getResourceGroups(client *autorest.Client) (*string, error) {
 		autorest.WithPathParameters(p),
 		autorest.WithQueryParameters(q))
 
-	resp, err := client.Send(req, http.StatusOK)
+	resp, err := client.Send(req)
 	if err != nil {
 		return nil, err
 	}
