@@ -105,7 +105,7 @@ func NewPollingRequest(resp *http.Response, c Client) (*http.Request, error) {
 	}
 
 	Respond(resp,
-		c.ByInspection(),
+		c.ByInspecting(),
 		ByClosing())
 
 	return req, nil
