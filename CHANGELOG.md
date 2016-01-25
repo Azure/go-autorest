@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## v3.0.0
+- Breaking: `NewErrorWithError` no longer takes `statusCode int`.
+- Breaking: `NewErrorWithStatusCode` is replaced with `NewErrorWithResponse`.
+- Breaking: `Client#Send()` no longer takes `codes ...int` argument.
+- Add: XML unmarshaling support with `ByUnmarshallingXML()`
+- Stopped vending dependencies locally and switched to [Glide](https://github.com/Masterminds/glide).
+  Applications using this library should either use Glide or vendor dependencies locally some other way.
+- Add: `azure.WithErrorUnlessStatusCode()` decorator to handle Azure errors.
+- Fix: use `net/http.DefaultClient` as base client.
+- Fix: Missing inspection for polling responses added.
+- Add: CopyAndDecode helpers.
+- Improved `./autorest/to` with `[]string` helpers.
+- Removed golint suppressions in .travis.yml.
+
 ## v2.1.0
 
 - Added `StatusCode` to `Error` for more easily obtaining the HTTP Reponse StatusCode (if any)
