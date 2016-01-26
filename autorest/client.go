@@ -207,6 +207,11 @@ func (c Client) Send(req *http.Request) (*http.Response, error) {
 		}
 	}
 
+	if err != nil {
+		Respond(resp,
+			ByClosing())
+	}
+
 	return resp, err
 }
 

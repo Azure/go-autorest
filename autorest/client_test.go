@@ -407,6 +407,19 @@ func TestClientSendDefaultsToUsingStatusCodeOK(t *testing.T) {
 	}
 }
 
+func TestClientSendClosesReponseBodyWhenReturningError(t *testing.T) {
+	s := mocks.NewSender()
+	s.EmitErrors(1)
+	r := mocks.NewResponse()
+	s.SetResponse(r)
+	c := Client{Sender: s}
+
+	c.Send(mocks.NewRequest())
+	if r.Body.(*mocks.Body).IsOpen() {
+		t.Error("autorest: Client#Send failed to close the response body when returning an error")
+	}
+}
+
 func TestClientSendPollsIfNeeded(t *testing.T) {
 	r := mocks.NewRequest()
 	s := mocks.NewSender()
