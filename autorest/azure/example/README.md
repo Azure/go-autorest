@@ -1,6 +1,18 @@
 # autorest azure example
 
-## Usage
+## Usage (device mode)
+
+This shows how to use the example for device auth.
+
+1. Execute this. It will save your token to /tmp/azure-example-token:
+
+    ```
+    ./example -tenantId "13de0a15-b5db-44b9-b682-b4ba82afbd29" -subscriptionId "aff271ee-e9be-4441-b9bb-42f5af4cbaeb" -mode "device" -tokenCachePath "/tmp/azure-example-token"
+    ```
+
+2. Execute it again, it will load the token from cache and not prompt for auth again.
+
+## Usage (certificate mode)
 
 This example covers how to make an authenticated call to the Azure Resource Manager APIs, using certificate-based authentication.
 
