@@ -25,6 +25,12 @@ const (
 
 	// AzureResourceManagerScope is the OAuth scope for the Azure Resource Manager.
 	AzureResourceManagerScope = "https://management.azure.com/"
+
+	// OAuthGrantTypeDeviceCode is the "grant_type" identifier used in device flow
+	OAuthGrantTypeDeviceCode = "device_code"
+
+	// OAuthGrantTypeClientCredentials is the "grant_type" identifier used in credential flows
+	OAuthGrantTypeClientCredentials = "client_credentials"
 )
 
 var expirationBase time.Time
@@ -215,7 +221,7 @@ func (spt *ServicePrincipalToken) Refresh() error {
 
 	v := url.Values{}
 	v.Set("client_id", spt.clientID)
-	v.Set("grant_type", "client_credentials")
+	v.Set("grant_type", OAuthGrantTypeClientCredentials)
 	v.Set("resource", spt.resource)
 
 	err := spt.secret.SetAuthenticationValues(spt, &v)
