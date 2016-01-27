@@ -1,11 +1,18 @@
 package azure
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"net/http"
+	"net/url"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,7 +21,8 @@ import (
 )
 
 const (
-	defaultFormData = "client_id=id&client_secret=secret&grant_type=client_credentials&resource=resource"
+	defaultFormData       = "client_id=id&client_secret=secret&grant_type=client_credentials&resource=resource"
+	defaultManualFormData = "client_id=id&grant_type=refresh_token&refresh_token=refreshtoken&resource=resource"
 )
 
 func TestTokenExpires(t *testing.T) {
@@ -111,6 +119,9 @@ func TestServicePrincipalTokenSetSender(t *testing.T) {
 func TestServicePrincipalTokenRefreshUsesPOST(t *testing.T) {
 	spt := newServicePrincipalToken()
 
+	body := mocks.NewBody("")
+	resp := mocks.NewResponseWithBodyAndStatus(body, 200, "OK")
+
 	c := mocks.NewSender()
 	s := autorest.DecorateSender(c,
 		(func() autorest.SendDecorator {
@@ -119,12 +130,16 @@ func TestServicePrincipalTokenRefreshUsesPOST(t *testing.T) {
 					if r.Method != "POST" {
 						t.Errorf("azure: ServicePrincipalToken#Refresh did not correctly set HTTP method -- expected %v, received %v", "POST", r.Method)
 					}
-					return mocks.NewResponse(), nil
+					return resp, nil
 				})
 			}
 		})())
 	spt.SetSender(s)
 	spt.Refresh()
+
+	if body.IsOpen() {
+		t.Errorf("the response was not closed!")
+	}
 }
 
 func TestServicePrincipalTokenRefreshSetsMimeType(t *testing.T) {
@@ -169,9 +184,7 @@ func TestServicePrincipalTokenRefreshSetsURL(t *testing.T) {
 	spt.Refresh()
 }
 
-func TestServicePrincipalTokenRefreshSetsBody(t *testing.T) {
-	spt := newServicePrincipalToken()
-
+func testServicePrincipalTokenRefreshSetsBody(t *testing.T, spt *ServicePrincipalToken, f func(*testing.T, []byte)) {
 	c := mocks.NewSender()
 	s := autorest.DecorateSender(c,
 		(func() autorest.SendDecorator {
@@ -180,16 +193,50 @@ func TestServicePrincipalTokenRefreshSetsBody(t *testing.T) {
 					b, err := ioutil.ReadAll(r.Body)
 					if err != nil {
 						t.Errorf("azure: Failed to read body of Service Principal token request (%v)", err)
-					} else if string(b) != defaultFormData {
-						t.Errorf("azure: ServicePrincipalToken#Refresh did not correctly set the HTTP Request Body -- expected %v, received %v",
-							defaultFormData, string(b))
 					}
+					f(t, b)
 					return mocks.NewResponse(), nil
 				})
 			}
 		})())
 	spt.SetSender(s)
 	spt.Refresh()
+}
+
+func TestServicePrincipalTokenManualRefreshSetsBody(t *testing.T) {
+	sptCert := newServicePrincipalTokenManual()
+	testServicePrincipalTokenRefreshSetsBody(t, sptCert, func(t *testing.T, b []byte) {
+		if string(b) != defaultManualFormData {
+			t.Errorf("azure: ServicePrincipalToken#Refresh did not correctly set the HTTP Request Body -- expected %v, received %v",
+				defaultManualFormData, string(b))
+		}
+	})
+}
+
+func TestServicePrincipalTokenCertficateRefreshSetsBody(t *testing.T) {
+	sptCert := newServicePrincipalTokenCertificate()
+	testServicePrincipalTokenRefreshSetsBody(t, sptCert, func(t *testing.T, b []byte) {
+		body := string(b)
+
+		values, _ := url.ParseQuery(body)
+		if values["client_assertion_type"][0] != "urn:ietf:params:oauth:client-assertion-type:jwt-bearer" ||
+			values["client_id"][0] != "id" ||
+			values["grant_type"][0] != "client_credentials" ||
+			values["resource"][0] != "resource" {
+			t.Errorf("azure: ServicePrincipalTokenCertificate#Refresh did not correctly set the HTTP Request Body.")
+		}
+	})
+}
+
+func TestServicePrincipalTokenSecretRefreshSetsBody(t *testing.T) {
+	spt := newServicePrincipalToken()
+	testServicePrincipalTokenRefreshSetsBody(t, spt, func(t *testing.T, b []byte) {
+		if string(b) != defaultFormData {
+			t.Errorf("azure: ServicePrincipalToken#Refresh did not correctly set the HTTP Request Body -- expected %v, received %v",
+				defaultFormData, string(b))
+		}
+
+	})
 }
 
 func TestServicePrincipalTokenRefreshClosesRequestBody(t *testing.T) {
@@ -335,6 +382,55 @@ func TestServicePrincipalTokenWithAuthorizationReturnsErrorIfCannotRefresh(t *te
 	}
 }
 
+func TestRefreshCallback(t *testing.T) {
+	callbackTriggered := false
+	spt := newServicePrincipalToken(func(Token) error {
+		callbackTriggered = true
+		return nil
+	})
+
+	expiresOn := strconv.Itoa(int(time.Now().Add(3600 * time.Second).Sub(expirationBase).Seconds()))
+
+	sender := mocks.NewSender()
+	j := newTokenJSON(expiresOn, "resource")
+	sender.EmitContent(j)
+	spt.SetSender(sender)
+	spt.Refresh()
+
+	if !callbackTriggered {
+		t.Errorf("azure: RefreshCallback failed to trigger call callback")
+	}
+}
+
+func TestRefreshCallbackErrorPropagates(t *testing.T) {
+	errorText := "this is an error text"
+	spt := newServicePrincipalToken(func(Token) error {
+		return fmt.Errorf(errorText)
+	})
+
+	expiresOn := strconv.Itoa(int(time.Now().Add(3600 * time.Second).Sub(expirationBase).Seconds()))
+
+	sender := mocks.NewSender()
+	j := newTokenJSON(expiresOn, "resource")
+	sender.EmitContent(j)
+	spt.SetSender(sender)
+	err := spt.Refresh()
+
+	if err == nil || !strings.Contains(err.Error(), errorText) {
+		t.Errorf("azure: RefreshCallback failed to propagate error")
+	}
+}
+
+// This demonstrates the danger of manual token without a refresh token
+func TestServicePrincipalTokenManualRefreshFailsWithoutRefresh(t *testing.T) {
+	spt := newServicePrincipalTokenManual()
+	spt.RefreshToken = ""
+	err := spt.Refresh()
+	if err == nil {
+		t.Errorf("azure: ServicePrincipalToken#Refresh should have failed with a ManualTokenSecret without a refresh token")
+	}
+}
+
 func newToken() *Token {
 	return &Token{
 		AccessToken: "ASECRETVALUE",
@@ -378,7 +474,31 @@ func setTokenToExpireIn(t *Token, expireIn time.Duration) *Token {
 	return setTokenToExpireAt(t, time.Now().Add(expireIn))
 }
 
-func newServicePrincipalToken() *ServicePrincipalToken {
-	spt, _ := NewServicePrincipalToken("id", "secret", "tenentId", "resource")
+func newServicePrincipalToken(callbacks ...TokenRefreshCallback) *ServicePrincipalToken {
+	spt, _ := NewServicePrincipalToken("id", "secret", "tenentId", "resource", callbacks...)
+	return spt
+}
+
+func newServicePrincipalTokenManual() *ServicePrincipalToken {
+	token := newToken()
+	token.RefreshToken = "refreshtoken"
+	spt, _ := NewServicePrincipalTokenFromManualToken("id", "tenantId", "resource", *token)
+	return spt
+}
+
+func newServicePrincipalTokenCertificate() *ServicePrincipalToken {
+	template := x509.Certificate{
+		SerialNumber:          big.NewInt(0),
+		Subject:               pkix.Name{CommonName: "test"},
+		BasicConstraintsValid: true,
+	}
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	certificateBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
+	if err != nil {
+		panic(err)
+	}
+	certificate, err := x509.ParseCertificate(certificateBytes)
+
+	spt, _ := NewServicePrincipalTokenFromCertificate("id", certificate, privateKey, "tenentId", "resource")
 	return spt
 }

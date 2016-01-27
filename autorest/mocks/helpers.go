@@ -69,6 +69,16 @@ func NewResponseWithStatus(s string, c int) *http.Response {
 	return resp
 }
 
+// NewResponseWithBodyAndStatus instantiates a new response using the specified mock body,
+// status and status code
+func NewResponseWithBodyAndStatus(body *Body, c int, s string) *http.Response {
+	resp := NewResponse()
+	resp.Body = body
+	resp.Status = s
+	resp.StatusCode = c
+	return resp
+}
+
 // SetResponseHeader adds a header to the passed response.
 func SetResponseHeader(resp *http.Response, h string, v string) {
 	if resp.Header == nil {
