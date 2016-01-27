@@ -27,20 +27,57 @@ const (
 	HeaderRequestID = "x-ms-request-id"
 )
 
-// Error describes an error response returned by Azure service.
-type Error struct {
-	ServiceError *struct {
-		Code    string `json:"code"`
-		Message string `json:"message"`
-	} `json:"error"` // JSON object returned in service response body
-	StatusCode int    // HTTP response status code
-	RequestID  string // x-ms-request-id-header
+// ServiceError encapsulates the error response from an Azure service.
+type ServiceError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+// RequestError describes an error response returned by Azure service.
+type RequestError struct {
+	autorest.DetailedError
+
+	// The error returned by the Azure service.
+	ServiceError *ServiceError `json:"error"`
+
+	// The request id (from the x-ms-request-id-header) of the request.
+	RequestID string
 }
 
 // Error returns a human-friendly error message from service error.
-func (e *Error) Error() string {
+func (e RequestError) Error() string {
 	return fmt.Sprintf("azure: Service returned an error. Code=%q Message=%q Status=%d",
 		e.ServiceError.Code, e.ServiceError.Message, e.StatusCode)
+}
+
+// IsAzureError returns true if the passed error is an Azure Service error; false otherwise.
+func IsAzureError(e error) bool {
+	_, ok := e.(*RequestError)
+	return ok
+}
+
+// NewErrorWithError creates a new Error conforming object from the
+// passed packageType, method, statusCode of the given resp (UndefinedStatusCode
+// if resp is nil), message, and original error. message is treated as a format
+// string to which the optional args apply.
+func NewErrorWithError(original error, packageType string, method string, resp *http.Response, message string, args ...interface{}) RequestError {
+	if v, ok := original.(*RequestError); ok {
+		return *v
+	}
+
+	statusCode := autorest.UndefinedStatusCode
+	if resp != nil {
+		statusCode = resp.StatusCode
+	}
+	return RequestError{
+		DetailedError: autorest.DetailedError{
+			Original:    original,
+			PackageType: packageType,
+			Method:      method,
+			StatusCode:  statusCode,
+			Message:     fmt.Sprintf(message, args...),
+		},
+	}
 }
 
 // WithReturningClientID returns a PrepareDecorator that adds an HTTP extension header of
@@ -90,7 +127,7 @@ func ExtractRequestID(resp *http.Response) string {
 }
 
 // WithErrorUnlessStatusCode returns a RespondDecorator that emits an
-// azure.Error by reading the response body unless the response HTTP status code
+// azure.RequestError by reading the response body unless the response HTTP status code
 // is among the set passed.
 //
 // If there is a chance service may return responses other than the Azure error
@@ -105,7 +142,7 @@ func WithErrorUnlessStatusCode(codes ...int) autorest.RespondDecorator {
 		return autorest.ResponderFunc(func(resp *http.Response) error {
 			err := r.Respond(resp)
 			if err == nil && !autorest.ResponseHasStatusCode(resp, codes...) {
-				var e Error
+				var e RequestError
 				defer resp.Body.Close()
 
 				b, decodeErr := autorest.CopyAndDecode(autorest.EncodedAsJSON, resp.Body, &e)
