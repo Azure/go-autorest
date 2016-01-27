@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v3.1.0
+- Add support for OAuth Device Flow authorization.
+- Add support for ServicePrincipalTokens that are backed by an existing token, rather than other secret material.
+- Add helpers for persisting and restoring Tokens.
+- Increased code coverage in the github.com/Azure/autorest/azure package
+
 ## v3.0.0
 - Breaking: `NewErrorWithError` no longer takes `statusCode int`.
 - Breaking: `NewErrorWithStatusCode` is replaced with `NewErrorWithResponse`.
