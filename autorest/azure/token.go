@@ -185,7 +185,7 @@ type ServicePrincipalToken struct {
 }
 
 // NewServicePrincipalTokenWithSecret create a ServicePrincipalToken using the supplied ServicePrincipalSecret implementation.
-func NewServicePrincipalTokenWithSecret(id string, tenantID string, resource string, secret ServicePrincipalSecret, callbacks ...TokenRefreshCallback) *ServicePrincipalToken {
+func NewServicePrincipalTokenWithSecret(id string, tenantID string, resource string, secret ServicePrincipalSecret, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	spt := &ServicePrincipalToken{
 		secret:           secret,
 		clientID:         id,
@@ -196,25 +196,28 @@ func NewServicePrincipalTokenWithSecret(id string, tenantID string, resource str
 		sender:           &http.Client{},
 		refreshCallbacks: callbacks,
 	}
-	return spt
+	return spt, nil
 }
 
 // NewServicePrincipalTokenFromManualToken creates a ServicePrincipalToken using the supplied token
-func NewServicePrincipalTokenFromManualToken(id string, tenantID string, resource string, token Token, callbacks ...TokenRefreshCallback) *ServicePrincipalToken {
-	spt := NewServicePrincipalTokenWithSecret(
+func NewServicePrincipalTokenFromManualToken(id string, tenantID string, resource string, token Token, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+	spt, err := NewServicePrincipalTokenWithSecret(
 		id,
 		tenantID,
 		resource,
 		&ServicePrincipalNoSecret{},
 		callbacks...)
+	if err != nil {
+		return nil, err
+	}
 
 	spt.Token = token
-	return spt
+	return spt, nil
 }
 
 // NewServicePrincipalToken creates a ServicePrincipalToken from the supplied Service Principal
 // credentials scoped to the named resource.
-func NewServicePrincipalToken(id string, secret string, tenantID string, resource string, callbacks ...TokenRefreshCallback) *ServicePrincipalToken {
+func NewServicePrincipalToken(id string, secret string, tenantID string, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	return NewServicePrincipalTokenWithSecret(
 		id,
 		tenantID,
@@ -227,7 +230,7 @@ func NewServicePrincipalToken(id string, secret string, tenantID string, resourc
 }
 
 // NewServicePrincipalTokenFromCertificate create a ServicePrincipalToken from the supplied pkcs12 bytes.
-func NewServicePrincipalTokenFromCertificate(id string, certificate *x509.Certificate, privateKey *rsa.PrivateKey, tenantID string, resource string, callbacks ...TokenRefreshCallback) *ServicePrincipalToken {
+func NewServicePrincipalTokenFromCertificate(id string, certificate *x509.Certificate, privateKey *rsa.PrivateKey, tenantID string, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	return NewServicePrincipalTokenWithSecret(
 		id,
 		tenantID,

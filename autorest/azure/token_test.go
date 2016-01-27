@@ -475,14 +475,14 @@ func setTokenToExpireIn(t *Token, expireIn time.Duration) *Token {
 }
 
 func newServicePrincipalToken(callbacks ...TokenRefreshCallback) *ServicePrincipalToken {
-	spt := NewServicePrincipalToken("id", "secret", "tenentId", "resource", callbacks...)
+	spt, _ := NewServicePrincipalToken("id", "secret", "tenentId", "resource", callbacks...)
 	return spt
 }
 
 func newServicePrincipalTokenManual() *ServicePrincipalToken {
 	token := newToken()
 	token.RefreshToken = "refreshtoken"
-	spt := NewServicePrincipalTokenFromManualToken("id", "tenantId", "resource", *token)
+	spt, _ := NewServicePrincipalTokenFromManualToken("id", "tenantId", "resource", *token)
 	return spt
 }
 
@@ -499,6 +499,6 @@ func newServicePrincipalTokenCertificate() *ServicePrincipalToken {
 	}
 	certificate, err := x509.ParseCertificate(certificateBytes)
 
-	spt := NewServicePrincipalTokenFromCertificate("id", certificate, privateKey, "tenentId", "resource")
+	spt, _ := NewServicePrincipalTokenFromCertificate("id", certificate, privateKey, "tenentId", "resource")
 	return spt
 }

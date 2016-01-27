@@ -68,7 +68,7 @@ func getSptFromCachedToken(clientID, tenantID, resource string, callbacks ...azu
 		return nil, fmt.Errorf("failed to load token from cache: %v", err)
 	}
 
-	spt := azure.NewServicePrincipalTokenFromManualToken(
+	spt, _ := azure.NewServicePrincipalTokenFromManualToken(
 		clientID,
 		tenantID,
 		resource,
@@ -103,7 +103,7 @@ func getSptFromCertificate(clientID, tenantID, resource, certicatePath string, c
 		return nil, fmt.Errorf("failed to decode pkcs12 certificate while creating spt")
 	}
 
-	spt := azure.NewServicePrincipalTokenFromCertificate(
+	spt, _ := azure.NewServicePrincipalTokenFromCertificate(
 		clientID,
 		certificate,
 		rsaPrivateKey,
@@ -128,7 +128,7 @@ func getSptFromDeviceFlow(clientID, tenantID, resource string, callbacks ...azur
 		return nil, fmt.Errorf("failed to finish device auth flow: %s", err)
 	}
 
-	spt := azure.NewServicePrincipalTokenFromManualToken(
+	spt, _ := azure.NewServicePrincipalTokenFromManualToken(
 		clientID,
 		tenantID,
 		resource,
