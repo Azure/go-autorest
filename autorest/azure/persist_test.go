@@ -29,55 +29,52 @@ var TestToken = Token{
 	Type:         "type",
 }
 
-func TestLoadToken(t *testing.T) {
-	f, err := ioutil.TempFile(os.TempDir(), "testloadtoken")
+func writeTestTokenFile(t *testing.T, suffix string, contents string) *os.File {
+	f, err := ioutil.TempFile(os.TempDir(), suffix)
 	if err != nil {
-		t.Errorf("unexpected error when creating temp file: %v", err)
+		t.Errorf("azure: unexpected error when creating temp file: %v", err)
 	}
-	defer os.Remove(f.Name())
 
-	_, err = f.Write([]byte(MockTokenJSON))
+	_, err = f.Write([]byte(contents))
 	if err != nil {
-		t.Errorf("unexpected error when writing temp test file: %v", err)
+		t.Errorf("azure: unexpected error when writing temp test file: %v", err)
 	}
+
+	return f
+}
+
+func TestLoadToken(t *testing.T) {
+	f := writeTestTokenFile(t, "testloadtoken", MockTokenJSON)
+	defer os.Remove(f.Name())
 
 	expectedToken := TestToken
 	actualToken, err := LoadToken(f.Name())
 	if err != nil {
-		t.Errorf("unexpected error loading token from file: %v", err)
+		t.Errorf("azure: unexpected error loading token from file: %v", err)
 	}
 
 	if *actualToken != expectedToken {
-		t.Errorf("failed to decode properly actual(%v) expected(%v)", *actualToken, expectedToken)
+		t.Errorf("azure: failed to decode properly expected(%v) actual(%v)", expectedToken, *actualToken)
 	}
 }
 
 func TestLoadTokenFailsBadPath(t *testing.T) {
 	_, err := LoadToken("/tmp/this_file_should_never_exist_really")
-	if err == nil {
-		// expected failed to open file...
-		t.Errorf("failed to get error")
+	expectedSubstring := "failed to open file"
+	if err == nil || !strings.Contains(err.Error(), expectedSubstring) {
+		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", expectedSubstring, err.Error())
 	}
 }
 
 func TestLoadTokenFailsBadJson(t *testing.T) {
 	gibberishJSON := strings.Replace(MockTokenJSON, "expires_on", ";:\"gibberish", -1)
-
-	f, err := ioutil.TempFile(os.TempDir(), "testloadtokenfailsbadjson")
-	if err != nil {
-		t.Errorf("unexpected error when creating temp file: %v", err)
-	}
+	f := writeTestTokenFile(t, "testloadtokenfailsbadjson", gibberishJSON)
 	defer os.Remove(f.Name())
 
-	_, err = f.Write([]byte(gibberishJSON))
-	if err != nil {
-		t.Errorf("unexpected error when writing temp test file: %v", err)
-	}
-
-	_, err = LoadToken(f.Name())
-	if err == nil {
-		// expected failed to decode contents of file...
-		t.Errorf("failed to get error")
+	_, err := LoadToken(f.Name())
+	expectedSubstring := "failed to decode contents of file"
+	if err == nil || !strings.Contains(err.Error(), expectedSubstring) {
+		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", expectedSubstring, err.Error())
 	}
 }
 
@@ -90,13 +87,13 @@ func token() *Token {
 func TestSaveToken(t *testing.T) {
 	f, err := ioutil.TempFile(os.TempDir(), "testloadtoken")
 	if err != nil {
-		t.Errorf("unexpected error when creating temp file: %v", err)
+		t.Errorf("azure: unexpected error when creating temp file: %v", err)
 	}
 	defer os.Remove(f.Name())
 
 	err = SaveToken(f.Name(), *token())
 	if err != nil {
-		t.Errorf("unexpected error saving token to file: %v", err)
+		t.Errorf("azure: unexpected error saving token to file: %v", err)
 	}
 
 	var actualToken Token
@@ -111,22 +108,22 @@ func TestSaveToken(t *testing.T) {
 	json.Unmarshal(contents, actualToken)
 
 	if !reflect.DeepEqual(actualToken, expectedToken) {
-		t.Errorf("token was not serialized correctly")
+		t.Errorf("azure: token was not serialized correctly")
 	}
 }
 
 func TestSaveTokenFailsNoPermission(t *testing.T) {
 	err := SaveToken("/usr/thiswontwork/atall", *token())
-	if err == nil {
-		// expected failed to decode contents of file...
-		t.Errorf("failed to get error")
+	expectedSubstring := "failed to create directory"
+	if err == nil || !strings.Contains(err.Error(), expectedSubstring) {
+		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", expectedSubstring, err.Error())
 	}
 }
 
 func TestSaveTokenFailsCantCreate(t *testing.T) {
 	err := SaveToken("/thiswontwork", *token())
-	if err == nil {
-		// expected failed to decode contents of file...
-		t.Errorf("failed to get error")
+	expectedSubstring := "failed to write token to temp file"
+	if err == nil || !strings.Contains(err.Error(), expectedSubstring) {
+		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", expectedSubstring, err.Error())
 	}
 }

@@ -11,6 +11,10 @@ import (
 	"github.com/Azure/go-autorest/autorest/mocks"
 )
 
+const (
+	testLogPrefix = "azure:"
+)
+
 // Use a Client Inspector to set the request identifier.
 func ExampleWithClientID() {
 	uuid := "71FDB9F4-5E49-4C12-B266-DE7B4FD999A6"
@@ -156,6 +160,8 @@ func TestWithErrorUnlessStatusCode_FoundAzureError(t *testing.T) {
 	if expected := uuid; azErr.RequestID != expected {
 		t.Fatalf("azure: wrong request ID in error. expected=%q; got=%q", expected, azErr.RequestID)
 	}
+
+	_ = azErr.Error()
 
 	// the error body should still be there
 	defer r.Body.Close()

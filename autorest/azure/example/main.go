@@ -62,7 +62,7 @@ func init() {
 	}
 }
 
-func getSptFromCachedToken(clientID, tenantID, resource string) (*azure.ServicePrincipalToken, error) {
+func getSptFromCachedToken(clientID, tenantID, resource string, callbacks ...azure.TokenRefreshCallback) (*azure.ServicePrincipalToken, error) {
 	token, err := azure.LoadToken(tokenCachePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load token from cache: %v", err)
@@ -72,7 +72,8 @@ func getSptFromCachedToken(clientID, tenantID, resource string) (*azure.ServiceP
 		clientID,
 		tenantID,
 		resource,
-		*token)
+		*token,
+		callbacks...)
 
 	return spt, nil
 }
@@ -91,7 +92,7 @@ func decodePkcs12(pkcs []byte, password string) (*x509.Certificate, *rsa.Private
 	return certificate, rsaPrivateKey, nil
 }
 
-func getSptFromCertificate(clientID, tenantID, resource, certicatePath string) (*azure.ServicePrincipalToken, error) {
+func getSptFromCertificate(clientID, tenantID, resource, certicatePath string, callbacks ...azure.TokenRefreshCallback) (*azure.ServicePrincipalToken, error) {
 	certData, err := ioutil.ReadFile(certificatePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read the certificate file (%s): %v", certificatePath, err)
@@ -107,12 +108,13 @@ func getSptFromCertificate(clientID, tenantID, resource, certicatePath string) (
 		certificate,
 		rsaPrivateKey,
 		tenantID,
-		azure.AzureResourceManagerScope)
+		azure.AzureResourceManagerScope,
+		callbacks...)
 
 	return spt, nil
 }
 
-func getSptFromDeviceFlow(clientID, tenantID, resource string) (*azure.ServicePrincipalToken, error) {
+func getSptFromDeviceFlow(clientID, tenantID, resource string, callbacks ...azure.TokenRefreshCallback) (*azure.ServicePrincipalToken, error) {
 	oauthClient := &autorest.Client{}
 	deviceCode, err := azure.InitiateDeviceAuth(oauthClient, clientID, azure.AzureResourceManagerScope)
 	if err != nil {
@@ -130,7 +132,8 @@ func getSptFromDeviceFlow(clientID, tenantID, resource string) (*azure.ServicePr
 		clientID,
 		tenantID,
 		resource,
-		*token)
+		*token,
+		callbacks...)
 
 	return spt, nil
 }
@@ -185,9 +188,15 @@ func main() {
 
 	resource := azure.AzureResourceManagerScope
 
+	callback := func(t azure.Token) error {
+		log.Println("refresh callback was called because the cached oauth token was stale")
+		saveToken(spt.Token)
+		return nil
+	}
+
 	if tokenCachePath != "" {
 		log.Println("tokenCachePath specified; attempting to load from", tokenCachePath)
-		spt, err = getSptFromCachedToken(applicationID, tenantID, resource)
+		spt, err = getSptFromCachedToken(applicationID, tenantID, resource, callback)
 		if err != nil {
 			spt = nil // just in case, this is the condition below
 			log.Println("loading from cache failed:", err)
@@ -198,12 +207,12 @@ func main() {
 		log.Println("authenticating via 'mode'", mode)
 		switch mode {
 		case "device":
-			spt, err = getSptFromDeviceFlow(applicationID, tenantID, resource)
+			spt, err = getSptFromDeviceFlow(applicationID, tenantID, resource, callback)
 		case "certificate":
-			spt, err = getSptFromCertificate(applicationID, tenantID, resource, certificatePath)
+			spt, err = getSptFromCertificate(applicationID, tenantID, resource, certificatePath, callback)
 		}
 		if err != nil {
-			log.Fatalln("failed to retrieve toke:", err)
+			log.Fatalln("failed to retrieve token:", err)
 		}
 
 		// should save it as soon as you get it since Refresh won't be called for some time
@@ -214,25 +223,8 @@ func main() {
 
 	client := &autorest.Client{}
 	client.Authorizer = spt
-	spt.SetRefreshCallback(func(spt azure.ServicePrincipalToken) {
-		log.Println("refresh callback was called because the cached oauth token was stale")
-		saveToken(spt.Token)
-	})
 
 	groupNames, err := getResourceGroups(client)
-	if err != nil {
-		log.Fatalln("failed to retrieve groups:", err)
-	}
-
-	log.Println("Groups:", strings.Join(groupNames, ","))
-
-	// Force Refresh, just to demonstrate callback
-	spt.SetRefreshCallback(func(spt azure.ServicePrincipalToken) {
-		log.Println("refresh callback was called because we forced it")
-	})
-	spt.Token.ExpiresOn = "0"
-
-	groupNames, err = getResourceGroups(client)
 	if err != nil {
 		log.Fatalln("failed to retrieve groups:", err)
 	}

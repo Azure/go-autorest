@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -118,6 +119,9 @@ func TestServicePrincipalTokenSetSender(t *testing.T) {
 func TestServicePrincipalTokenRefreshUsesPOST(t *testing.T) {
 	spt := newServicePrincipalToken()
 
+	body := mocks.NewBody("")
+	resp := mocks.NewResponseWithBodyAndStatus(body, 200, "OK")
+
 	c := mocks.NewSender()
 	s := autorest.DecorateSender(c,
 		(func() autorest.SendDecorator {
@@ -126,12 +130,16 @@ func TestServicePrincipalTokenRefreshUsesPOST(t *testing.T) {
 					if r.Method != "POST" {
 						t.Errorf("azure: ServicePrincipalToken#Refresh did not correctly set HTTP method -- expected %v, received %v", "POST", r.Method)
 					}
-					return mocks.NewResponse(), nil
+					return resp, nil
 				})
 			}
 		})())
 	spt.SetSender(s)
 	spt.Refresh()
+
+	if body.IsOpen() {
+		t.Errorf("the response was not closed!")
+	}
 }
 
 func TestServicePrincipalTokenRefreshSetsMimeType(t *testing.T) {
@@ -375,10 +383,10 @@ func TestServicePrincipalTokenWithAuthorizationReturnsErrorIfCannotRefresh(t *te
 }
 
 func TestRefreshCallback(t *testing.T) {
-	spt := newServicePrincipalToken()
 	callbackTriggered := false
-	spt.SetRefreshCallback(func(ServicePrincipalToken) {
+	spt := newServicePrincipalToken(func(Token) error {
 		callbackTriggered = true
+		return nil
 	})
 
 	expiresOn := strconv.Itoa(int(time.Now().Add(3600 * time.Second).Sub(expirationBase).Seconds()))
@@ -391,6 +399,25 @@ func TestRefreshCallback(t *testing.T) {
 
 	if !callbackTriggered {
 		t.Errorf("azure: RefreshCallback failed to trigger call callback")
+	}
+}
+
+func TestRefreshCallbackErrorPropagates(t *testing.T) {
+	errorText := "this is an error text"
+	spt := newServicePrincipalToken(func(Token) error {
+		return fmt.Errorf(errorText)
+	})
+
+	expiresOn := strconv.Itoa(int(time.Now().Add(3600 * time.Second).Sub(expirationBase).Seconds()))
+
+	sender := mocks.NewSender()
+	j := newTokenJSON(expiresOn, "resource")
+	sender.EmitContent(j)
+	spt.SetSender(sender)
+	err := spt.Refresh()
+
+	if err == nil || !strings.Contains(err.Error(), errorText) {
+		t.Errorf("azure: RefreshCallback failed to propagate error")
 	}
 }
 
@@ -447,8 +474,8 @@ func setTokenToExpireIn(t *Token, expireIn time.Duration) *Token {
 	return setTokenToExpireAt(t, time.Now().Add(expireIn))
 }
 
-func newServicePrincipalToken() *ServicePrincipalToken {
-	spt := NewServicePrincipalToken("id", "secret", "tenentId", "resource")
+func newServicePrincipalToken(callbacks ...TokenRefreshCallback) *ServicePrincipalToken {
+	spt := NewServicePrincipalToken("id", "secret", "tenentId", "resource", callbacks...)
 	return spt
 }
 

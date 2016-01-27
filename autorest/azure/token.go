@@ -42,6 +42,10 @@ func init() {
 	expirationBase, _ = time.Parse(time.RFC3339, tokenBaseDate)
 }
 
+// TokenRefreshCallback is the type representing callbacks that will be called after
+// a successful token refresh
+type TokenRefreshCallback func(Token) error
+
 // Token encapsulates the access token used to authorize Azure requests.
 type Token struct {
 	AccessToken  string `json:"access_token"`
@@ -177,30 +181,32 @@ type ServicePrincipalToken struct {
 	refreshWithin time.Duration
 	sender        autorest.Sender
 
-	refreshCallback func(ServicePrincipalToken)
+	refreshCallbacks []TokenRefreshCallback
 }
 
 // NewServicePrincipalTokenWithSecret create a ServicePrincipalToken using the supplied ServicePrincipalSecret implementation.
-func NewServicePrincipalTokenWithSecret(id string, tenantID string, resource string, secret ServicePrincipalSecret) *ServicePrincipalToken {
+func NewServicePrincipalTokenWithSecret(id string, tenantID string, resource string, secret ServicePrincipalSecret, callbacks ...TokenRefreshCallback) *ServicePrincipalToken {
 	spt := &ServicePrincipalToken{
-		secret:        secret,
-		clientID:      id,
-		resource:      resource,
-		tenantID:      tenantID,
-		autoRefresh:   true,
-		refreshWithin: defaultRefresh,
-		sender:        &http.Client{},
+		secret:           secret,
+		clientID:         id,
+		resource:         resource,
+		tenantID:         tenantID,
+		autoRefresh:      true,
+		refreshWithin:    defaultRefresh,
+		sender:           &http.Client{},
+		refreshCallbacks: callbacks,
 	}
 	return spt
 }
 
 // NewServicePrincipalTokenFromManualToken creates a ServicePrincipalToken using the supplied token
-func NewServicePrincipalTokenFromManualToken(id string, tenantID string, resource string, token Token) *ServicePrincipalToken {
+func NewServicePrincipalTokenFromManualToken(id string, tenantID string, resource string, token Token, callbacks ...TokenRefreshCallback) *ServicePrincipalToken {
 	spt := NewServicePrincipalTokenWithSecret(
 		id,
 		tenantID,
 		resource,
-		&ServicePrincipalNoSecret{})
+		&ServicePrincipalNoSecret{},
+		callbacks...)
 
 	spt.Token = token
 	return spt
@@ -208,7 +214,7 @@ func NewServicePrincipalTokenFromManualToken(id string, tenantID string, resourc
 
 // NewServicePrincipalToken creates a ServicePrincipalToken from the supplied Service Principal
 // credentials scoped to the named resource.
-func NewServicePrincipalToken(id string, secret string, tenantID string, resource string) *ServicePrincipalToken {
+func NewServicePrincipalToken(id string, secret string, tenantID string, resource string, callbacks ...TokenRefreshCallback) *ServicePrincipalToken {
 	return NewServicePrincipalTokenWithSecret(
 		id,
 		tenantID,
@@ -216,11 +222,12 @@ func NewServicePrincipalToken(id string, secret string, tenantID string, resourc
 		&ServicePrincipalTokenSecret{
 			ClientSecret: secret,
 		},
+		callbacks...,
 	)
 }
 
 // NewServicePrincipalTokenFromCertificate create a ServicePrincipalToken from the supplied pkcs12 bytes.
-func NewServicePrincipalTokenFromCertificate(id string, certificate *x509.Certificate, privateKey *rsa.PrivateKey, tenantID string, resource string) *ServicePrincipalToken {
+func NewServicePrincipalTokenFromCertificate(id string, certificate *x509.Certificate, privateKey *rsa.PrivateKey, tenantID string, resource string, callbacks ...TokenRefreshCallback) *ServicePrincipalToken {
 	return NewServicePrincipalTokenWithSecret(
 		id,
 		tenantID,
@@ -229,6 +236,7 @@ func NewServicePrincipalTokenFromCertificate(id string, certificate *x509.Certif
 			PrivateKey:  privateKey,
 			Certificate: certificate,
 		},
+		callbacks...,
 	)
 }
 
@@ -241,10 +249,18 @@ func (spt *ServicePrincipalToken) EnsureFresh() error {
 	return nil
 }
 
-// SetRefreshCallback will register a function with SPT that will be invoked when the token
-// is refreshed.
-func (spt *ServicePrincipalToken) SetRefreshCallback(f func(spt ServicePrincipalToken)) {
-	spt.refreshCallback = f
+// InvokeRefreshCallbacks calls any TokenRefreshCallbacks that were added to the SPT during initialization
+func (spt *ServicePrincipalToken) InvokeRefreshCallbacks(token Token) error {
+	if spt.refreshCallbacks != nil {
+		for _, callback := range spt.refreshCallbacks {
+			err := callback(spt.Token)
+			if err != nil {
+				return autorest.NewErrorWithError(err,
+					"azure.ServicePrincipalToken", "InvokeRefreshCallbacks", nil, "A TokenRefreshCallback handler returned an error")
+			}
+		}
+	}
+	return nil
 }
 
 // Refresh obtains a fresh token for the Service Principal.
@@ -284,7 +300,6 @@ func (spt *ServicePrincipalToken) Refresh() error {
 	}
 
 	var newToken Token
-
 	err = autorest.Respond(resp,
 		autorest.WithErrorUnlessOK(),
 		autorest.ByUnmarshallingJSON(&newToken),
@@ -297,8 +312,10 @@ func (spt *ServicePrincipalToken) Refresh() error {
 
 	spt.Token = newToken
 
-	if spt.refreshCallback != nil {
-		spt.refreshCallback(*spt)
+	err = spt.InvokeRefreshCallbacks(newToken)
+	if err != nil {
+		// its already wrapped inside InvokeRefreshCallbacks
+		return err
 	}
 
 	return nil
