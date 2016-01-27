@@ -186,11 +186,15 @@ func WaitForUserCompletion(client *autorest.Client, clientID string, code *Devic
 
 		switch err {
 		case ErrDeviceSlowDown:
-			waitDuration = waitDuration + (intervalDuration / 2)
+			waitDuration += waitDuration
 		case ErrDeviceAuthorizationPending:
 			// noop
 		default: // everything else is "fatal" to us
 			return nil, err
+		}
+
+		if waitDuration > (intervalDuration * 3) {
+			return nil, fmt.Errorf("%s Error waiting for user to complete device flow. Server told us to slow_down too much", logPrefix)
 		}
 
 		time.Sleep(waitDuration)
