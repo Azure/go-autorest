@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"strconv"
 	"testing"
 
@@ -88,6 +89,39 @@ func TestExtractRequestID(t *testing.T) {
 	}
 }
 
+func TestIsAzureError_ReturnsTrueForAzureError(t *testing.T) {
+	if !IsAzureError(&RequestError{}) {
+		t.Errorf("azure: IsAzureError failed to return true for an Azure Service error")
+	}
+}
+
+func TestIsAzureError_ReturnsFalseForNonAzureError(t *testing.T) {
+	if IsAzureError(fmt.Errorf("An Error")) {
+		t.Errorf("azure: IsAzureError return true for an non-Azure Service error")
+	}
+}
+
+func TestNewErrorWithError_ReturnsUnwrappedError(t *testing.T) {
+	e1 := RequestError{}
+	e1.ServiceError = &ServiceError{Code: "42", Message: "A Message"}
+	e1.StatusCode = 200
+	e1.RequestID = "A RequestID"
+	e2 := NewErrorWithError(&e1, "packageType", "method", nil, "message")
+
+	if !reflect.DeepEqual(e1, e2) {
+		t.Errorf("azure: NewErrorWithError wrapped an RequestError -- expected %T, received %T", e1, e2)
+	}
+}
+
+func TestNewErrorWithError_WrapsAnError(t *testing.T) {
+	e1 := fmt.Errorf("Inner Error")
+	var e2 interface{} = NewErrorWithError(e1, "packageType", "method", nil, "message")
+
+	if _, ok := e2.(RequestError); !ok {
+		t.Errorf("azure: NewErrorWithError failed to wrap a standard error -- received %T", e2)
+	}
+}
+
 func TestWithErrorUnlessStatusCode_NotAnAzureError(t *testing.T) {
 	body := `<html>
 		<head>
@@ -103,9 +137,9 @@ func TestWithErrorUnlessStatusCode_NotAnAzureError(t *testing.T) {
 	err := autorest.Respond(r,
 		WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByClosing())
-	ok, _ := err.(*Error)
+	ok, _ := err.(*RequestError)
 	if ok != nil {
-		t.Fatalf("azure: azure.Error returned from malformed response: %v", err)
+		t.Fatalf("azure: azure.RequestError returned from malformed response: %v", err)
 	}
 
 	// the error body should still be there
@@ -140,9 +174,9 @@ func TestWithErrorUnlessStatusCode_FoundAzureError(t *testing.T) {
 	if err == nil {
 		t.Fatalf("azure: returned nil error for proper error response")
 	}
-	azErr, ok := err.(*Error)
+	azErr, ok := err.(*RequestError)
 	if !ok {
-		t.Fatalf("azure: returned error is not azure.Error: %T", err)
+		t.Fatalf("azure: returned error is not azure.RequestError: %T", err)
 	}
 	if expected := "InternalError"; azErr.ServiceError.Code != expected {
 		t.Fatalf("azure: wrong error code. expected=%q; got=%q", expected, azErr.ServiceError.Code)
