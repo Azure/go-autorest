@@ -3,7 +3,7 @@ package azure
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -18,41 +18,38 @@ func LoadToken(path string) (*Token, error) {
 	var token Token
 
 	dec := json.NewDecoder(file)
-	err = dec.Decode(&token)
-	if err != nil {
+	if err = dec.Decode(&token); err != nil {
 		return nil, fmt.Errorf("failed to decode contents of file (%s) into Token representation: %v", path, err)
 	}
-
 	return &token, nil
 }
 
 // SaveToken persists an oauth token at the given location on disk.
 // It moves the new file into place so it can safely be used to replace an existing file
 // that maybe accessed by multiple processes.
-func SaveToken(path string, token Token) error {
+func SaveToken(path string, mode os.FileMode, token Token) error {
 	dir := filepath.Dir(path)
 	err := os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("failed to create directory (%s) to store token in: %v", dir, err)
 	}
 
-	tempPath := path + fmt.Sprintf("%d", rand.Int31())
-
-	newFile, err := os.Create(tempPath)
+	newFile, err := ioutil.TempFile(os.TempDir(), "token")
 	if err != nil {
-		return fmt.Errorf("failed to write token to temp file (%s) while saving token: %v", tempPath, err)
+		return fmt.Errorf("failed to create the temp file to write the token: %v", err)
 	}
+	tempPath := newFile.Name()
 
-	enc := json.NewEncoder(newFile)
-	err = enc.Encode(token)
-	if err != nil {
+	if json.NewEncoder(newFile).Encode(token); err != nil {
 		return fmt.Errorf("failed to encode token to file (%s) while saving token: %v", tempPath, err)
 	}
 
-	err = os.Rename(tempPath, path)
-	if err != nil {
+	// Atomic replace to avoid multi-writer file corruptions
+	if err := os.Rename(tempPath, path); err != nil {
 		return fmt.Errorf("failed to move temporary token to desired output location. source=(%s). destination=(%s). error = %v", tempPath, path, err)
 	}
-
+	if err := os.Chmod(path, mode); err != nil {
+		return fmt.Errorf("failed to chmod the token file %s: %v", path, err)
+	}
 	return nil
 }
