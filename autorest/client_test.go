@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"reflect"
 	"testing"
@@ -112,6 +113,15 @@ func TestNewClientWithUserAgent(t *testing.T) {
 	if c.UserAgent != ua {
 		t.Errorf("autorest: NewClientWithUserAgent failed to set the UserAgent -- expected %s, received %s",
 			ua, c.UserAgent)
+	}
+}
+
+func TestNewClientWithUserAgentDoesNotModifyDefaultClient(t *testing.T) {
+	ua := randomString(32)
+	c := NewClientWithUserAgent(ua)
+
+	if c.UserAgent == DefaultClient.UserAgent {
+		t.Errorf("autorest: NewClientWithUserAgent pollutes the DefaultClient")
 	}
 }
 
@@ -594,4 +604,14 @@ func TestResponseGetPollingLocation(t *testing.T) {
 		t.Errorf("autorest: Response#GetPollingLocation failed to return correct URL -- expected %v, received %v",
 			mocks.TestURL, ar.GetPollingLocation())
 	}
+}
+
+func randomString(n int) string {
+	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+	r := rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
+	s := make([]byte, n)
+	for i := range s {
+		s[i] = chars[r.Intn(len(chars))]
+	}
+	return string(s)
 }
