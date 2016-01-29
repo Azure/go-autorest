@@ -85,15 +85,23 @@ func token() *Token {
 }
 
 func TestSaveToken(t *testing.T) {
-	f, err := ioutil.TempFile(os.TempDir(), "testloadtoken")
+	f, err := ioutil.TempFile("", "testloadtoken")
 	if err != nil {
 		t.Errorf("azure: unexpected error when creating temp file: %v", err)
 	}
 	defer os.Remove(f.Name())
 
-	err = SaveToken(f.Name(), *token())
+	mode := os.ModePerm & 0642
+	err = SaveToken(f.Name(), mode, *token())
 	if err != nil {
 		t.Errorf("azure: unexpected error saving token to file: %v", err)
+	}
+	fi, err := os.Stat(f.Name()) // open a new stat as held ones are not fresh
+	if err != nil {
+		t.Errorf("azure: stat failed: %v", err)
+	}
+	if perm := fi.Mode().Perm(); perm != mode {
+		t.Errorf("azure: wrong file perm. got:%s; expected:%s file :%s", perm, mode, f.Name())
 	}
 
 	var actualToken Token
@@ -103,17 +111,17 @@ func TestSaveToken(t *testing.T) {
 
 	contents, err := ioutil.ReadFile(f.Name())
 	if err != nil {
-		t.Errorf("!!")
+		t.Error("!!")
 	}
 	json.Unmarshal(contents, actualToken)
 
 	if !reflect.DeepEqual(actualToken, expectedToken) {
-		t.Errorf("azure: token was not serialized correctly")
+		t.Error("azure: token was not serialized correctly")
 	}
 }
 
 func TestSaveTokenFailsNoPermission(t *testing.T) {
-	err := SaveToken("/usr/thiswontwork/atall", *token())
+	err := SaveToken("/usr/thiswontwork/atall", 0644, *token())
 	expectedSubstring := "failed to create directory"
 	if err == nil || !strings.Contains(err.Error(), expectedSubstring) {
 		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", expectedSubstring, err.Error())
@@ -121,8 +129,8 @@ func TestSaveTokenFailsNoPermission(t *testing.T) {
 }
 
 func TestSaveTokenFailsCantCreate(t *testing.T) {
-	err := SaveToken("/thiswontwork", *token())
-	expectedSubstring := "failed to write token to temp file"
+	err := SaveToken("/thiswontwork", 0644, *token())
+	expectedSubstring := "failed to move temporary token to desired output location."
 	if err == nil || !strings.Contains(err.Error(), expectedSubstring) {
 		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", expectedSubstring, err.Error())
 	}

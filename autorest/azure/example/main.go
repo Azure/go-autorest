@@ -174,7 +174,7 @@ func getResourceGroups(client *autorest.Client) ([]string, error) {
 }
 
 func saveToken(spt azure.Token) {
-	err := azure.SaveToken(tokenCachePath, spt)
+	err := azure.SaveToken(tokenCachePath, 0600, spt)
 	if err != nil {
 		log.Println("error saving token", err)
 	} else {
