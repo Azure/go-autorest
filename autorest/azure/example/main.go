@@ -18,7 +18,9 @@ import (
 
 const resourceGroupURLTemplate = "https://management.azure.com/subscriptions/{subscription-id}/resourcegroups"
 const apiVersion = "2015-01-01"
-const xplatClientID = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"
+
+const nativeAppClientID = "a87032a7-203c-4bf7-913c-44c50d23409a"
+const resource = azure.AzureResourceManagerScope
 
 var (
 	mode           string
@@ -27,6 +29,7 @@ var (
 	applicationID  string
 
 	tokenCachePath string
+	forceRefresh   bool
 
 	certificatePath string
 )
@@ -38,6 +41,7 @@ func init() {
 	flag.StringVar(&tenantID, "tenantId", "", "tenant id")
 	flag.StringVar(&subscriptionID, "subscriptionId", "", "subscription id")
 	flag.StringVar(&tokenCachePath, "tokenCachePath", "", "location of oauth token cache")
+	flag.BoolVar(&forceRefresh, "forceRefresh", false, "pass true to force a token refresh")
 
 	flag.Parse()
 
@@ -54,7 +58,7 @@ func init() {
 	}
 
 	if mode == "device" && applicationID == "" {
-		applicationID = xplatClientID
+		applicationID = nativeAppClientID
 	}
 
 	if mode == "certificate" && strings.Trim(certificatePath, " ") == "" {
@@ -108,7 +112,7 @@ func getSptFromCertificate(clientID, tenantID, resource, certicatePath string, c
 		certificate,
 		rsaPrivateKey,
 		tenantID,
-		azure.AzureResourceManagerScope,
+		resource,
 		callbacks...)
 
 	return spt, nil
@@ -116,7 +120,7 @@ func getSptFromCertificate(clientID, tenantID, resource, certicatePath string, c
 
 func getSptFromDeviceFlow(clientID, tenantID, resource string, callbacks ...azure.TokenRefreshCallback) (*azure.ServicePrincipalToken, error) {
 	oauthClient := &autorest.Client{}
-	deviceCode, err := azure.InitiateDeviceAuth(oauthClient, clientID, azure.AzureResourceManagerScope)
+	deviceCode, err := azure.InitiateDeviceAuth(oauthClient, clientID, resource)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start device auth flow: %s", err)
 	}
@@ -138,7 +142,7 @@ func getSptFromDeviceFlow(clientID, tenantID, resource string, callbacks ...azur
 	return spt, nil
 }
 
-func getResourceGroups(client *autorest.Client) ([]string, error) {
+func getresourceGroups(client *autorest.Client) ([]string, error) {
 	p := map[string]interface{}{"subscription-id": subscriptionID}
 	q := map[string]interface{}{"api-version": apiVersion}
 
@@ -186,8 +190,6 @@ func main() {
 	var spt *azure.ServicePrincipalToken
 	var err error
 
-	resource := azure.AzureResourceManagerScope
-
 	callback := func(t azure.Token) error {
 		log.Println("refresh callback was called because the cached oauth token was stale")
 		saveToken(spt.Token)
@@ -224,10 +226,18 @@ func main() {
 	client := &autorest.Client{}
 	client.Authorizer = spt
 
-	groupNames, err := getResourceGroups(client)
+	groupNames, err := getresourceGroups(client)
 	if err != nil {
 		log.Fatalln("failed to retrieve groups:", err)
 	}
 
 	log.Println("Groups:", strings.Join(groupNames, ","))
+
+	if forceRefresh {
+		spt.Token.ExpiresOn = "0"
+		err = spt.Refresh()
+		if err != nil {
+			panic(err)
+		}
+	}
 }
