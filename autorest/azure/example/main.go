@@ -43,8 +43,7 @@ func init() {
 	flag.StringVar(&tenantID, "tenantId", "", "tenant id")
 	flag.StringVar(&subscriptionID, "subscriptionId", "", "subscription id")
 	flag.StringVar(&tokenCachePath, "tokenCachePath", "", "location of oauth token cache")
-	flag.BoolVar(&forceRefresh, "forceRefresh", true, "pass true to force a token refresh")
-	flag.BoolVar(&impatient, "impatient", true, "pass true to check for device completion every 1 second")
+	flag.BoolVar(&forceRefresh, "forceRefresh", false, "pass true to force a token refresh")
 
 	flag.Parse()
 
@@ -52,7 +51,7 @@ func init() {
 		mode, certificatePath, applicationID, tenantID, subscriptionID)
 
 	if mode == "certificate" &&
-		(strings.Trim(tenantID, " ") == "" || strings.Trim(subscriptionID, " ") == "") {
+		(strings.TrimSpace(tenantID) == "" || strings.TrimSpace(subscriptionID) == "") {
 		log.Fatalln("Bad usage. Using certificate mode. Please specify tenantID, subscriptionID")
 	}
 
@@ -60,16 +59,16 @@ func init() {
 		log.Fatalln("Bad usage. Mode must be one of 'certificate' or 'device'.")
 	}
 
-	if mode == "device" && applicationID == "" {
+	if mode == "device" && strings.TrimSpace(applicationID) == "" {
 		log.Println("Using device mode auth. Will use `azkube` clientID since none was specified on the comand line.")
 		applicationID = nativeAppClientID
 	}
 
-	if mode == "certificate" && strings.Trim(certificatePath, " ") == "" {
+	if mode == "certificate" && strings.TrimSpace(certificatePath) == "" {
 		log.Fatalln("Bad usage. Mode 'certificate' requires the 'certificatePath' argument.")
 	}
 
-	if strings.Trim(tenantID, " ") == "" || strings.Trim(subscriptionID, " ") == "" || strings.Trim(applicationID, " ") == "" {
+	if strings.TrimSpace(tenantID) == "" || strings.TrimSpace(subscriptionID) == "" || strings.TrimSpace(applicationID) == "" {
 		log.Fatalln("Bad usage. Must specify the 'tenantId' and 'subscriptionId'")
 	}
 }
@@ -135,11 +134,6 @@ func getSptFromDeviceFlow(clientID, tenantID, resource string, callbacks ...azur
 
 	fmt.Println(*deviceCode.Message)
 
-	if impatient {
-		var i int64 = 1
-		deviceCode.Interval = &i
-	}
-
 	token, err := azure.WaitForUserCompletion(oauthClient, deviceCode)
 	if err != nil {
 		return nil, fmt.Errorf("failed to finish device auth flow: %s", err)
@@ -191,7 +185,7 @@ func printResourceGroups(client *autorest.Client) error {
 		groupNames[i] = name.Name
 	}
 
-	log.Println("Groups:", strings.Join(groupNames, ","))
+	log.Println("Groups:", strings.Join(groupNames, ", "))
 	return err
 }
 
@@ -255,5 +249,4 @@ func main() {
 		}
 		printResourceGroups(client)
 	}
-
 }

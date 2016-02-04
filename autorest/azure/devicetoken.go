@@ -90,16 +90,17 @@ type deviceToken struct {
 // InitiateDeviceAuth initiates a device auth flow. It returns a DeviceCode
 // that can be used with CheckForUserCompletion or WaitForUserCompletion.
 func InitiateDeviceAuth(client *autorest.Client, clientID, tenantID, resource string) (*DeviceCode, error) {
-	oAuthDeviceEndpoint := strings.Replace(OAuthDeviceEndpointTemplate, "{tenantId}", tenantID, -1)
-
 	req, _ := autorest.Prepare(
 		&http.Request{},
 		autorest.AsPost(),
 		autorest.AsFormURLEncoded(),
-		autorest.WithBaseURL(oAuthDeviceEndpoint),
+		autorest.WithBaseURL(OAuthDeviceEndpointTemplate),
 		autorest.WithFormData(url.Values{
 			"client_id": []string{clientID},
 			"resource":  []string{resource},
+		}),
+		autorest.WithPathParameters(map[string]interface{}{
+			"tenantId": tenantID,
 		}),
 		autorest.WithQueryParameters(map[string]interface{}{
 			authAPIVersionQueryParamName: authAPIVersionQueryParamValue,
@@ -142,6 +143,9 @@ func CheckForUserCompletion(client *autorest.Client, code *DeviceCode) (*Token, 
 			"code":       []string{*code.DeviceCode},
 			"grant_type": []string{OAuthGrantTypeDeviceCode},
 			"resource":   []string{code.Resource},
+		}),
+		autorest.WithPathParameters(map[string]interface{}{
+			"tenantId": code.TenantID,
 		}),
 		autorest.WithQueryParameters(map[string]interface{}{
 			authAPIVersionQueryParamName: authAPIVersionQueryParamValue,
