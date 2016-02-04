@@ -16,11 +16,12 @@ import (
 	"golang.org/x/crypto/pkcs12"
 )
 
-const resourceGroupURLTemplate = "https://management.azure.com/subscriptions/{subscription-id}/resourcegroups"
-const apiVersion = "2015-01-01"
-
-const nativeAppClientID = "a87032a7-203c-4bf7-913c-44c50d23409a"
-const resource = azure.AzureResourceManagerScope
+const (
+	resourceGroupURLTemplate = "https://management.azure.com/subscriptions/{subscription-id}/resourcegroups"
+	apiVersion               = "2015-01-01"
+	nativeAppClientID        = "a87032a7-203c-4bf7-913c-44c50d23409a"
+	resource                 = "https://management.core.windows.net/"
+)
 
 var (
 	mode           string
@@ -30,6 +31,7 @@ var (
 
 	tokenCachePath string
 	forceRefresh   bool
+	impatient      bool
 
 	certificatePath string
 )
@@ -41,28 +43,34 @@ func init() {
 	flag.StringVar(&tenantID, "tenantId", "", "tenant id")
 	flag.StringVar(&subscriptionID, "subscriptionId", "", "subscription id")
 	flag.StringVar(&tokenCachePath, "tokenCachePath", "", "location of oauth token cache")
-	flag.BoolVar(&forceRefresh, "forceRefresh", false, "pass true to force a token refresh")
+	flag.BoolVar(&forceRefresh, "forceRefresh", true, "pass true to force a token refresh")
+	flag.BoolVar(&impatient, "impatient", true, "pass true to check for device completion every 1 second")
 
 	flag.Parse()
 
 	log.Printf("mode(%s) certPath(%s) appID(%s) tenantID(%s), subID(%s)\n",
 		mode, certificatePath, applicationID, tenantID, subscriptionID)
 
-	if strings.Trim(tenantID, " ") == "" ||
-		strings.Trim(subscriptionID, " ") == "" {
-		log.Fatalln("Bad usage. Please specify applicationID, tenantID, subscriptionID")
+	if mode == "certificate" &&
+		(strings.Trim(tenantID, " ") == "" || strings.Trim(subscriptionID, " ") == "") {
+		log.Fatalln("Bad usage. Using certificate mode. Please specify tenantID, subscriptionID")
 	}
 
-	if mode != "certificate" && mode != "cached" && mode != "device" {
-		log.Fatalln("Bad usage. Mode must be one of 'certificate', 'cached' or 'device'.")
+	if mode != "certificate" && mode != "device" {
+		log.Fatalln("Bad usage. Mode must be one of 'certificate' or 'device'.")
 	}
 
 	if mode == "device" && applicationID == "" {
+		log.Println("Using device mode auth. Will use `azkube` clientID since none was specified on the comand line.")
 		applicationID = nativeAppClientID
 	}
 
 	if mode == "certificate" && strings.Trim(certificatePath, " ") == "" {
 		log.Fatalln("Bad usage. Mode 'certificate' requires the 'certificatePath' argument.")
+	}
+
+	if strings.Trim(tenantID, " ") == "" || strings.Trim(subscriptionID, " ") == "" || strings.Trim(applicationID, " ") == "" {
+		log.Fatalln("Bad usage. Must specify the 'tenantId' and 'subscriptionId'")
 	}
 }
 
@@ -104,7 +112,7 @@ func getSptFromCertificate(clientID, tenantID, resource, certicatePath string, c
 
 	certificate, rsaPrivateKey, err := decodePkcs12(certData, "")
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode pkcs12 certificate while creating spt")
+		return nil, fmt.Errorf("failed to decode pkcs12 certificate while creating spt: %v", err)
 	}
 
 	spt, _ := azure.NewServicePrincipalTokenFromCertificate(
@@ -120,29 +128,37 @@ func getSptFromCertificate(clientID, tenantID, resource, certicatePath string, c
 
 func getSptFromDeviceFlow(clientID, tenantID, resource string, callbacks ...azure.TokenRefreshCallback) (*azure.ServicePrincipalToken, error) {
 	oauthClient := &autorest.Client{}
-	deviceCode, err := azure.InitiateDeviceAuth(oauthClient, clientID, resource)
+	deviceCode, err := azure.InitiateDeviceAuth(oauthClient, clientID, tenantID, resource)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start device auth flow: %s", err)
 	}
 
 	fmt.Println(*deviceCode.Message)
 
-	token, err := azure.WaitForUserCompletion(oauthClient, clientID, deviceCode)
+	if impatient {
+		var i int64 = 1
+		deviceCode.Interval = &i
+	}
+
+	token, err := azure.WaitForUserCompletion(oauthClient, deviceCode)
 	if err != nil {
 		return nil, fmt.Errorf("failed to finish device auth flow: %s", err)
 	}
 
-	spt, _ := azure.NewServicePrincipalTokenFromManualToken(
+	spt, err := azure.NewServicePrincipalTokenFromManualToken(
 		clientID,
 		tenantID,
 		resource,
 		*token,
 		callbacks...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get oauth token from device flow: %v", err)
+	}
 
 	return spt, nil
 }
 
-func getresourceGroups(client *autorest.Client) ([]string, error) {
+func printResourceGroups(client *autorest.Client) error {
 	p := map[string]interface{}{"subscription-id": subscriptionID}
 	q := map[string]interface{}{"api-version": apiVersion}
 
@@ -154,7 +170,7 @@ func getresourceGroups(client *autorest.Client) ([]string, error) {
 
 	resp, err := client.Send(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	value := struct {
@@ -167,22 +183,26 @@ func getresourceGroups(client *autorest.Client) ([]string, error) {
 	dec := json.NewDecoder(resp.Body)
 	err = dec.Decode(&value)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var names = make([]string, len(value.ResourceGroups))
+	var groupNames = make([]string, len(value.ResourceGroups))
 	for i, name := range value.ResourceGroups {
-		names[i] = name.Name
+		groupNames[i] = name.Name
 	}
-	return names, nil
+
+	log.Println("Groups:", strings.Join(groupNames, ","))
+	return err
 }
 
 func saveToken(spt azure.Token) {
-	err := azure.SaveToken(tokenCachePath, 0600, spt)
-	if err != nil {
-		log.Println("error saving token", err)
-	} else {
-		log.Println("saved token to", tokenCachePath)
+	if tokenCachePath != "" {
+		err := azure.SaveToken(tokenCachePath, 0600, spt)
+		if err != nil {
+			log.Println("error saving token", err)
+		} else {
+			log.Println("saved token to", tokenCachePath)
+		}
 	}
 }
 
@@ -191,8 +211,8 @@ func main() {
 	var err error
 
 	callback := func(t azure.Token) error {
-		log.Println("refresh callback was called because the cached oauth token was stale")
-		saveToken(spt.Token)
+		log.Println("refresh callback was called")
+		saveToken(t)
 		return nil
 	}
 
@@ -226,18 +246,14 @@ func main() {
 	client := &autorest.Client{}
 	client.Authorizer = spt
 
-	groupNames, err := getresourceGroups(client)
-	if err != nil {
-		log.Fatalln("failed to retrieve groups:", err)
-	}
-
-	log.Println("Groups:", strings.Join(groupNames, ","))
+	printResourceGroups(client)
 
 	if forceRefresh {
-		spt.Token.ExpiresOn = "0"
 		err = spt.Refresh()
 		if err != nil {
 			panic(err)
 		}
+		printResourceGroups(client)
 	}
+
 }
