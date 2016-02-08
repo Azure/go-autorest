@@ -13,9 +13,7 @@ import (
 )
 
 const (
-	testAuthorizationHeader = "BEARER SECRETTOKEN"
-	testBadURL              = ""
-	jsonT                   = `
+	jsonT = `
     {
       "name":"Rob Pike",
       "age":42
@@ -150,7 +148,7 @@ func doEnsureBodyClosed(t *testing.T) SendDecorator {
 type mockAuthorizer struct{}
 
 func (ma mockAuthorizer) WithAuthorization() PrepareDecorator {
-	return WithHeader(headerAuthorization, testAuthorizationHeader)
+	return WithHeader(headerAuthorization, mocks.TestAuthorizationHeader)
 }
 
 type mockFailingAuthorizer struct{}
