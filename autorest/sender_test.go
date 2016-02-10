@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -153,6 +154,29 @@ func TestAfterDelayWaits(t *testing.T) {
 		ByClosing())
 }
 
+func TestAfterDelay_Cancels(t *testing.T) {
+	client := mocks.NewSender()
+	cancel := make(chan struct{})
+	delay := 5 * time.Second
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	tt := time.Now()
+	go func() {
+		req := mocks.NewRequest()
+		req.Cancel = cancel
+		wg.Done()
+		SendWithSender(client, req,
+			AfterDelay(delay))
+	}()
+	wg.Wait()
+	close(cancel)
+	time.Sleep(10 * time.Millisecond)
+	if time.Since(tt) >= delay {
+		t.Error("autorest: AfterDelay failed to cancel")
+	}
+}
+
 func TestAfterRetryDelayWaits(t *testing.T) {
 	client := mocks.NewSender()
 	client.EmitErrors(-1)
@@ -175,6 +199,37 @@ func TestAfterRetryDelayWaits(t *testing.T) {
 
 	Respond(r,
 		ByClosing())
+}
+
+func TestAfterRetryDelay_Cancels(t *testing.T) {
+	client := mocks.NewSender()
+	client.EmitErrors(-1)
+
+	cancel := make(chan struct{})
+	delay := 5 * time.Second
+
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
+	mocks.SetAcceptedHeaders(resp)
+	mocks.SetRetryHeader(resp, delay)
+	client.SetResponse(resp)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	tt := time.Now()
+	go func() {
+		req := mocks.NewRequest()
+		req.Cancel = cancel
+		wg.Done()
+		SendWithSender(client, req,
+			AfterRetryDelay(delay),
+			DoRetryForAttempts(2, time.Duration(0)))
+	}()
+	wg.Wait()
+	close(cancel)
+	time.Sleep(10 * time.Millisecond)
+	if time.Since(tt) >= delay {
+		t.Error("autorest: AfterRetryDelay failed to cancel")
+	}
 }
 
 // Disable test for TravisCI
@@ -476,13 +531,32 @@ func TestDelayForBackoff(t *testing.T) {
 	// -- Waiting 10x the baseline should be long enough for a real test while not slowing the
 	//    tests down too much
 	tt := time.Now()
-	DelayForBackoff(time.Millisecond, 0)
+	DelayForBackoff(time.Millisecond, 0, nil)
 	d := 10 * time.Since(tt)
 
 	start := time.Now()
-	DelayForBackoff(d, 1)
+	DelayForBackoff(d, 1, nil)
 	if time.Now().Sub(start) < d {
 		t.Error("autorest: DelayForBackoff did not delay as long as expected")
+	}
+}
+
+func TestDelayForBackoff_Cancels(t *testing.T) {
+	cancel := make(chan struct{})
+	delay := 5 * time.Second
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	start := time.Now()
+	go func() {
+		wg.Done()
+		DelayForBackoff(delay, 1, cancel)
+	}()
+	wg.Wait()
+	close(cancel)
+	time.Sleep(10 * time.Millisecond)
+	if time.Now().Sub(start) >= delay {
+		t.Error("autorest: DelayForBackoff failed to cancel")
 	}
 }
 

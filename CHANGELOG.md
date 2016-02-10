@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v4.0.0
+- Added support for Azure long-running operations.
+- Added cancelation support to all decorators and functions that may delay.
+- Breaking: `DelayForBackoff` now accepts a channel, which may be nil.
+
 ## v3.1.0
 - Add support for OAuth Device Flow authorization.
 - Add support for ServicePrincipalTokens that are backed by an existing token, rather than other secret material.

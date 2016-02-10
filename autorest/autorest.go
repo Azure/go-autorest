@@ -62,8 +62,11 @@ import (
 )
 
 const (
-	headerLocation   = "Location"
-	headerRetryAfter = "Retry-After"
+	// HeaderLocation specifies the HTTP Location header.
+	HeaderLocation = "Location"
+
+	// HeaderRetryAfter specifies the HTTP Retry-After header.
+	HeaderRetryAfter = "Retry-After"
 )
 
 // ResponseHasStatusCode returns true if the status code in the HTTP Response is in the passed set
@@ -114,7 +117,7 @@ func NewPollingRequest(resp *http.Response, c Client) (*http.Request, error) {
 // GetPollingDelay extracts the polling delay from the Retry-After header of the passed response. If
 // the header is absent or is malformed, it will return the supplied default delay time.Duration.
 func GetPollingDelay(resp *http.Response, defaultDelay time.Duration) time.Duration {
-	retry := resp.Header.Get(headerRetryAfter)
+	retry := resp.Header.Get(HeaderRetryAfter)
 	if retry == "" {
 		return defaultDelay
 	}
@@ -129,7 +132,7 @@ func GetPollingDelay(resp *http.Response, defaultDelay time.Duration) time.Durat
 
 // GetPollingLocation retrieves the polling URL from the Location header of the passed response.
 func GetPollingLocation(resp *http.Response) string {
-	return resp.Header.Get(headerLocation)
+	return resp.Header.Get(HeaderLocation)
 }
 
 // PollForAttempts will retry the passed http.Request until it receives an HTTP status code outside

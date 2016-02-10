@@ -7,6 +7,12 @@ import (
 )
 
 const (
+	// TestAuthorizationHeader is a faux HTTP Authorization header value
+	TestAuthorizationHeader = "BEARER SECRETTOKEN"
+
+	// TestBadURL is a malformed URL
+	TestBadURL = ""
+
 	// TestDelay is the Retry-After delay used in tests.
 	TestDelay = 0 * time.Second
 

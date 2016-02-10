@@ -90,7 +90,7 @@ func TestNewPollingRequestReturnsAnErrorWhenPrepareFails(t *testing.T) {
 func TestNewPollingRequestLeavesBodyOpenWhenPrepareFails(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	mocks.SetAcceptedHeaders(resp)
-	resp.Header.Set(http.CanonicalHeaderKey(headerLocation), testBadURL)
+	resp.Header.Set(http.CanonicalHeaderKey(HeaderLocation), mocks.TestBadURL)
 
 	_, err := NewPollingRequest(resp, Client{Authorizer: NullAuthorizer{}})
 	if !resp.Body.(*mocks.Body).IsOpen() {
@@ -101,7 +101,7 @@ func TestNewPollingRequestLeavesBodyOpenWhenPrepareFails(t *testing.T) {
 func TestNewPollingRequestDoesNotReturnARequestWhenPrepareFails(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	mocks.SetAcceptedHeaders(resp)
-	resp.Header.Set(http.CanonicalHeaderKey(headerLocation), testBadURL)
+	resp.Header.Set(http.CanonicalHeaderKey(HeaderLocation), mocks.TestBadURL)
 
 	req, _ := NewPollingRequest(resp, Client{Authorizer: NullAuthorizer{}})
 	if req != nil {
@@ -144,9 +144,9 @@ func TestNewPollingRequestAppliesAuthorization(t *testing.T) {
 	mocks.SetAcceptedHeaders(resp)
 
 	req, _ := NewPollingRequest(resp, Client{Authorizer: mockAuthorizer{}})
-	if req.Header.Get(http.CanonicalHeaderKey(headerAuthorization)) != testAuthorizationHeader {
+	if req.Header.Get(http.CanonicalHeaderKey(headerAuthorization)) != mocks.TestAuthorizationHeader {
 		t.Errorf("autorest: NewPollingRequest did not apply authorization -- received %v, expected %v",
-			req.Header.Get(http.CanonicalHeaderKey(headerAuthorization)), testAuthorizationHeader)
+			req.Header.Get(http.CanonicalHeaderKey(headerAuthorization)), mocks.TestAuthorizationHeader)
 	}
 }
 
@@ -192,7 +192,7 @@ func TestGetPollingDelayReturnsDefaultDelayIfRetryHeaderIsMissing(t *testing.T) 
 func TestGetPollingDelayReturnsDefaultDelayIfRetryHeaderIsMalformed(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	mocks.SetAcceptedHeaders(resp)
-	resp.Header.Set(http.CanonicalHeaderKey(headerRetryAfter), "a very bad non-integer value")
+	resp.Header.Set(http.CanonicalHeaderKey(HeaderRetryAfter), "a very bad non-integer value")
 
 	d := GetPollingDelay(resp, DefaultPollingDelay)
 	if d != DefaultPollingDelay {
