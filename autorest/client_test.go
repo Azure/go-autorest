@@ -247,6 +247,7 @@ func TestClientPollAsNeededReturnsErrorIfUnableToCreateRequest(t *testing.T) {
 
 	r := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	mocks.SetAcceptedHeaders(r)
+	mocks.SetLocationHeader(r, "                                 ")
 
 	_, err := c.PollAsNeeded(r)
 	if err == nil {
@@ -358,31 +359,6 @@ func TestClientSenderReturnsHttpClientByDefault(t *testing.T) {
 	}
 }
 
-func TestClientSendSetsAuthorization(t *testing.T) {
-	r := mocks.NewRequest()
-	s := mocks.NewSender()
-	c := Client{Authorizer: mockAuthorizer{}, Sender: s}
-
-	c.Send(r)
-	if len(r.Header.Get(http.CanonicalHeaderKey(headerAuthorization))) <= 0 {
-		t.Errorf("autorest: Client#Send failed to set Authorization header -- %s=%s",
-			http.CanonicalHeaderKey(headerAuthorization),
-			r.Header.Get(http.CanonicalHeaderKey(headerAuthorization)))
-	}
-}
-
-func TestClientSendInvokesInspector(t *testing.T) {
-	r := mocks.NewRequest()
-	s := mocks.NewSender()
-	i := &mockInspector{}
-	c := Client{RequestInspector: i.WithInspection(), Sender: s}
-
-	c.Send(r)
-	if !i.wasInvoked {
-		t.Error("autorest: Client#Send failed to invoke the RequestInspector")
-	}
-}
-
 func TestClientSendReturnsPrepareError(t *testing.T) {
 	r := mocks.NewRequest()
 	s := mocks.NewSender()
@@ -488,6 +464,31 @@ func TestClientDoSetsUserAgent(t *testing.T) {
 		t.Errorf("autorest: Client#Do failed to correctly set User-Agent header: %s=%s",
 			http.CanonicalHeaderKey(headerUserAgent),
 			r.Header.Get(http.CanonicalHeaderKey(headerUserAgent)))
+	}
+}
+
+func TestClientDoSetsAuthorization(t *testing.T) {
+	r := mocks.NewRequest()
+	s := mocks.NewSender()
+	c := Client{Authorizer: mockAuthorizer{}, Sender: s}
+
+	c.Do(r)
+	if len(r.Header.Get(http.CanonicalHeaderKey(headerAuthorization))) <= 0 {
+		t.Errorf("autorest: Client#Send failed to set Authorization header -- %s=%s",
+			http.CanonicalHeaderKey(headerAuthorization),
+			r.Header.Get(http.CanonicalHeaderKey(headerAuthorization)))
+	}
+}
+
+func TestClientDoInvokesInspector(t *testing.T) {
+	r := mocks.NewRequest()
+	s := mocks.NewSender()
+	i := &mockInspector{}
+	c := Client{RequestInspector: i.WithInspection(), Sender: s}
+
+	c.Do(r)
+	if !i.wasInvoked {
+		t.Error("autorest: Client#Send failed to invoke the RequestInspector")
 	}
 }
 

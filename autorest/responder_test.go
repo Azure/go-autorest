@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -261,6 +262,164 @@ func TestByClosingIfErrorDoesNotClosesIfNoErrorOccurs(t *testing.T) {
 
 	if !r.Body.(*mocks.Body).IsOpen() {
 		t.Errorf("autorest: ByClosingIfError closed the response body even though no error occurred")
+	}
+}
+
+func Test_ByUnmarshallingBool(t *testing.T) {
+	m := map[string]bool{
+		"true":  true,
+		"True":  true,
+		"false": false,
+		"False": false,
+	}
+	for s, expected := range m {
+		var b bool
+		r := mocks.NewResponseWithContent(s)
+		err := Respond(r,
+			ByUnmarshallingBool(&b),
+			ByClosing())
+		if err != nil {
+			t.Errorf("autorest: ByUnmarshallingBool returned an unexpected error parsing %v -- %v", s, err)
+		}
+		if b != expected {
+			t.Errorf("autorest: ByUnmarshallingBool failed to correctly unmarshall -- expected %v, received %v", expected, b)
+		}
+	}
+}
+
+func Test_ByUnmarshallingBoolFailsWithInvalidString(t *testing.T) {
+	var b bool
+	r := mocks.NewResponseWithContent("Not a Boolean")
+	err := Respond(r,
+		ByUnmarshallingBool(&b),
+		ByClosing())
+	if err == nil {
+		t.Errorf("autorest: ByUnmarshallingBool failed to return an error for an invalid string")
+	}
+}
+
+func Test_ByUnmarshallingFloat32(t *testing.T) {
+	for _, ch := range []byte{'e', 'E', 'f', 'g', 'G'} {
+		var f1, f2 float32
+		f2 = float32(123456.789)
+		r := mocks.NewResponseWithContent(strconv.FormatFloat(float64(f2), ch, -1, 64))
+		err := Respond(r,
+			ByUnmarshallingFloat32(&f1),
+			ByClosing())
+		if err != nil {
+			t.Errorf("autorest: ByUnmarshallingFloat32 returned an unexpected error parsing format %c -- %v", ch, err)
+		}
+		if f1 != f2 {
+			t.Errorf("autorest: ByUnmarshallingFloat32 failed to correctly unmarshall -- expected %v, received %v", f2, f1)
+		}
+	}
+}
+
+func Test_ByUnmarshallingFloat32FailsWithInvalidString(t *testing.T) {
+	var f float32
+	r := mocks.NewResponseWithContent("Not a Float32")
+	err := Respond(r,
+		ByUnmarshallingFloat32(&f),
+		ByClosing())
+	if err == nil {
+		t.Errorf("autorest: ByUnmarshallingFloat32 failed to return an error for an invalid string")
+	}
+}
+
+func Test_ByUnmarshallingFloat64(t *testing.T) {
+	for _, ch := range []byte{'e', 'E', 'f', 'g', 'G'} {
+		var f1, f2 float64
+		f2 = float64(123456.789)
+		r := mocks.NewResponseWithContent(strconv.FormatFloat(float64(f2), ch, -1, 64))
+		err := Respond(r,
+			ByUnmarshallingFloat64(&f1),
+			ByClosing())
+		if err != nil {
+			t.Errorf("autorest: ByUnmarshallingFloat64 returned an unexpected error parsing format %c -- %v", ch, err)
+		}
+		if f1 != f2 {
+			t.Errorf("autorest: ByUnmarshallingFloat64 failed to correctly unmarshall -- expected %v, received %v", f2, f1)
+		}
+	}
+}
+
+func Test_ByUnmarshallingFloat64FailsWithInvalidString(t *testing.T) {
+	var f float64
+	r := mocks.NewResponseWithContent("Not a Float64")
+	err := Respond(r,
+		ByUnmarshallingFloat64(&f),
+		ByClosing())
+	if err == nil {
+		t.Errorf("autorest: ByUnmarshallingFloat64 failed to return an error for an invalid string")
+	}
+}
+
+func Test_ByUnmarshallingInt32(t *testing.T) {
+	for _, i2 := range []int32{-123456, 123456} {
+		var i1 int32
+		r := mocks.NewResponseWithContent(strconv.FormatInt(int64(i2), 10))
+		err := Respond(r,
+			ByUnmarshallingInt32(&i1),
+			ByClosing())
+		if err != nil {
+			t.Errorf("autorest: ByUnmarshallingInt32 returned an unexpected error -- %v", err)
+		}
+		if i1 != i2 {
+			t.Errorf("autorest: ByUnmarshallingInt32 failed to correctly unmarshall -- expected %v, received %v", i2, i1)
+		}
+	}
+}
+
+func Test_ByUnmarshallingInt32FailsWithInvalidString(t *testing.T) {
+	var i int32
+	r := mocks.NewResponseWithContent("Not an Integer")
+	err := Respond(r,
+		ByUnmarshallingInt32(&i),
+		ByClosing())
+	if err == nil {
+		t.Errorf("autorest: ByUnmarshallingInt32 failed to return an error for an invalid string")
+	}
+}
+
+func Test_ByUnmarshallingInt64(t *testing.T) {
+	for _, i2 := range []int64{-123456, 123456} {
+		var i1 int64
+		r := mocks.NewResponseWithContent(strconv.FormatInt(int64(i2), 10))
+		err := Respond(r,
+			ByUnmarshallingInt64(&i1),
+			ByClosing())
+		if err != nil {
+			t.Errorf("autorest: ByUnmarshallingInt64 returned an unexpected error -- %v", err)
+		}
+		if i1 != i2 {
+			t.Errorf("autorest: ByUnmarshallingInt64 failed to correctly unmarshall -- expected %v, received %v", i2, i1)
+		}
+	}
+}
+
+func Test_ByUnmarshallingInt64FailsWithInvalidString(t *testing.T) {
+	var i int64
+	r := mocks.NewResponseWithContent("Not an Integer")
+	err := Respond(r,
+		ByUnmarshallingInt64(&i),
+		ByClosing())
+	if err == nil {
+		t.Errorf("autorest: ByUnmarshallingInt64 failed to return an error for an invalid string")
+	}
+}
+
+func Test_ByUnmarshallingString(t *testing.T) {
+	var s1, s2 string
+	s2 = "Expected string"
+	r := mocks.NewResponseWithContent(s2)
+	err := Respond(r,
+		ByUnmarshallingString(&s1),
+		ByClosing())
+	if err != nil {
+		t.Errorf("autorest: ByUnmarshallingString returned an unexpected error -- %v", err)
+	}
+	if s1 != s2 {
+		t.Errorf("autorest: ByUnmarshallingString failed to correctly unmarshall -- expected %v, received %v", s2, s1)
 	}
 }
 

@@ -80,8 +80,9 @@ func TestNewPollingRequestDoesNotReturnARequestWhenLocationHeaderIsMissing(t *te
 func TestNewPollingRequestReturnsAnErrorWhenPrepareFails(t *testing.T) {
 	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
 	mocks.SetAcceptedHeaders(resp)
+	resp.Header.Set(http.CanonicalHeaderKey(HeaderLocation), mocks.TestBadURL)
 
-	_, err := NewPollingRequest(resp, Client{Authorizer: mockFailingAuthorizer{}})
+	_, err := NewPollingRequest(resp, Client{})
 	if err == nil {
 		t.Error("autorest: NewPollingRequest failed to return an error when Prepare fails")
 	}
@@ -136,17 +137,6 @@ func TestNewPollingRequestProvidesTheURL(t *testing.T) {
 	req, _ := NewPollingRequest(resp, Client{Authorizer: NullAuthorizer{}})
 	if req.URL.String() != mocks.TestURL {
 		t.Errorf("autorest: NewPollingRequest did not create an HTTP with the expected URL -- received %v, expected %v", req.URL, mocks.TestURL)
-	}
-}
-
-func TestNewPollingRequestAppliesAuthorization(t *testing.T) {
-	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
-	mocks.SetAcceptedHeaders(resp)
-
-	req, _ := NewPollingRequest(resp, Client{Authorizer: mockAuthorizer{}})
-	if req.Header.Get(http.CanonicalHeaderKey(headerAuthorization)) != mocks.TestAuthorizationHeader {
-		t.Errorf("autorest: NewPollingRequest did not apply authorization -- received %v, expected %v",
-			req.Header.Get(http.CanonicalHeaderKey(headerAuthorization)), mocks.TestAuthorizationHeader)
 	}
 }
 

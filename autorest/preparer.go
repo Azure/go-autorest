@@ -165,7 +165,11 @@ func WithBaseURL(baseURL string) PrepareDecorator {
 		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
 			r, err := p.Prepare(r)
 			if err == nil {
-				u, err := url.Parse(baseURL)
+				var u *url.URL
+				u, err = url.Parse(baseURL)
+				if u.Scheme == "" {
+					err = fmt.Errorf("autorest: No scheme detected in URL %s", baseURL)
+				}
 				if err == nil {
 					r.URL = u
 				}

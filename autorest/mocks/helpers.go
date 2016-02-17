@@ -11,7 +11,7 @@ const (
 	TestAuthorizationHeader = "BEARER SECRETTOKEN"
 
 	// TestBadURL is a malformed URL
-	TestBadURL = ""
+	TestBadURL = "                               "
 
 	// TestDelay is the Retry-After delay used in tests.
 	TestDelay = 0 * time.Second

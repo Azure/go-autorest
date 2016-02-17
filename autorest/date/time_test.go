@@ -3,6 +3,8 @@ package date
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/mocks"
 	"reflect"
 	"testing"
 	"time"
@@ -160,5 +162,46 @@ func TestTimeToTime(t *testing.T) {
 		return
 	default:
 		t.Errorf("datetime: ToTime failed to return a time.Time")
+	}
+}
+
+func TestDate_ByUnmarshallingTime(t *testing.T) {
+	t1 := Time{}
+	t2 := Time{Time: time.Date(2001, time.February, 3, 4, 5, 6, 0, time.UTC)}
+
+	r := mocks.NewResponseWithContent("2001-02-03T04:05:06Z")
+	err := autorest.Respond(r,
+		ByUnmarshallingTime(&t1),
+		autorest.ByClosing())
+	if err != nil {
+		t.Errorf("date: ByUnmarshallingTime failed (%v)", err)
+	}
+	if !reflect.DeepEqual(t1, t2) {
+		t.Errorf("date: ByUnmarshallingTime failed to properly unmarshall -- expected %v, received %v", t2, t1)
+	}
+}
+
+func TestDate_ByUnmarshallingTimeFailsWithInvalidValues(t *testing.T) {
+	t1 := Time{}
+
+	r := mocks.NewResponseWithContent("Not a Time")
+	err := autorest.Respond(r,
+		ByUnmarshallingTime(&t1),
+		autorest.ByClosing())
+	if err == nil {
+		t.Errorf("date: ByUnmarshallingTime failed to return an error for an invalid string")
+	}
+}
+
+func TestDate_ByUnmarshallingTimeFailsWithInvalidReader(t *testing.T) {
+	t1 := Time{}
+
+	r := mocks.NewResponseWithContent("2001-02-03T04:05:06Z")
+	r.Body.Close()
+	err := autorest.Respond(r,
+		ByUnmarshallingTime(&t1),
+		autorest.ByClosing())
+	if err == nil {
+		t.Errorf("date: ByUnmarshallingTime failed to return an error for an invalid io.Reader")
 	}
 }

@@ -152,8 +152,7 @@ func NewAsyncPollingRequest(resp *http.Response, c autorest.Client) (*http.Reque
 
 	req, err := autorest.Prepare(&http.Request{},
 		autorest.AsGet(),
-		autorest.WithBaseURL(location),
-		c.WithAuthorization())
+		autorest.WithBaseURL(location))
 	if err != nil {
 		return nil, autorest.NewErrorWithError(err, "azure", "NewAsyncPollingRequest", nil, "Failure creating poll request to %s", location)
 	}
