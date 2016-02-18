@@ -73,15 +73,15 @@ func init() {
 	}
 }
 
-func getSptFromCachedToken(clientID, tenantID, resource string, callbacks ...azure.TokenRefreshCallback) (*azure.ServicePrincipalToken, error) {
+func getSptFromCachedToken(oauthConfig azure.OAuthConfig, clientID, resource string, callbacks ...azure.TokenRefreshCallback) (*azure.ServicePrincipalToken, error) {
 	token, err := azure.LoadToken(tokenCachePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load token from cache: %v", err)
 	}
 
 	spt, _ := azure.NewServicePrincipalTokenFromManualToken(
+		oauthConfig,
 		clientID,
-		tenantID,
 		resource,
 		*token,
 		callbacks...)
@@ -103,7 +103,7 @@ func decodePkcs12(pkcs []byte, password string) (*x509.Certificate, *rsa.Private
 	return certificate, rsaPrivateKey, nil
 }
 
-func getSptFromCertificate(clientID, tenantID, resource, certicatePath string, callbacks ...azure.TokenRefreshCallback) (*azure.ServicePrincipalToken, error) {
+func getSptFromCertificate(oauthConfig azure.OAuthConfig, clientID, resource, certicatePath string, callbacks ...azure.TokenRefreshCallback) (*azure.ServicePrincipalToken, error) {
 	certData, err := ioutil.ReadFile(certificatePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read the certificate file (%s): %v", certificatePath, err)
@@ -115,19 +115,19 @@ func getSptFromCertificate(clientID, tenantID, resource, certicatePath string, c
 	}
 
 	spt, _ := azure.NewServicePrincipalTokenFromCertificate(
+		oauthConfig,
 		clientID,
 		certificate,
 		rsaPrivateKey,
-		tenantID,
 		resource,
 		callbacks...)
 
 	return spt, nil
 }
 
-func getSptFromDeviceFlow(clientID, tenantID, resource string, callbacks ...azure.TokenRefreshCallback) (*azure.ServicePrincipalToken, error) {
+func getSptFromDeviceFlow(oauthConfig azure.OAuthConfig, clientID, resource string, callbacks ...azure.TokenRefreshCallback) (*azure.ServicePrincipalToken, error) {
 	oauthClient := &autorest.Client{}
-	deviceCode, err := azure.InitiateDeviceAuth(oauthClient, clientID, tenantID, resource)
+	deviceCode, err := azure.InitiateDeviceAuth(oauthClient, oauthConfig, clientID, resource)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start device auth flow: %s", err)
 	}
@@ -140,8 +140,8 @@ func getSptFromDeviceFlow(clientID, tenantID, resource string, callbacks ...azur
 	}
 
 	spt, err := azure.NewServicePrincipalTokenFromManualToken(
+		oauthConfig,
 		clientID,
-		tenantID,
 		resource,
 		*token,
 		callbacks...)
@@ -210,9 +210,14 @@ func main() {
 		return nil
 	}
 
+	oauthConfig, err := azure.PublicCloud.OAuthConfigForTenant(tenantID)
+	if err != nil {
+		panic(err)
+	}
+
 	if tokenCachePath != "" {
 		log.Println("tokenCachePath specified; attempting to load from", tokenCachePath)
-		spt, err = getSptFromCachedToken(applicationID, tenantID, resource, callback)
+		spt, err = getSptFromCachedToken(*oauthConfig, applicationID, resource, callback)
 		if err != nil {
 			spt = nil // just in case, this is the condition below
 			log.Println("loading from cache failed:", err)
@@ -223,9 +228,9 @@ func main() {
 		log.Println("authenticating via 'mode'", mode)
 		switch mode {
 		case "device":
-			spt, err = getSptFromDeviceFlow(applicationID, tenantID, resource, callback)
+			spt, err = getSptFromDeviceFlow(*oauthConfig, applicationID, resource, callback)
 		case "certificate":
-			spt, err = getSptFromCertificate(applicationID, tenantID, resource, certificatePath, callback)
+			spt, err = getSptFromCertificate(*oauthConfig, applicationID, resource, certificatePath, callback)
 		}
 		if err != nil {
 			log.Fatalln("failed to retrieve token:", err)
