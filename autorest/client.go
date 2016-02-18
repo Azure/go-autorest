@@ -192,13 +192,6 @@ func (c Client) PollForDuration() bool {
 // allows polling and the http.Response status code requires it. It will close the http.Response
 // Body if the request returns an error.
 func (c Client) Send(req *http.Request) (*http.Response, error) {
-	req, err := Prepare(req,
-		c.WithAuthorization(),
-		c.WithInspection())
-	if err != nil {
-		return nil, NewErrorWithError(err, "autorest/Client", "Send", nil, "Preparing request failed")
-	}
-
 	resp, err := SendWithSender(c, req)
 	if err == nil {
 		err = c.IsPollingAllowed(resp)
@@ -221,6 +214,12 @@ func (c Client) Send(req *http.Request) (*http.Response, error) {
 func (c Client) Do(r *http.Request) (*http.Response, error) {
 	if len(c.UserAgent) > 0 {
 		r, _ = Prepare(r, WithUserAgent(c.UserAgent))
+	}
+	r, err := Prepare(r,
+		c.WithInspection(),
+		c.WithAuthorization())
+	if err != nil {
+		return nil, NewErrorWithError(err, "autorest/Client", "Do", nil, "Preparing request failed")
 	}
 	return c.sender().Do(r)
 }

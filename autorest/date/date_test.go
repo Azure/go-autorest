@@ -3,6 +3,8 @@ package date
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/mocks"
 	"reflect"
 	"testing"
 	"time"
@@ -197,5 +199,46 @@ func TestDateUnmarshalTextReturnsError(t *testing.T) {
 	err := d.UnmarshalText([]byte(txt))
 	if err == nil {
 		t.Error("date: Date failed to return error for malformed Text date")
+	}
+}
+
+func TestDate_ByUnmarshallingDate(t *testing.T) {
+	d1 := Date{}
+	d2 := Date{Time: time.Date(2001, time.February, 3, 0, 0, 0, 0, time.UTC)}
+
+	r := mocks.NewResponseWithContent("2001-02-03")
+	err := autorest.Respond(r,
+		ByUnmarshallingDate(&d1),
+		autorest.ByClosing())
+	if err != nil {
+		t.Errorf("date: ByUnmarshallingDate failed (%v)", err)
+	}
+	if !reflect.DeepEqual(d1, d2) {
+		t.Errorf("date: ByUnmarshallingDate failed to properly unmarshall -- expected %v, received %v", d2, d1)
+	}
+}
+
+func TestDate_ByUnmarshallingDateFailsWithInvalidValues(t *testing.T) {
+	d := Date{}
+
+	r := mocks.NewResponseWithContent("Not a Date")
+	err := autorest.Respond(r,
+		ByUnmarshallingDate(&d),
+		autorest.ByClosing())
+	if err == nil {
+		t.Errorf("date: ByUnmarshallingDate failed to return an error for an invalid string")
+	}
+}
+
+func TestDate_ByUnmarshallingDateFailsWithInvalidReader(t *testing.T) {
+	d := Date{}
+
+	r := mocks.NewResponseWithContent("2001-02-03")
+	r.Body.Close()
+	err := autorest.Respond(r,
+		ByUnmarshallingDate(&d),
+		autorest.ByClosing())
+	if err == nil {
+		t.Errorf("date: ByUnmarshallingDate failed to return an error for an invalid io.Reader")
 	}
 }

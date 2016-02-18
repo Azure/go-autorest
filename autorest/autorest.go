@@ -101,8 +101,7 @@ func NewPollingRequest(resp *http.Response, c Client) (*http.Request, error) {
 
 	req, err := Prepare(&http.Request{},
 		AsGet(),
-		WithBaseURL(location),
-		c.WithAuthorization())
+		WithBaseURL(location))
 	if err != nil {
 		return nil, NewErrorWithError(err, "autorest", "NewPollingRequest", nil, "Failure creating poll request to %s", location)
 	}

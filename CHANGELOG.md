@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v5.0.0
+- Added new RespondDecorators unmarshalling primitive types
+- Corrected application of inspection and authorization PrependDecorators
+
 ## v4.0.0
 - Added support for Azure long-running operations.
 - Added cancelation support to all decorators and functions that may delay.

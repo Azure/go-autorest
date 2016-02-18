@@ -285,6 +285,7 @@ func TestNewAsyncPollingRequest_DoesNotReturnARequestWhenAzureAsyncOperationHead
 
 func TestNewAsyncPollingRequest_ReturnsAnErrorWhenPrepareFails(t *testing.T) {
 	r := newLongRunningResponse()
+	r.Header.Set(http.CanonicalHeaderKey(HeaderAsyncOperation), mocks.TestBadURL)
 
 	_, err := NewAsyncPollingRequest(r, autorest.Client{Authorizer: mockFailingAuthorizer{}})
 	if err == nil {
@@ -336,16 +337,6 @@ func TestNewAsyncPollingRequest_ProvidesTheURL(t *testing.T) {
 	req, _ := NewAsyncPollingRequest(r, autorest.Client{Authorizer: autorest.NullAuthorizer{}})
 	if req.URL.String() != mocks.TestURL {
 		t.Errorf("azure: NewAsyncPollingRequest did not create an HTTP with the expected URL -- received %v, expected %v", req.URL, mocks.TestURL)
-	}
-}
-
-func TestNewAsyncPollingRequest_AppliesAuthorization(t *testing.T) {
-	r := newLongRunningResponse()
-
-	req, _ := NewAsyncPollingRequest(r, autorest.Client{Authorizer: mockAuthorizer{}})
-	if req.Header.Get(http.CanonicalHeaderKey(headerAuthorization)) != mocks.TestAuthorizationHeader {
-		t.Errorf("azure: NewAsyncPollingRequest did not apply authorization -- received %v, expected %v",
-			req.Header.Get(http.CanonicalHeaderKey(headerAuthorization)), mocks.TestAuthorizationHeader)
 	}
 }
 
@@ -485,6 +476,28 @@ func (mfa mockFailingAuthorizer) WithAuthorization() autorest.PrepareDecorator {
 	return func(p autorest.Preparer) autorest.Preparer {
 		return autorest.PreparerFunc(func(r *http.Request) (*http.Request, error) {
 			return r, fmt.Errorf("ERROR: mockFailingAuthorizer returned expected error")
+		})
+	}
+}
+
+type mockInspector struct {
+	wasInvoked bool
+}
+
+func (mi *mockInspector) WithInspection() autorest.PrepareDecorator {
+	return func(p autorest.Preparer) autorest.Preparer {
+		return autorest.PreparerFunc(func(r *http.Request) (*http.Request, error) {
+			mi.wasInvoked = true
+			return p.Prepare(r)
+		})
+	}
+}
+
+func (mi *mockInspector) ByInspecting() autorest.RespondDecorator {
+	return func(r autorest.Responder) autorest.Responder {
+		return autorest.ResponderFunc(func(resp *http.Response) error {
+			mi.wasInvoked = true
+			return r.Respond(resp)
 		})
 	}
 }
