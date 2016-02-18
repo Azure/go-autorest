@@ -199,13 +199,14 @@ func testServicePrincipalTokenRefreshSetsBody(t *testing.T, spt *ServicePrincipa
 				})
 			}
 		})())
+	fmt.Println(spt == nil)
 	spt.SetSender(s)
 	spt.Refresh()
 }
 
 func TestServicePrincipalTokenManualRefreshSetsBody(t *testing.T) {
-	sptCert := newServicePrincipalTokenManual()
-	testServicePrincipalTokenRefreshSetsBody(t, sptCert, func(t *testing.T, b []byte) {
+	sptManual := newServicePrincipalTokenManual()
+	testServicePrincipalTokenRefreshSetsBody(t, sptManual, func(t *testing.T, b []byte) {
 		if string(b) != defaultManualFormData {
 			t.Errorf("azure: ServicePrincipalToken#Refresh did not correctly set the HTTP Request Body -- expected %v, received %v",
 				defaultManualFormData, string(b))

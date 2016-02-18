@@ -9,12 +9,12 @@ import (
 
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/mocks"
-	"github.com/Azure/go-autorest/autorest/to"
 )
 
 const (
 	TestResource = "SomeResource"
 	TestClientID = "SomeClientID"
+	TestTenantID = "SomeTenantID"
 )
 
 const MockDeviceCodeResponse = `
@@ -44,12 +44,12 @@ func TestDeviceCodeIncludesResource(t *testing.T) {
 	sender.EmitStatus("OK", 200)
 	client := &autorest.Client{Sender: sender}
 
-	code, err := InitiateDeviceAuth(client, TestClientID, TestResource)
+	code, err := InitiateDeviceAuth(client, TestClientID, TestTenantID, TestResource)
 	if err != nil {
 		t.Errorf("azure: unexpected error initiating device auth")
 	}
 
-	if *code.Resource != TestResource {
+	if code.Resource != TestResource {
 		t.Errorf("azure: InitiateDeviceAuth failed to stash the resource in the DeviceCode struct")
 	}
 }
@@ -60,7 +60,7 @@ func TestDeviceCodeReturnsErrorIfSendingFails(t *testing.T) {
 	sender.SetError(fmt.Errorf("this is an error"))
 	client := &autorest.Client{Sender: sender}
 
-	_, err := InitiateDeviceAuth(client, TestClientID, TestResource)
+	_, err := InitiateDeviceAuth(client, TestClientID, TestTenantID, TestResource)
 	if err == nil || !strings.Contains(err.Error(), errCodeSendingFails) {
 		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", errCodeSendingFails, err.Error())
 	}
@@ -72,7 +72,7 @@ func TestDeviceCodeReturnsErrorIfBadRequest(t *testing.T) {
 	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
 	client := &autorest.Client{Sender: sender}
 
-	_, err := InitiateDeviceAuth(client, TestClientID, TestResource)
+	_, err := InitiateDeviceAuth(client, TestClientID, TestTenantID, TestResource)
 	if err == nil || !strings.Contains(err.Error(), errCodeHandlingFails) {
 		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", errCodeHandlingFails, err.Error())
 	}
@@ -89,7 +89,7 @@ func TestDeviceCodeReturnsErrorIfCannotDeserializeDeviceCode(t *testing.T) {
 	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 200, "OK"))
 	client := &autorest.Client{Sender: sender}
 
-	_, err := InitiateDeviceAuth(client, TestClientID, TestResource)
+	_, err := InitiateDeviceAuth(client, TestClientID, TestTenantID, TestResource)
 	if err == nil || !strings.Contains(err.Error(), errCodeHandlingFails) {
 		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", errCodeHandlingFails, err.Error())
 	}
@@ -102,7 +102,9 @@ func TestDeviceCodeReturnsErrorIfCannotDeserializeDeviceCode(t *testing.T) {
 func deviceCode() *DeviceCode {
 	var deviceCode DeviceCode
 	json.Unmarshal([]byte(MockDeviceCodeResponse), &deviceCode)
-	deviceCode.Resource = to.StringPtr("resource")
+	deviceCode.Resource = TestResource
+	deviceCode.ClientID = TestClientID
+	deviceCode.TenantID = TestTenantID
 	return &deviceCode
 }
 
@@ -112,7 +114,7 @@ func TestDeviceTokenReturns(t *testing.T) {
 	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 200, "OK"))
 	client := &autorest.Client{Sender: sender}
 
-	_, err := WaitForUserCompletion(client, TestClientID, deviceCode())
+	_, err := WaitForUserCompletion(client, deviceCode())
 	if err != nil {
 		t.Errorf("azure: got error unexpectedly")
 	}
@@ -128,7 +130,7 @@ func TestDeviceTokenReturnsErrorIfSendingFails(t *testing.T) {
 	sender.SetError(fmt.Errorf("this is an error"))
 	client := &autorest.Client{Sender: sender}
 
-	_, err := WaitForUserCompletion(client, TestClientID, deviceCode())
+	_, err := WaitForUserCompletion(client, deviceCode())
 	if err == nil || !strings.Contains(err.Error(), errTokenSendingFails) {
 		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", errTokenSendingFails, err.Error())
 	}
@@ -140,7 +142,7 @@ func TestDeviceTokenReturnsErrorIfServerError(t *testing.T) {
 	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 500, "Internal Server Error"))
 	client := &autorest.Client{Sender: sender}
 
-	_, err := WaitForUserCompletion(client, TestClientID, deviceCode())
+	_, err := WaitForUserCompletion(client, deviceCode())
 	if err == nil || !strings.Contains(err.Error(), errTokenHandlingFails) {
 		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", errTokenHandlingFails, err.Error())
 	}
@@ -157,7 +159,7 @@ func TestDeviceTokenReturnsErrorIfCannotDeserializeDeviceToken(t *testing.T) {
 	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 200, "OK"))
 	client := &autorest.Client{Sender: sender}
 
-	_, err := WaitForUserCompletion(client, TestClientID, deviceCode())
+	_, err := WaitForUserCompletion(client, deviceCode())
 	if err == nil || !strings.Contains(err.Error(), errTokenHandlingFails) {
 		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", errTokenHandlingFails, err.Error())
 	}
@@ -177,7 +179,7 @@ func TestDeviceTokenReturnsErrorIfAuthorizationPending(t *testing.T) {
 	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
 	client := &autorest.Client{Sender: sender}
 
-	_, err := CheckForUserCompletion(client, TestClientID, deviceCode())
+	_, err := CheckForUserCompletion(client, deviceCode())
 	if err != ErrDeviceAuthorizationPending {
 		t.Errorf("!!!")
 	}
@@ -193,7 +195,7 @@ func TestDeviceTokenReturnsErrorIfSlowDown(t *testing.T) {
 	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
 	client := &autorest.Client{Sender: sender}
 
-	_, err := CheckForUserCompletion(client, TestClientID, deviceCode())
+	_, err := CheckForUserCompletion(client, deviceCode())
 	if err != ErrDeviceSlowDown {
 		t.Errorf("!!!")
 	}
@@ -229,7 +231,7 @@ func TestDeviceTokenSucceedsWithIntermediateAuthPending(t *testing.T) {
 	sender := newDeviceTokenSender("authorization_pending")
 	client := &autorest.Client{Sender: sender}
 
-	_, err := WaitForUserCompletion(client, TestClientID, deviceCode())
+	_, err := WaitForUserCompletion(client, deviceCode())
 	if err != nil {
 		t.Errorf("unexpected error occurred")
 	}
@@ -240,7 +242,7 @@ func TestDeviceTokenSucceedsWithIntermediateSlowDown(t *testing.T) {
 	sender := newDeviceTokenSender("slow_down")
 	client := &autorest.Client{Sender: sender}
 
-	_, err := WaitForUserCompletion(client, TestClientID, deviceCode())
+	_, err := WaitForUserCompletion(client, deviceCode())
 	if err != nil {
 		t.Errorf("unexpected error occurred")
 	}
@@ -252,7 +254,7 @@ func TestDeviceTokenReturnsErrorIfAccessDenied(t *testing.T) {
 	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
 	client := &autorest.Client{Sender: sender}
 
-	_, err := WaitForUserCompletion(client, TestClientID, deviceCode())
+	_, err := WaitForUserCompletion(client, deviceCode())
 	if err != ErrDeviceAccessDenied {
 		t.Errorf("azure: got wrong error expected(%s) actual(%s)", ErrDeviceAccessDenied.Error(), err.Error())
 	}
@@ -268,7 +270,7 @@ func TestDeviceTokenReturnsErrorIfCodeExpired(t *testing.T) {
 	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
 	client := &autorest.Client{Sender: sender}
 
-	_, err := WaitForUserCompletion(client, TestClientID, deviceCode())
+	_, err := WaitForUserCompletion(client, deviceCode())
 	if err != ErrDeviceCodeExpired {
 		t.Errorf("azure: got wrong error expected(%s) actual(%s)", ErrDeviceCodeExpired.Error(), err.Error())
 	}
@@ -284,7 +286,7 @@ func TestDeviceTokenReturnsErrorForUnknownError(t *testing.T) {
 	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
 	client := &autorest.Client{Sender: sender}
 
-	_, err := WaitForUserCompletion(client, TestClientID, deviceCode())
+	_, err := WaitForUserCompletion(client, deviceCode())
 	if err == nil {
 		t.Errorf("failed to get error")
 	}

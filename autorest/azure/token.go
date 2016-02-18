@@ -212,6 +212,7 @@ func NewServicePrincipalTokenFromManualToken(id string, tenantID string, resourc
 	}
 
 	spt.Token = token
+
 	return spt, nil
 }
 

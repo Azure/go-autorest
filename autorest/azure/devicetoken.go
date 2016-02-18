@@ -13,16 +13,17 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/Azure/go-autorest/autorest"
 )
 
 const (
-	// OAuthDeviceEndpoint is Azure's OAuth2 Device Flow Endpoint
-	OAuthDeviceEndpoint = "https://login.microsoftonline.com/common/oauth2/devicecode"
-	// OAuthTokenEndpoint is Azure's OAuth2 Token Endpoint
-	OAuthTokenEndpoint = "https://login.microsoftonline.com/common/oauth2/token"
+	// OAuthDeviceEndpointTemplate is Azure's OAuth2 Device Flow Endpoint
+	OAuthDeviceEndpointTemplate = "https://login.microsoftonline.com/{tenantId}/oauth2/devicecode"
+	// OAuthTokenEndpointTemplate is Azure's OAuth2 Token Endpoint
+	OAuthTokenEndpointTemplate = "https://login.microsoftonline.com/{tenantId}/oauth2/token"
 
 	// authAPIVersionQueryParamName is the name
 	authAPIVersionQueryParamName  = "api-version"
@@ -63,7 +64,9 @@ type DeviceCode struct {
 	Interval        *int64  `json:"interval,string,omitempty"`
 
 	Message  *string `json:"message"` // Azure specific
-	Resource *string // store this as well, needed during token exchange for azure
+	Resource string  // store the following, stored when initiating, used when exchanging
+	ClientID string
+	TenantID string
 }
 
 // TokenError is the object returned by the token exchange endpoint
@@ -86,15 +89,18 @@ type deviceToken struct {
 
 // InitiateDeviceAuth initiates a device auth flow. It returns a DeviceCode
 // that can be used with CheckForUserCompletion or WaitForUserCompletion.
-func InitiateDeviceAuth(client *autorest.Client, clientID, resource string) (*DeviceCode, error) {
+func InitiateDeviceAuth(client *autorest.Client, clientID, tenantID, resource string) (*DeviceCode, error) {
 	req, _ := autorest.Prepare(
 		&http.Request{},
 		autorest.AsPost(),
 		autorest.AsFormURLEncoded(),
-		autorest.WithBaseURL(OAuthDeviceEndpoint),
+		autorest.WithBaseURL(OAuthDeviceEndpointTemplate),
 		autorest.WithFormData(url.Values{
 			"client_id": []string{clientID},
 			"resource":  []string{resource},
+		}),
+		autorest.WithPathParameters(map[string]interface{}{
+			"tenantId": tenantID,
 		}),
 		autorest.WithQueryParameters(map[string]interface{}{
 			authAPIVersionQueryParamName: authAPIVersionQueryParamValue,
@@ -115,24 +121,31 @@ func InitiateDeviceAuth(client *autorest.Client, clientID, resource string) (*De
 		return nil, fmt.Errorf("%s %s: %s", logPrefix, errCodeHandlingFails, err)
 	}
 
-	code.Resource = &resource
+	code.ClientID = clientID
+	code.TenantID = tenantID
+	code.Resource = resource
 
 	return &code, nil
 }
 
 // CheckForUserCompletion takes a DeviceCode and checks with the Azure AD OAuth endpoint
 // to see if the device flow has: been completed, timed out, or otherwise failed
-func CheckForUserCompletion(client *autorest.Client, clientID string, code *DeviceCode) (*Token, error) {
+func CheckForUserCompletion(client *autorest.Client, code *DeviceCode) (*Token, error) {
+	oAuthTokenEndpoint := strings.Replace(OAuthTokenEndpointTemplate, "{tenantId}", code.TenantID, -1)
+
 	req, _ := autorest.Prepare(
 		&http.Request{},
 		autorest.AsPost(),
 		autorest.AsFormURLEncoded(),
-		autorest.WithBaseURL(OAuthTokenEndpoint),
+		autorest.WithBaseURL(oAuthTokenEndpoint),
 		autorest.WithFormData(url.Values{
-			"client_id":  []string{clientID},
+			"client_id":  []string{code.ClientID},
 			"code":       []string{*code.DeviceCode},
 			"grant_type": []string{OAuthGrantTypeDeviceCode},
-			"resource":   []string{*code.Resource},
+			"resource":   []string{code.Resource},
+		}),
+		autorest.WithPathParameters(map[string]interface{}{
+			"tenantId": code.TenantID,
 		}),
 		autorest.WithQueryParameters(map[string]interface{}{
 			authAPIVersionQueryParamName: authAPIVersionQueryParamValue,
@@ -173,12 +186,12 @@ func CheckForUserCompletion(client *autorest.Client, clientID string, code *Devi
 
 // WaitForUserCompletion calls CheckForUserCompletion repeatedly until a token is granted or an error state occurs.
 // This prevents the user from looping and checking against 'ErrDeviceAuthorizationPending'.
-func WaitForUserCompletion(client *autorest.Client, clientID string, code *DeviceCode) (*Token, error) {
+func WaitForUserCompletion(client *autorest.Client, code *DeviceCode) (*Token, error) {
 	intervalDuration := time.Duration(*code.Interval) * time.Second
 	waitDuration := intervalDuration
 
 	for {
-		token, err := CheckForUserCompletion(client, clientID, code)
+		token, err := CheckForUserCompletion(client, code)
 
 		if err == nil {
 			return token, nil
