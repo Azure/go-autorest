@@ -171,10 +171,9 @@ func TestServicePrincipalTokenRefreshSetsURL(t *testing.T) {
 		(func() autorest.SendDecorator {
 			return func(s autorest.Sender) autorest.Sender {
 				return autorest.SenderFunc(func(r *http.Request) (*http.Response, error) {
-					u := fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/token?api-version=1.0", spt.tenantID)
-					if r.URL.String() != u {
+					if r.URL.String() != TestOAuthConfig.TokenEndpoint.String() {
 						t.Errorf("azure: ServicePrincipalToken#Refresh did not correctly set the URL -- expected %v, received %v",
-							u, r.URL)
+							TestOAuthConfig.TokenEndpoint, r.URL)
 					}
 					return mocks.NewResponse(), nil
 				})
@@ -476,14 +475,14 @@ func setTokenToExpireIn(t *Token, expireIn time.Duration) *Token {
 }
 
 func newServicePrincipalToken(callbacks ...TokenRefreshCallback) *ServicePrincipalToken {
-	spt, _ := NewServicePrincipalToken("id", "secret", "tenentId", "resource", callbacks...)
+	spt, _ := NewServicePrincipalToken(TestOAuthConfig, "id", "secret", "resource", callbacks...)
 	return spt
 }
 
 func newServicePrincipalTokenManual() *ServicePrincipalToken {
 	token := newToken()
 	token.RefreshToken = "refreshtoken"
-	spt, _ := NewServicePrincipalTokenFromManualToken("id", "tenantId", "resource", *token)
+	spt, _ := NewServicePrincipalTokenFromManualToken(TestOAuthConfig, "id", "resource", *token)
 	return spt
 }
 
@@ -500,6 +499,6 @@ func newServicePrincipalTokenCertificate() *ServicePrincipalToken {
 	}
 	certificate, err := x509.ParseCertificate(certificateBytes)
 
-	spt, _ := NewServicePrincipalTokenFromCertificate("id", certificate, privateKey, "tenentId", "resource")
+	spt, _ := NewServicePrincipalTokenFromCertificate(TestOAuthConfig, "id", certificate, privateKey, "resource")
 	return spt
 }

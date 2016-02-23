@@ -18,13 +18,7 @@ import (
 
 const (
 	defaultRefresh = 5 * time.Minute
-	oauthURL       = "https://login.microsoftonline.com/{tenantID}/oauth2/{requestType}?api-version=1.0"
 	tokenBaseDate  = "1970-01-01T00:00:00Z"
-
-	jwtAudienceTemplate = "https://login.microsoftonline.com/%s/oauth2/token"
-
-	// AzureResourceManagerScope is the OAuth scope for the Azure Resource Manager.
-	AzureResourceManagerScope = "https://management.azure.com/"
 
 	// OAuthGrantTypeDeviceCode is the "grant_type" identifier used in device flow
 	OAuthGrantTypeDeviceCode = "device_code"
@@ -144,7 +138,7 @@ func (secret *ServicePrincipalCertificateSecret) SignJwt(spt *ServicePrincipalTo
 	token := jwt.New(jwt.SigningMethodRS256)
 	token.Header["x5t"] = thumbprint
 	token.Claims = map[string]interface{}{
-		"aud": fmt.Sprintf(jwtAudienceTemplate, spt.tenantID),
+		"aud": spt.oauthConfig.TokenEndpoint,
 		"iss": spt.clientID,
 		"sub": spt.clientID,
 		"jti": base64.URLEncoding.EncodeToString(jti),
@@ -174,8 +168,8 @@ type ServicePrincipalToken struct {
 	Token
 
 	secret        ServicePrincipalSecret
+	oauthConfig   OAuthConfig
 	clientID      string
-	tenantID      string
 	resource      string
 	autoRefresh   bool
 	refreshWithin time.Duration
@@ -185,12 +179,12 @@ type ServicePrincipalToken struct {
 }
 
 // NewServicePrincipalTokenWithSecret create a ServicePrincipalToken using the supplied ServicePrincipalSecret implementation.
-func NewServicePrincipalTokenWithSecret(id string, tenantID string, resource string, secret ServicePrincipalSecret, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+func NewServicePrincipalTokenWithSecret(oauthConfig OAuthConfig, id string, resource string, secret ServicePrincipalSecret, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	spt := &ServicePrincipalToken{
+		oauthConfig:      oauthConfig,
 		secret:           secret,
 		clientID:         id,
 		resource:         resource,
-		tenantID:         tenantID,
 		autoRefresh:      true,
 		refreshWithin:    defaultRefresh,
 		sender:           &http.Client{},
@@ -200,10 +194,10 @@ func NewServicePrincipalTokenWithSecret(id string, tenantID string, resource str
 }
 
 // NewServicePrincipalTokenFromManualToken creates a ServicePrincipalToken using the supplied token
-func NewServicePrincipalTokenFromManualToken(id string, tenantID string, resource string, token Token, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+func NewServicePrincipalTokenFromManualToken(oauthConfig OAuthConfig, clientID string, resource string, token Token, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	spt, err := NewServicePrincipalTokenWithSecret(
-		id,
-		tenantID,
+		oauthConfig,
+		clientID,
 		resource,
 		&ServicePrincipalNoSecret{},
 		callbacks...)
@@ -218,10 +212,10 @@ func NewServicePrincipalTokenFromManualToken(id string, tenantID string, resourc
 
 // NewServicePrincipalToken creates a ServicePrincipalToken from the supplied Service Principal
 // credentials scoped to the named resource.
-func NewServicePrincipalToken(id string, secret string, tenantID string, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+func NewServicePrincipalToken(oauthConfig OAuthConfig, clientID string, secret string, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	return NewServicePrincipalTokenWithSecret(
-		id,
-		tenantID,
+		oauthConfig,
+		clientID,
 		resource,
 		&ServicePrincipalTokenSecret{
 			ClientSecret: secret,
@@ -231,10 +225,10 @@ func NewServicePrincipalToken(id string, secret string, tenantID string, resourc
 }
 
 // NewServicePrincipalTokenFromCertificate create a ServicePrincipalToken from the supplied pkcs12 bytes.
-func NewServicePrincipalTokenFromCertificate(id string, certificate *x509.Certificate, privateKey *rsa.PrivateKey, tenantID string, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+func NewServicePrincipalTokenFromCertificate(oauthConfig OAuthConfig, clientID string, certificate *x509.Certificate, privateKey *rsa.PrivateKey, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	return NewServicePrincipalTokenWithSecret(
-		id,
-		tenantID,
+		oauthConfig,
+		clientID,
 		resource,
 		&ServicePrincipalCertificateSecret{
 			PrivateKey:  privateKey,
@@ -269,11 +263,6 @@ func (spt *ServicePrincipalToken) InvokeRefreshCallbacks(token Token) error {
 
 // Refresh obtains a fresh token for the Service Principal.
 func (spt *ServicePrincipalToken) Refresh() error {
-	p := map[string]interface{}{
-		"tenantID":    spt.tenantID,
-		"requestType": "token",
-	}
-
 	v := url.Values{}
 	v.Set("client_id", spt.clientID)
 	v.Set("resource", spt.resource)
@@ -292,8 +281,7 @@ func (spt *ServicePrincipalToken) Refresh() error {
 	req, _ := autorest.Prepare(&http.Request{},
 		autorest.AsPost(),
 		autorest.AsFormURLEncoded(),
-		autorest.WithBaseURL(oauthURL),
-		autorest.WithPathParameters(p),
+		autorest.WithBaseURL(spt.oauthConfig.TokenEndpoint.String()),
 		autorest.WithFormData(v))
 
 	resp, err := autorest.SendWithSender(spt.sender, req)

@@ -17,6 +17,11 @@ const (
 	TestTenantID = "SomeTenantID"
 )
 
+var (
+	testOAuthConfig, _ = PublicCloud.OAuthConfigForTenant(TestTenantID)
+	TestOAuthConfig    = *testOAuthConfig
+)
+
 const MockDeviceCodeResponse = `
 {
 	"device_code": "10000-40-1234567890",
@@ -44,7 +49,7 @@ func TestDeviceCodeIncludesResource(t *testing.T) {
 	sender.EmitStatus("OK", 200)
 	client := &autorest.Client{Sender: sender}
 
-	code, err := InitiateDeviceAuth(client, TestClientID, TestTenantID, TestResource)
+	code, err := InitiateDeviceAuth(client, TestOAuthConfig, TestClientID, TestResource)
 	if err != nil {
 		t.Errorf("azure: unexpected error initiating device auth")
 	}
@@ -60,7 +65,7 @@ func TestDeviceCodeReturnsErrorIfSendingFails(t *testing.T) {
 	sender.SetError(fmt.Errorf("this is an error"))
 	client := &autorest.Client{Sender: sender}
 
-	_, err := InitiateDeviceAuth(client, TestClientID, TestTenantID, TestResource)
+	_, err := InitiateDeviceAuth(client, TestOAuthConfig, TestClientID, TestResource)
 	if err == nil || !strings.Contains(err.Error(), errCodeSendingFails) {
 		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", errCodeSendingFails, err.Error())
 	}
@@ -72,7 +77,7 @@ func TestDeviceCodeReturnsErrorIfBadRequest(t *testing.T) {
 	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
 	client := &autorest.Client{Sender: sender}
 
-	_, err := InitiateDeviceAuth(client, TestClientID, TestTenantID, TestResource)
+	_, err := InitiateDeviceAuth(client, TestOAuthConfig, TestClientID, TestResource)
 	if err == nil || !strings.Contains(err.Error(), errCodeHandlingFails) {
 		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", errCodeHandlingFails, err.Error())
 	}
@@ -89,7 +94,7 @@ func TestDeviceCodeReturnsErrorIfCannotDeserializeDeviceCode(t *testing.T) {
 	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 200, "OK"))
 	client := &autorest.Client{Sender: sender}
 
-	_, err := InitiateDeviceAuth(client, TestClientID, TestTenantID, TestResource)
+	_, err := InitiateDeviceAuth(client, TestOAuthConfig, TestClientID, TestResource)
 	if err == nil || !strings.Contains(err.Error(), errCodeHandlingFails) {
 		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", errCodeHandlingFails, err.Error())
 	}
@@ -104,7 +109,6 @@ func deviceCode() *DeviceCode {
 	json.Unmarshal([]byte(MockDeviceCodeResponse), &deviceCode)
 	deviceCode.Resource = TestResource
 	deviceCode.ClientID = TestClientID
-	deviceCode.TenantID = TestTenantID
 	return &deviceCode
 }
 

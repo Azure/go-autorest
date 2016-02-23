@@ -13,22 +13,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/Azure/go-autorest/autorest"
 )
 
 const (
-	// OAuthDeviceEndpointTemplate is Azure's OAuth2 Device Flow Endpoint
-	OAuthDeviceEndpointTemplate = "https://login.microsoftonline.com/{tenantId}/oauth2/devicecode"
-	// OAuthTokenEndpointTemplate is Azure's OAuth2 Token Endpoint
-	OAuthTokenEndpointTemplate = "https://login.microsoftonline.com/{tenantId}/oauth2/token"
-
-	// authAPIVersionQueryParamName is the name
-	authAPIVersionQueryParamName  = "api-version"
-	authAPIVersionQueryParamValue = "1.0"
-
 	logPrefix = "autorest/azure/devicetoken:"
 )
 
@@ -63,10 +53,10 @@ type DeviceCode struct {
 	ExpiresIn       *int64  `json:"expires_in,string,omitempty"`
 	Interval        *int64  `json:"interval,string,omitempty"`
 
-	Message  *string `json:"message"` // Azure specific
-	Resource string  // store the following, stored when initiating, used when exchanging
-	ClientID string
-	TenantID string
+	Message     *string `json:"message"` // Azure specific
+	Resource    string  // store the following, stored when initiating, used when exchanging
+	OAuthConfig OAuthConfig
+	ClientID    string
 }
 
 // TokenError is the object returned by the token exchange endpoint
@@ -89,22 +79,17 @@ type deviceToken struct {
 
 // InitiateDeviceAuth initiates a device auth flow. It returns a DeviceCode
 // that can be used with CheckForUserCompletion or WaitForUserCompletion.
-func InitiateDeviceAuth(client *autorest.Client, clientID, tenantID, resource string) (*DeviceCode, error) {
+func InitiateDeviceAuth(client *autorest.Client, oauthConfig OAuthConfig, clientID, resource string) (*DeviceCode, error) {
 	req, _ := autorest.Prepare(
 		&http.Request{},
 		autorest.AsPost(),
 		autorest.AsFormURLEncoded(),
-		autorest.WithBaseURL(OAuthDeviceEndpointTemplate),
+		autorest.WithBaseURL(oauthConfig.DeviceCodeEndpoint.String()),
 		autorest.WithFormData(url.Values{
 			"client_id": []string{clientID},
 			"resource":  []string{resource},
 		}),
-		autorest.WithPathParameters(map[string]interface{}{
-			"tenantId": tenantID,
-		}),
-		autorest.WithQueryParameters(map[string]interface{}{
-			authAPIVersionQueryParamName: authAPIVersionQueryParamValue,
-		}))
+	)
 
 	resp, err := client.Send(req)
 	if err != nil {
@@ -122,8 +107,8 @@ func InitiateDeviceAuth(client *autorest.Client, clientID, tenantID, resource st
 	}
 
 	code.ClientID = clientID
-	code.TenantID = tenantID
 	code.Resource = resource
+	code.OAuthConfig = oauthConfig
 
 	return &code, nil
 }
@@ -131,25 +116,18 @@ func InitiateDeviceAuth(client *autorest.Client, clientID, tenantID, resource st
 // CheckForUserCompletion takes a DeviceCode and checks with the Azure AD OAuth endpoint
 // to see if the device flow has: been completed, timed out, or otherwise failed
 func CheckForUserCompletion(client *autorest.Client, code *DeviceCode) (*Token, error) {
-	oAuthTokenEndpoint := strings.Replace(OAuthTokenEndpointTemplate, "{tenantId}", code.TenantID, -1)
-
 	req, _ := autorest.Prepare(
 		&http.Request{},
 		autorest.AsPost(),
 		autorest.AsFormURLEncoded(),
-		autorest.WithBaseURL(oAuthTokenEndpoint),
+		autorest.WithBaseURL(code.OAuthConfig.TokenEndpoint.String()),
 		autorest.WithFormData(url.Values{
 			"client_id":  []string{code.ClientID},
 			"code":       []string{*code.DeviceCode},
 			"grant_type": []string{OAuthGrantTypeDeviceCode},
 			"resource":   []string{code.Resource},
 		}),
-		autorest.WithPathParameters(map[string]interface{}{
-			"tenantId": code.TenantID,
-		}),
-		autorest.WithQueryParameters(map[string]interface{}{
-			authAPIVersionQueryParamName: authAPIVersionQueryParamValue,
-		}))
+	)
 
 	resp, err := client.Send(req)
 	if err != nil {
