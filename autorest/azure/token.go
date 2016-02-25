@@ -263,9 +263,18 @@ func (spt *ServicePrincipalToken) InvokeRefreshCallbacks(token Token) error {
 
 // Refresh obtains a fresh token for the Service Principal.
 func (spt *ServicePrincipalToken) Refresh() error {
+	return spt.refreshInternal(spt.resource)
+}
+
+// RefreshExchange refreshes the token, but for a different resource.
+func (spt *ServicePrincipalToken) RefreshExchange(resource string) error {
+	return spt.refreshInternal(resource)
+}
+
+func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
 	v := url.Values{}
 	v.Set("client_id", spt.clientID)
-	v.Set("resource", spt.resource)
+	v.Set("resource", resource)
 
 	if spt.RefreshToken != "" {
 		v.Set("grant_type", OAuthGrantTypeRefreshToken)
