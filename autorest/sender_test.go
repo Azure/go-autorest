@@ -1,6 +1,7 @@
 package autorest
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,8 +15,11 @@ import (
 )
 
 func ExampleSendWithSender() {
+	r := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
+	mocks.SetAcceptedHeaders(r)
+
 	client := mocks.NewSender()
-	client.EmitStatus("202 Accepted", http.StatusAccepted)
+	client.AppendAndRepeatResponse(r, 10)
 
 	logger := log.New(os.Stdout, "autorest: ", 0)
 	na := NullAuthorizer{}
@@ -25,7 +29,7 @@ func ExampleSendWithSender() {
 		WithBaseURL("https://microsoft.com/a/b/c/"),
 		na.WithAuthorization())
 
-	r, _ := SendWithSender(client, req,
+	r, _ = SendWithSender(client, req,
 		WithLogging(logger),
 		DoErrorIfStatusCode(http.StatusAccepted),
 		DoCloseIfError(),
@@ -49,7 +53,7 @@ func ExampleSendWithSender() {
 
 func ExampleDoRetryForAttempts() {
 	client := mocks.NewSender()
-	client.EmitErrors(10)
+	client.SetAndRepeatError(fmt.Errorf("Faux Error"), 10)
 
 	// Retry with backoff -- ensure returned Bodies are closed
 	r, _ := SendWithSender(client, mocks.NewRequest(),
@@ -65,7 +69,7 @@ func ExampleDoRetryForAttempts() {
 
 func ExampleDoErrorIfStatusCode() {
 	client := mocks.NewSender()
-	client.EmitStatus("204 NoContent", http.StatusNoContent)
+	client.AppendAndRepeatResponse(mocks.NewResponseWithStatus("204 NoContent", http.StatusNoContent), 10)
 
 	// Chain decorators to retry the request, up to five times, if the status code is 204
 	r, _ := SendWithSender(client, mocks.NewRequest(),
@@ -140,7 +144,7 @@ func TestSend(t *testing.T) {
 func TestAfterDelayWaits(t *testing.T) {
 	client := mocks.NewSender()
 
-	d := 10 * time.Millisecond
+	d := 5 * time.Millisecond
 
 	tt := time.Now()
 	r, _ := SendWithSender(client, mocks.NewRequest(),
@@ -171,102 +175,35 @@ func TestAfterDelay_Cancels(t *testing.T) {
 	}()
 	wg.Wait()
 	close(cancel)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(5 * time.Millisecond)
 	if time.Since(tt) >= delay {
 		t.Error("autorest: AfterDelay failed to cancel")
 	}
 }
 
-func TestAfterRetryDelayWaits(t *testing.T) {
+func TestAfterDelayDoesNotWaitTooLong(t *testing.T) {
 	client := mocks.NewSender()
-	client.EmitErrors(-1)
 
-	d := 10 * time.Millisecond
-
-	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
-	mocks.SetAcceptedHeaders(resp)
-	mocks.SetRetryHeader(resp, d)
-	client.SetResponse(resp)
-
-	tt := time.Now()
+	d := 5 * time.Millisecond
+	start := time.Now()
 	r, _ := SendWithSender(client, mocks.NewRequest(),
-		AfterRetryDelay(d),
-		DoRetryForAttempts(2, time.Duration(0)))
-	s := time.Since(tt)
-	if s < d {
-		t.Error("autorest: AfterRetryDelay failed to wait for at least the specified duration")
+		AfterDelay(d))
+
+	if time.Since(start) > (5 * d) {
+		t.Error("autorest: AfterDelay waited too long (exceeded 5 times specified duration)")
 	}
 
 	Respond(r,
 		ByClosing())
 }
 
-func TestAfterRetryDelay_Cancels(t *testing.T) {
-	client := mocks.NewSender()
-	client.EmitErrors(-1)
-
-	cancel := make(chan struct{})
-	delay := 5 * time.Second
-
-	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
-	mocks.SetAcceptedHeaders(resp)
-	mocks.SetRetryHeader(resp, delay)
-	client.SetResponse(resp)
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	tt := time.Now()
-	go func() {
-		req := mocks.NewRequest()
-		req.Cancel = cancel
-		wg.Done()
-		SendWithSender(client, req,
-			AfterRetryDelay(delay),
-			DoRetryForAttempts(2, time.Duration(0)))
-	}()
-	wg.Wait()
-	close(cancel)
-	time.Sleep(10 * time.Millisecond)
-	if time.Since(tt) >= delay {
-		t.Error("autorest: AfterRetryDelay failed to cancel")
-	}
-}
-
-// Disable test for TravisCI
-// func TestAfterDelayDoesNotWaitTooLong(t *testing.T) {
-// 	client := mocks.NewSender()
-
-// 	// Establish a baseline and then set the wait to 10x that amount
-// 	// -- Waiting 10x the baseline should be long enough for a real test while not slowing the
-// 	//    tests down too much
-// 	tt := time.Now()
-// 	SendWithSender(client, mocks.NewRequest())
-// 	d := 10 * time.Since(tt)
-
-// 	tt = time.Now()
-// 	r, _ := SendWithSender(client, mocks.NewRequest(),
-// 		AfterDelay(d))
-// 	s := time.Since(tt)
-// 	if s > 5*d {
-// 		t.Error("autorest: AfterDelay waited too long (more than five times the specified duration")
-// 	}
-
-// 	Respond(r,
-// 		ByClosing())
-// }
-
 func TestAsIs(t *testing.T) {
 	client := mocks.NewSender()
 
 	r1 := mocks.NewResponse()
+	client.AppendResponse(r1)
+
 	r2, err := SendWithSender(client, mocks.NewRequest(),
-		(func() SendDecorator {
-			return func(s Sender) Sender {
-				return SenderFunc(func(r *http.Request) (*http.Response, error) {
-					return r1, nil
-				})
-			}
-		})(),
 		AsIs())
 	if err != nil {
 		t.Errorf("autorest: AsIs returned an unexpected error (%v)", err)
@@ -282,7 +219,7 @@ func TestAsIs(t *testing.T) {
 
 func TestDoCloseIfError(t *testing.T) {
 	client := mocks.NewSender()
-	client.EmitStatus("400 BadRequest", http.StatusBadRequest)
+	client.AppendResponse(mocks.NewResponseWithStatus("400 BadRequest", http.StatusBadRequest))
 
 	r, _ := SendWithSender(client, mocks.NewRequest(),
 		DoErrorIfStatusCode(http.StatusBadRequest),
@@ -335,7 +272,7 @@ func TestDoCloseIfErrorAcceptsNilBody(t *testing.T) {
 
 func TestDoErrorIfStatusCode(t *testing.T) {
 	client := mocks.NewSender()
-	client.EmitStatus("400 BadRequest", http.StatusBadRequest)
+	client.AppendResponse(mocks.NewResponseWithStatus("400 BadRequest", http.StatusBadRequest))
 
 	r, err := SendWithSender(client, mocks.NewRequest(),
 		DoErrorIfStatusCode(http.StatusBadRequest),
@@ -350,7 +287,7 @@ func TestDoErrorIfStatusCode(t *testing.T) {
 
 func TestDoErrorIfStatusCodeIgnoresStatusCodes(t *testing.T) {
 	client := mocks.NewSender()
-	client.EmitStatus("202 Accepted", http.StatusAccepted)
+	client.AppendResponse(newAcceptedResponse())
 
 	r, err := SendWithSender(client, mocks.NewRequest(),
 		DoErrorIfStatusCode(http.StatusBadRequest),
@@ -365,7 +302,7 @@ func TestDoErrorIfStatusCodeIgnoresStatusCodes(t *testing.T) {
 
 func TestDoErrorUnlessStatusCode(t *testing.T) {
 	client := mocks.NewSender()
-	client.EmitStatus("400 BadRequest", http.StatusBadRequest)
+	client.AppendResponse(mocks.NewResponseWithStatus("400 BadRequest", http.StatusBadRequest))
 
 	r, err := SendWithSender(client, mocks.NewRequest(),
 		DoErrorUnlessStatusCode(http.StatusAccepted),
@@ -380,7 +317,7 @@ func TestDoErrorUnlessStatusCode(t *testing.T) {
 
 func TestDoErrorUnlessStatusCodeIgnoresStatusCodes(t *testing.T) {
 	client := mocks.NewSender()
-	client.EmitStatus("202 Accepted", http.StatusAccepted)
+	client.AppendResponse(newAcceptedResponse())
 
 	r, err := SendWithSender(client, mocks.NewRequest(),
 		DoErrorUnlessStatusCode(http.StatusAccepted),
@@ -412,7 +349,7 @@ func TestDoRetryForAttemptsStopsAfterSuccess(t *testing.T) {
 
 func TestDoRetryForAttemptsStopsAfterAttempts(t *testing.T) {
 	client := mocks.NewSender()
-	client.EmitErrors(10)
+	client.SetAndRepeatError(fmt.Errorf("Faux Error"), 10)
 
 	r, err := SendWithSender(client, mocks.NewRequest(),
 		DoRetryForAttempts(5, time.Duration(0)),
@@ -431,7 +368,7 @@ func TestDoRetryForAttemptsStopsAfterAttempts(t *testing.T) {
 
 func TestDoRetryForAttemptsReturnsResponse(t *testing.T) {
 	client := mocks.NewSender()
-	client.EmitErrors(1)
+	client.SetError(fmt.Errorf("Faux Error"))
 
 	r, err := SendWithSender(client, mocks.NewRequest(),
 		DoRetryForAttempts(1, time.Duration(0)))
@@ -466,9 +403,9 @@ func TestDoRetryForDurationStopsAfterSuccess(t *testing.T) {
 
 func TestDoRetryForDurationStopsAfterDuration(t *testing.T) {
 	client := mocks.NewSender()
-	client.EmitErrors(-1)
+	client.SetAndRepeatError(fmt.Errorf("Faux Error"), -1)
 
-	d := 10 * time.Millisecond
+	d := 5 * time.Millisecond
 	start := time.Now()
 	r, err := SendWithSender(client, mocks.NewRequest(),
 		DoRetryForDuration(d, time.Duration(0)),
@@ -477,19 +414,19 @@ func TestDoRetryForDurationStopsAfterDuration(t *testing.T) {
 		t.Error("autorest: Mock client failed to emit errors")
 	}
 
-	Respond(r,
-		ByClosing())
-
-	if time.Now().Sub(start) < d {
+	if time.Since(start) < d {
 		t.Error("autorest: DoRetryForDuration failed stopped too soon")
 	}
+
+	Respond(r,
+		ByClosing())
 }
 
 func TestDoRetryForDurationStopsWithinReason(t *testing.T) {
 	client := mocks.NewSender()
-	client.EmitErrors(-1)
+	client.SetAndRepeatError(fmt.Errorf("Faux Error"), -1)
 
-	d := 10 * time.Millisecond
+	d := 5 * time.Millisecond
 	start := time.Now()
 	r, err := SendWithSender(client, mocks.NewRequest(),
 		DoRetryForDuration(d, time.Duration(0)),
@@ -498,17 +435,17 @@ func TestDoRetryForDurationStopsWithinReason(t *testing.T) {
 		t.Error("autorest: Mock client failed to emit errors")
 	}
 
-	Respond(r,
-		ByClosing())
-
-	if time.Now().Sub(start) > (5 * d) {
+	if time.Since(start) > (5 * d) {
 		t.Error("autorest: DoRetryForDuration failed stopped soon enough (exceeded 5 times specified duration)")
 	}
+
+	Respond(r,
+		ByClosing())
 }
 
 func TestDoRetryForDurationReturnsResponse(t *testing.T) {
 	client := mocks.NewSender()
-	client.EmitErrors(-1)
+	client.SetAndRepeatError(fmt.Errorf("Faux Error"), -1)
 
 	r, err := SendWithSender(client, mocks.NewRequest(),
 		DoRetryForDuration(10*time.Millisecond, time.Duration(0)),
@@ -526,17 +463,10 @@ func TestDoRetryForDurationReturnsResponse(t *testing.T) {
 }
 
 func TestDelayForBackoff(t *testing.T) {
-
-	// Establish a baseline and then set the wait to 10x that amount
-	// -- Waiting 10x the baseline should be long enough for a real test while not slowing the
-	//    tests down too much
-	tt := time.Now()
-	DelayForBackoff(time.Millisecond, 0, nil)
-	d := 10 * time.Since(tt)
-
+	d := 5 * time.Millisecond
 	start := time.Now()
 	DelayForBackoff(d, 1, nil)
-	if time.Now().Sub(start) < d {
+	if time.Since(start) < d {
 		t.Error("autorest: DelayForBackoff did not delay as long as expected")
 	}
 }
@@ -554,25 +484,182 @@ func TestDelayForBackoff_Cancels(t *testing.T) {
 	}()
 	wg.Wait()
 	close(cancel)
-	time.Sleep(10 * time.Millisecond)
-	if time.Now().Sub(start) >= delay {
+	time.Sleep(5 * time.Millisecond)
+	if time.Since(start) >= delay {
 		t.Error("autorest: DelayForBackoff failed to cancel")
 	}
 }
 
-// Disable test for TravisCI
-// func TestDelayForBackoffWithinReason(t *testing.T) {
+func TestDelayForBackoffWithinReason(t *testing.T) {
+	d := 5 * time.Millisecond
+	start := time.Now()
+	DelayForBackoff(d, 1, nil)
+	if time.Since(start) > (5 * d) {
+		t.Error("autorest: DelayForBackoff delayed too long (exceeded 5 times the specified duration)")
+	}
+}
 
-// 	// Establish a baseline and then set the wait to 10x that amount
-// 	// -- Waiting 10x the baseline should be long enough for a real test while not slowing the
-// 	//    tests down too much
-// 	tt := time.Now()
-// 	DelayForBackoff(time.Millisecond, 0)
-// 	d := 10 * time.Since(tt)
+func TestDoPollForStatusCodes_IgnoresUnspecifiedStatusCodes(t *testing.T) {
+	client := mocks.NewSender()
 
-// 	start := time.Now()
-// 	DelayForBackoff(d, 1)
-// 	if time.Now().Sub(start) > (time.Duration(5.0) * d) {
-// 		t.Error("autorest: DelayForBackoff delayed too long (exceeded 5 times the specified duration)")
-// 	}
-// }
+	r, _ := SendWithSender(client, mocks.NewRequest(),
+		DoPollForStatusCodes(time.Duration(0), time.Duration(0)))
+
+	if client.Attempts() != 1 {
+		t.Errorf("autorest: Sender#DoPollForStatusCodes polled for unspecified status code")
+	}
+
+	Respond(r,
+		ByClosing())
+}
+
+func TestDoPollForStatusCodes_PollsForSpecifiedStatusCodes(t *testing.T) {
+	client := mocks.NewSender()
+	client.AppendResponse(newAcceptedResponse())
+
+	r, _ := SendWithSender(client, mocks.NewRequest(),
+		DoPollForStatusCodes(time.Millisecond, time.Millisecond, http.StatusAccepted))
+
+	if client.Attempts() != 2 {
+		t.Errorf("autorest: Sender#DoPollForStatusCodes failed to poll for specified status code")
+	}
+
+	Respond(r,
+		ByClosing())
+}
+
+func TestDoPollForStatusCodes_CanBeCanceled(t *testing.T) {
+	cancel := make(chan struct{})
+	delay := 5 * time.Second
+
+	r := mocks.NewResponse()
+	mocks.SetAcceptedHeaders(r)
+	client := mocks.NewSender()
+	client.AppendAndRepeatResponse(r, 100)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	start := time.Now()
+	go func() {
+		wg.Done()
+		r, _ := SendWithSender(client, mocks.NewRequest(),
+			DoPollForStatusCodes(time.Millisecond, time.Millisecond, http.StatusAccepted))
+		Respond(r,
+			ByClosing())
+	}()
+	wg.Wait()
+	close(cancel)
+	time.Sleep(5 * time.Millisecond)
+	if time.Since(start) >= delay {
+		t.Errorf("autorest: Sender#DoPollForStatusCodes failed to cancel")
+	}
+}
+
+func TestDoPollForStatusCodes_ClosesAllNonreturnedResponseBodiesWhenPolling(t *testing.T) {
+	resp := newAcceptedResponse()
+
+	client := mocks.NewSender()
+	client.AppendAndRepeatResponse(resp, 2)
+
+	r, _ := SendWithSender(client, mocks.NewRequest(),
+		DoPollForStatusCodes(time.Millisecond, time.Millisecond, http.StatusAccepted))
+
+	if resp.Body.(*mocks.Body).IsOpen() || resp.Body.(*mocks.Body).CloseAttempts() < 2 {
+		t.Errorf("autorest: Sender#DoPollForStatusCodes did not close unreturned response bodies")
+	}
+
+	Respond(r,
+		ByClosing())
+}
+
+func TestDoPollForStatusCodes_LeavesLastResponseBodyOpen(t *testing.T) {
+	client := mocks.NewSender()
+	client.AppendResponse(newAcceptedResponse())
+
+	r, _ := SendWithSender(client, mocks.NewRequest(),
+		DoPollForStatusCodes(time.Millisecond, time.Millisecond, http.StatusAccepted))
+
+	if !r.Body.(*mocks.Body).IsOpen() {
+		t.Errorf("autorest: Sender#DoPollForStatusCodes did not leave open the body of the last response")
+	}
+
+	Respond(r,
+		ByClosing())
+}
+
+func TestDoPollForStatusCodes_StopsPollingAfterAnError(t *testing.T) {
+	client := mocks.NewSender()
+	client.AppendAndRepeatResponse(newAcceptedResponse(), 5)
+	client.SetError(fmt.Errorf("Faux Error"))
+	client.SetEmitErrorAfter(1)
+
+	r, _ := SendWithSender(client, mocks.NewRequest(),
+		DoPollForStatusCodes(time.Millisecond, time.Millisecond, http.StatusAccepted))
+
+	if client.Attempts() > 2 {
+		t.Errorf("autorest: Sender#DoPollForStatusCodes failed to stop polling after receiving an error")
+	}
+
+	Respond(r,
+		ByClosing())
+}
+
+func TestDoPollForStatusCodes_ReturnsPollingError(t *testing.T) {
+	client := mocks.NewSender()
+	client.AppendAndRepeatResponse(newAcceptedResponse(), 5)
+	client.SetError(fmt.Errorf("Faux Error"))
+	client.SetEmitErrorAfter(1)
+
+	r, err := SendWithSender(client, mocks.NewRequest(),
+		DoPollForStatusCodes(time.Millisecond, time.Millisecond, http.StatusAccepted))
+
+	if err == nil {
+		t.Errorf("autorest: Sender#DoPollForStatusCodes failed to return error from polling")
+	}
+
+	Respond(r,
+		ByClosing())
+}
+
+func TestWithLogging_Logs(t *testing.T) {
+	buf := &bytes.Buffer{}
+	logger := log.New(buf, "autorest: ", 0)
+	client := mocks.NewSender()
+
+	r, _ := SendWithSender(client, &http.Request{},
+		WithLogging(logger))
+
+	if buf.String() == "" {
+		t.Error("autorest: Sender#WithLogging failed to log the request")
+	}
+
+	Respond(r,
+		ByClosing())
+}
+
+func TestWithLogging_HandlesMissingResponse(t *testing.T) {
+	buf := &bytes.Buffer{}
+	logger := log.New(buf, "autorest: ", 0)
+	client := mocks.NewSender()
+	client.AppendResponse(nil)
+	client.SetError(fmt.Errorf("Faux Error"))
+
+	r, err := SendWithSender(client, &http.Request{},
+		WithLogging(logger))
+
+	if r != nil || err == nil {
+		t.Error("autorest: Sender#WithLogging returned a valid response -- expecting nil")
+	}
+	if buf.String() == "" {
+		t.Error("autorest: Sender#WithLogging failed to log the request for a nil response")
+	}
+
+	Respond(r,
+		ByClosing())
+}
+
+func newAcceptedResponse() *http.Response {
+	resp := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
+	mocks.SetAcceptedHeaders(resp)
+	return resp
+}

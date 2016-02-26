@@ -100,6 +100,20 @@ func TestContainsIntDoesNotFindValue(t *testing.T) {
 	}
 }
 
+func TestContainsIntAcceptsEmptyList(t *testing.T) {
+	ints := make([]int, 10)
+	if containsInt(ints, 42) {
+		t.Errorf("autorest: containsInt failed to handle an empty list")
+	}
+}
+
+func TestContainsIntAcceptsNilList(t *testing.T) {
+	var ints []int
+	if containsInt(ints, 42) {
+		t.Errorf("autorest: containsInt failed to handle an nil list")
+	}
+}
+
 func TestEscapeStrings(t *testing.T) {
 	m := map[string]string{
 		"string": "a long string with = odd characters",

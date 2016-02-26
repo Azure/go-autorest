@@ -45,8 +45,7 @@ const MockDeviceTokenResponse = `{
 
 func TestDeviceCodeIncludesResource(t *testing.T) {
 	sender := mocks.NewSender()
-	sender.EmitContent(MockDeviceCodeResponse)
-	sender.EmitStatus("OK", 200)
+	sender.AppendResponse(mocks.NewResponseWithContent(MockDeviceCodeResponse))
 	client := &autorest.Client{Sender: sender}
 
 	code, err := InitiateDeviceAuth(client, TestOAuthConfig, TestClientID, TestResource)
@@ -61,7 +60,6 @@ func TestDeviceCodeIncludesResource(t *testing.T) {
 
 func TestDeviceCodeReturnsErrorIfSendingFails(t *testing.T) {
 	sender := mocks.NewSender()
-	sender.EmitErrors(1)
 	sender.SetError(fmt.Errorf("this is an error"))
 	client := &autorest.Client{Sender: sender}
 
@@ -74,7 +72,7 @@ func TestDeviceCodeReturnsErrorIfSendingFails(t *testing.T) {
 func TestDeviceCodeReturnsErrorIfBadRequest(t *testing.T) {
 	sender := mocks.NewSender()
 	body := mocks.NewBody("doesn't matter")
-	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
 	client := &autorest.Client{Sender: sender}
 
 	_, err := InitiateDeviceAuth(client, TestOAuthConfig, TestClientID, TestResource)
@@ -91,7 +89,7 @@ func TestDeviceCodeReturnsErrorIfCannotDeserializeDeviceCode(t *testing.T) {
 	gibberishJSON := strings.Replace(MockDeviceCodeResponse, "expires_in", "\":, :gibberish", -1)
 	sender := mocks.NewSender()
 	body := mocks.NewBody(gibberishJSON)
-	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 200, "OK"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 200, "OK"))
 	client := &autorest.Client{Sender: sender}
 
 	_, err := InitiateDeviceAuth(client, TestOAuthConfig, TestClientID, TestResource)
@@ -115,7 +113,7 @@ func deviceCode() *DeviceCode {
 func TestDeviceTokenReturns(t *testing.T) {
 	sender := mocks.NewSender()
 	body := mocks.NewBody(MockDeviceTokenResponse)
-	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 200, "OK"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 200, "OK"))
 	client := &autorest.Client{Sender: sender}
 
 	_, err := WaitForUserCompletion(client, deviceCode())
@@ -130,7 +128,6 @@ func TestDeviceTokenReturns(t *testing.T) {
 
 func TestDeviceTokenReturnsErrorIfSendingFails(t *testing.T) {
 	sender := mocks.NewSender()
-	sender.EmitErrors(1)
 	sender.SetError(fmt.Errorf("this is an error"))
 	client := &autorest.Client{Sender: sender}
 
@@ -143,7 +140,7 @@ func TestDeviceTokenReturnsErrorIfSendingFails(t *testing.T) {
 func TestDeviceTokenReturnsErrorIfServerError(t *testing.T) {
 	sender := mocks.NewSender()
 	body := mocks.NewBody("")
-	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 500, "Internal Server Error"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 500, "Internal Server Error"))
 	client := &autorest.Client{Sender: sender}
 
 	_, err := WaitForUserCompletion(client, deviceCode())
@@ -160,7 +157,7 @@ func TestDeviceTokenReturnsErrorIfCannotDeserializeDeviceToken(t *testing.T) {
 	gibberishJSON := strings.Replace(MockDeviceTokenResponse, "expires_in", ";:\"gibberish", -1)
 	sender := mocks.NewSender()
 	body := mocks.NewBody(gibberishJSON)
-	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 200, "OK"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 200, "OK"))
 	client := &autorest.Client{Sender: sender}
 
 	_, err := WaitForUserCompletion(client, deviceCode())
@@ -180,7 +177,7 @@ func errorDeviceTokenResponse(message string) string {
 func TestDeviceTokenReturnsErrorIfAuthorizationPending(t *testing.T) {
 	sender := mocks.NewSender()
 	body := mocks.NewBody(errorDeviceTokenResponse("authorization_pending"))
-	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
 	client := &autorest.Client{Sender: sender}
 
 	_, err := CheckForUserCompletion(client, deviceCode())
@@ -196,7 +193,7 @@ func TestDeviceTokenReturnsErrorIfAuthorizationPending(t *testing.T) {
 func TestDeviceTokenReturnsErrorIfSlowDown(t *testing.T) {
 	sender := mocks.NewSender()
 	body := mocks.NewBody(errorDeviceTokenResponse("slow_down"))
-	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
 	client := &autorest.Client{Sender: sender}
 
 	_, err := CheckForUserCompletion(client, deviceCode())
@@ -255,7 +252,7 @@ func TestDeviceTokenSucceedsWithIntermediateSlowDown(t *testing.T) {
 func TestDeviceTokenReturnsErrorIfAccessDenied(t *testing.T) {
 	sender := mocks.NewSender()
 	body := mocks.NewBody(errorDeviceTokenResponse("access_denied"))
-	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
 	client := &autorest.Client{Sender: sender}
 
 	_, err := WaitForUserCompletion(client, deviceCode())
@@ -271,7 +268,7 @@ func TestDeviceTokenReturnsErrorIfAccessDenied(t *testing.T) {
 func TestDeviceTokenReturnsErrorIfCodeExpired(t *testing.T) {
 	sender := mocks.NewSender()
 	body := mocks.NewBody(errorDeviceTokenResponse("code_expired"))
-	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
 	client := &autorest.Client{Sender: sender}
 
 	_, err := WaitForUserCompletion(client, deviceCode())
@@ -287,7 +284,7 @@ func TestDeviceTokenReturnsErrorIfCodeExpired(t *testing.T) {
 func TestDeviceTokenReturnsErrorForUnknownError(t *testing.T) {
 	sender := mocks.NewSender()
 	body := mocks.NewBody(errorDeviceTokenResponse("unknown_error"))
-	sender.SetResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
 	client := &autorest.Client{Sender: sender}
 
 	_, err := WaitForUserCompletion(client, deviceCode())

@@ -198,7 +198,6 @@ func testServicePrincipalTokenRefreshSetsBody(t *testing.T, spt *ServicePrincipa
 				})
 			}
 		})())
-	fmt.Println(spt == nil)
 	spt.SetSender(s)
 	spt.Refresh()
 }
@@ -264,7 +263,7 @@ func TestServicePrincipalTokenRefreshPropagatesErrors(t *testing.T) {
 	spt := newServicePrincipalToken()
 
 	c := mocks.NewSender()
-	c.EmitErrors(1)
+	c.SetError(fmt.Errorf("Faux Error"))
 	spt.SetSender(c)
 
 	err := spt.Refresh()
@@ -277,7 +276,7 @@ func TestServicePrincipalTokenRefreshReturnsErrorIfNotOk(t *testing.T) {
 	spt := newServicePrincipalToken()
 
 	c := mocks.NewSender()
-	c.EmitStatus("401 NotAuthorized", 401)
+	c.AppendResponse(mocks.NewResponseWithStatus("401 NotAuthorized", 401))
 	spt.SetSender(c)
 
 	err := spt.Refresh()
@@ -393,7 +392,7 @@ func TestRefreshCallback(t *testing.T) {
 
 	sender := mocks.NewSender()
 	j := newTokenJSON(expiresOn, "resource")
-	sender.EmitContent(j)
+	sender.AppendResponse(mocks.NewResponseWithContent(j))
 	spt.SetSender(sender)
 	spt.Refresh()
 
@@ -412,7 +411,7 @@ func TestRefreshCallbackErrorPropagates(t *testing.T) {
 
 	sender := mocks.NewSender()
 	j := newTokenJSON(expiresOn, "resource")
-	sender.EmitContent(j)
+	sender.AppendResponse(mocks.NewResponseWithContent(j))
 	spt.SetSender(sender)
 	err := spt.Refresh()
 

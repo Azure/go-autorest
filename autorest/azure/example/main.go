@@ -162,7 +162,7 @@ func printResourceGroups(client *autorest.Client) error {
 		autorest.WithPathParameters(p),
 		autorest.WithQueryParameters(q))
 
-	resp, err := client.Send(req)
+	resp, err := autorest.SendWithSender(client, req)
 	if err != nil {
 		return err
 	}
