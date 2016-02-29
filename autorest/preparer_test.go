@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/Azure/go-autorest/autorest/mocks"
@@ -324,11 +325,12 @@ func TestWithBearerAuthorization(t *testing.T) {
 }
 
 func TestWithUserAgent(t *testing.T) {
-	r, err := Prepare(mocks.NewRequest(), WithUserAgent("User Agent Go"))
+	ua := "User Agent Go"
+	r, err := Prepare(mocks.NewRequest(), WithUserAgent(ua))
 	if err != nil {
 		fmt.Printf("ERROR: %v", err)
 	}
-	if r.Header.Get(headerUserAgent) != "User Agent Go" {
+	if r.UserAgent() != ua || r.Header.Get(headerUserAgent) != ua {
 		t.Errorf("autorest: WithUserAgent failed to add header (%s=%s)", headerUserAgent, r.Header.Get(headerUserAgent))
 	}
 }
@@ -414,6 +416,137 @@ func TestWithFormDataSetsContentLength(t *testing.T) {
 
 	if r.ContentLength != int64(len(b)) {
 		t.Errorf("autorest:WithFormData set Content-Length to %v, expected %v", r.ContentLength, len(b))
+	}
+}
+
+func TestWithBool_SetsTheBody(t *testing.T) {
+	r, err := Prepare(&http.Request{},
+		WithBool(false))
+	if err != nil {
+		t.Errorf("autorest: WithBool failed with error (%v)", err)
+	}
+
+	s, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		t.Errorf("autorest: WithBool failed with error (%v)", err)
+	}
+
+	if r.ContentLength != int64(len(fmt.Sprintf("%v", false))) {
+		t.Errorf("autorest: WithBool set Content-Length to %v, expected %v", r.ContentLength, int64(len(fmt.Sprintf("%v", false))))
+	}
+
+	v, err := strconv.ParseBool(string(s))
+	if err != nil || v {
+		t.Errorf("autorest: WithBool incorrectly encoded the boolean as %v", s)
+	}
+}
+
+func TestWithFloat32_SetsTheBody(t *testing.T) {
+	r, err := Prepare(&http.Request{},
+		WithFloat32(42.0))
+	if err != nil {
+		t.Errorf("autorest: WithFloat32 failed with error (%v)", err)
+	}
+
+	s, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		t.Errorf("autorest: WithFloat32 failed with error (%v)", err)
+	}
+
+	if r.ContentLength != int64(len(fmt.Sprintf("%v", 42.0))) {
+		t.Errorf("autorest: WithFloat32 set Content-Length to %v, expected %v", r.ContentLength, int64(len(fmt.Sprintf("%v", 42.0))))
+	}
+
+	v, err := strconv.ParseFloat(string(s), 32)
+	if err != nil || float32(v) != float32(42.0) {
+		t.Errorf("autorest: WithFloat32 incorrectly encoded the boolean as %v", s)
+	}
+}
+
+func TestWithFloat64_SetsTheBody(t *testing.T) {
+	r, err := Prepare(&http.Request{},
+		WithFloat64(42.0))
+	if err != nil {
+		t.Errorf("autorest: WithFloat64 failed with error (%v)", err)
+	}
+
+	s, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		t.Errorf("autorest: WithFloat64 failed with error (%v)", err)
+	}
+
+	if r.ContentLength != int64(len(fmt.Sprintf("%v", 42.0))) {
+		t.Errorf("autorest: WithFloat64 set Content-Length to %v, expected %v", r.ContentLength, int64(len(fmt.Sprintf("%v", 42.0))))
+	}
+
+	v, err := strconv.ParseFloat(string(s), 64)
+	if err != nil || v != float64(42.0) {
+		t.Errorf("autorest: WithFloat64 incorrectly encoded the boolean as %v", s)
+	}
+}
+
+func TestWithInt32_SetsTheBody(t *testing.T) {
+	r, err := Prepare(&http.Request{},
+		WithInt32(42))
+	if err != nil {
+		t.Errorf("autorest: WithInt32 failed with error (%v)", err)
+	}
+
+	s, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		t.Errorf("autorest: WithInt32 failed with error (%v)", err)
+	}
+
+	if r.ContentLength != int64(len(fmt.Sprintf("%v", 42))) {
+		t.Errorf("autorest: WithInt32 set Content-Length to %v, expected %v", r.ContentLength, int64(len(fmt.Sprintf("%v", 42))))
+	}
+
+	v, err := strconv.ParseInt(string(s), 10, 32)
+	if err != nil || int32(v) != int32(42) {
+		t.Errorf("autorest: WithInt32 incorrectly encoded the boolean as %v", s)
+	}
+}
+
+func TestWithInt64_SetsTheBody(t *testing.T) {
+	r, err := Prepare(&http.Request{},
+		WithInt64(42))
+	if err != nil {
+		t.Errorf("autorest: WithInt64 failed with error (%v)", err)
+	}
+
+	s, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		t.Errorf("autorest: WithInt64 failed with error (%v)", err)
+	}
+
+	if r.ContentLength != int64(len(fmt.Sprintf("%v", 42))) {
+		t.Errorf("autorest: WithInt64 set Content-Length to %v, expected %v", r.ContentLength, int64(len(fmt.Sprintf("%v", 42))))
+	}
+
+	v, err := strconv.ParseInt(string(s), 10, 64)
+	if err != nil || v != int64(42) {
+		t.Errorf("autorest: WithInt64 incorrectly encoded the boolean as %v", s)
+	}
+}
+
+func TestWithString_SetsTheBody(t *testing.T) {
+	r, err := Prepare(&http.Request{},
+		WithString("value"))
+	if err != nil {
+		t.Errorf("autorest: WithString failed with error (%v)", err)
+	}
+
+	s, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		t.Errorf("autorest: WithString failed with error (%v)", err)
+	}
+
+	if r.ContentLength != int64(len("value")) {
+		t.Errorf("autorest: WithString set Content-Length to %v, expected %v", r.ContentLength, int64(len("value")))
+	}
+
+	if string(s) != "value" {
+		t.Errorf("autorest: WithString incorrectly encoded the string as %v", s)
 	}
 }
 

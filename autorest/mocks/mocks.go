@@ -62,52 +62,65 @@ func (body *Body) reset() *Body {
 
 // Sender implements a simple null sender.
 type Sender struct {
-	attempts      int
-	pollAttempts  int
-	content       string
-	reuseResponse bool
-	resp          *http.Response
-	status        string
-	statusCode    int
-	emitErrors    int
-	err           error
+	attempts       int
+	responses      []*http.Response
+	repeatResponse []int
+	err            error
+	repeatError    int
+	emitErrorAfter int
 }
 
 // NewSender creates a new instance of Sender.
 func NewSender() *Sender {
-	return &Sender{status: "200 OK", statusCode: 200}
+	return &Sender{}
 }
 
 // Do accepts the passed request and, based on settings, emits a response and possible error.
-func (c *Sender) Do(r *http.Request) (*http.Response, error) {
+func (c *Sender) Do(r *http.Request) (resp *http.Response, err error) {
 	c.attempts++
 
-	if !c.reuseResponse || c.resp == nil {
-		resp := NewResponse()
-		resp.Request = r
-		resp.Body = NewBody(c.content)
-		resp.Status = c.status
-		resp.StatusCode = c.statusCode
-		c.resp = resp
-	} else {
-		c.resp.Body.(*Body).reset()
-	}
-
-	if c.pollAttempts > 0 {
-		c.pollAttempts--
-		c.resp.Status = "Accepted"
-		c.resp.StatusCode = http.StatusAccepted
-		SetAcceptedHeaders(c.resp)
-	}
-
-	if c.emitErrors > 0 || c.emitErrors < 0 {
-		c.emitErrors--
-		if c.err == nil {
-			return c.resp, fmt.Errorf("Faux Error")
+	if len(c.responses) > 0 {
+		resp = c.responses[0]
+		if resp != nil {
+			resp.Body.(*Body).reset()
 		}
-		return c.resp, c.err
+		c.repeatResponse[0]--
+		if c.repeatResponse[0] == 0 {
+			c.responses = c.responses[1:]
+			c.repeatResponse = c.repeatResponse[1:]
+		}
+	} else {
+		resp = NewResponse()
 	}
-	return c.resp, nil
+
+	if c.emitErrorAfter > 0 {
+		c.emitErrorAfter--
+	} else if c.err != nil {
+		err = c.err
+		c.repeatError--
+		if c.repeatError == 0 {
+			c.err = nil
+		}
+	}
+
+	return
+}
+
+// AppendResponse adds the passed http.Response to the response stack.
+func (c *Sender) AppendResponse(resp *http.Response) {
+	c.AppendAndRepeatResponse(resp, 1)
+}
+
+// AppendAndRepeatResponse adds the passed http.Response to the response stack along with a
+// repeat count. A negative repeat count will return the reponse for all remaining calls to Do.
+func (c *Sender) AppendAndRepeatResponse(resp *http.Response, repeat int) {
+	if c.responses == nil {
+		c.responses = []*http.Response{resp}
+		c.repeatResponse = []int{repeat}
+	} else {
+		c.responses = append(c.responses, resp)
+		c.repeatResponse = append(c.repeatResponse, repeat)
+	}
 }
 
 // Attempts returns the number of times Do was called.
@@ -115,47 +128,21 @@ func (c *Sender) Attempts() int {
 	return c.attempts
 }
 
-// EmitErrors sets the number times Do should emit an error.
-func (c *Sender) EmitErrors(emit int) {
-	c.emitErrors = emit
-}
-
 // SetError sets the error Do should return.
 func (c *Sender) SetError(err error) {
+	c.SetAndRepeatError(err, 1)
+}
+
+// SetAndRepeatError sets the error Do should return and how many calls to Do will return the error.
+// A negative repeat value will return the error for all remaining calls to Do.
+func (c *Sender) SetAndRepeatError(err error, repeat int) {
 	c.err = err
+	c.repeatError = repeat
 }
 
-// ClearError clears the error Do emits.
-func (c *Sender) ClearError() {
-	c.SetError(nil)
-}
-
-// EmitContent sets the content to be returned by Do in the response body.
-func (c *Sender) EmitContent(s string) {
-	c.content = s
-}
-
-// EmitStatus sets the status of the response Do emits.
-func (c *Sender) EmitStatus(status string, code int) {
-	c.status = status
-	c.statusCode = code
-}
-
-// SetPollAttempts sets the number of times the returned response emits the default polling
-// status code (i.e., 202 Accepted).
-func (c *Sender) SetPollAttempts(pa int) {
-	c.pollAttempts = pa
-}
-
-// ReuseResponse sets if the just one response object should be reused by all calls to Do.
-func (c *Sender) ReuseResponse(reuseResponse bool) {
-	c.reuseResponse = reuseResponse
-}
-
-// SetResponse sets the response from Do.
-func (c *Sender) SetResponse(resp *http.Response) {
-	c.resp = resp
-	c.reuseResponse = true
+// SetEmitErrorAfter sets the number of attempts to be made before errors are emitted.
+func (c *Sender) SetEmitErrorAfter(ea int) {
+	c.emitErrorAfter = ea
 }
 
 // T is a simple testing struct.

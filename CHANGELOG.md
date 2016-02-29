@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v6.0.0
+- Completely reworked the handling of polled and asynchronous requests
+- Removed unnecessary routines
+- Reworked `mocks.Sender` to replay a series of `http.Response` objects
+- Added `PrepareDecorators` for primitive types (e.g., bool, int32)
+
+Handling polled and asynchronous requests is no longer part of `Client#Send`. Instead new
+`SendDecorators` implement different styles of polled behavior. See`autorest.DoPollForStatusCodes`
+and `azure.DoPollForAsynchronous` for examples.
+
 ## v5.0.0
 - Added new RespondDecorators unmarshalling primitive types
 - Corrected application of inspection and authorization PrependDecorators
