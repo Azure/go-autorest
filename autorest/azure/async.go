@@ -57,6 +57,11 @@ type OperationResource struct {
 	PercentComplete float64 `json:"percentComplete"`
 }
 
+// HasSucceeded returns true if the operation has succeeded; false otherwise.
+func (or OperationResource) HasSucceeded() bool {
+	return or.Status == OperationSucceeded
+}
+
 // HasTerminated returns true if the operation has terminated; false otherwise.
 func (or OperationResource) HasTerminated() bool {
 	switch or.Status {
@@ -67,13 +72,13 @@ func (or OperationResource) HasTerminated() bool {
 	}
 }
 
-// Error returns an error if the operation was canceled or failed and nil otherwise.
-func (or OperationResource) Error() string {
+// GetError returns an error if the operation was canceled or failed and nil otherwise.
+func (or OperationResource) GetError() error {
 	switch or.Status {
 	case OperationCanceled, OperationFailed:
-		return or.OperationError.Error()
+		return or.OperationError
 	default:
-		return ""
+		return nil
 	}
 }
 
@@ -145,7 +150,7 @@ func DoPollForAsynchronous(duration time.Duration, delay time.Duration) autorest
 			}
 
 			if err == nil && or.HasTerminated() {
-				err = or
+				err = or.GetError()
 			}
 
 			return resp, err

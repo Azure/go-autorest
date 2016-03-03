@@ -121,6 +121,24 @@ func TestOperationError_ErrorReturnsAString(t *testing.T) {
 	}
 }
 
+func TestOperationResource_HasSucceededReturnsFalseIfCanceled(t *testing.T) {
+	if (OperationResource{Status: OperationCanceled}).HasSucceeded() {
+		t.Errorf("azure: OperationResource#HasSucceeded failed to return false for a canceled operation")
+	}
+}
+
+func TestOperationResource_HasSucceededReturnsFalseIfFailed(t *testing.T) {
+	if (OperationResource{Status: OperationFailed}).HasSucceeded() {
+		t.Errorf("azure: OperationResource#HasSucceeded failed to return false for a failed operation")
+	}
+}
+
+func TestOperationResource_HasSucceededReturnsTrueIfSuccessful(t *testing.T) {
+	if !(OperationResource{Status: OperationSucceeded}).HasSucceeded() {
+		t.Errorf("azure: OperationResource#HasSucceeded failed to return true for a successful operation")
+	}
+}
+
 func TestOperationResource_HasTerminatedReturnsTrueIfCanceled(t *testing.T) {
 	if !(OperationResource{Status: OperationCanceled}).HasTerminated() {
 		t.Errorf("azure: OperationResource#HasTerminated failed to return true for a canceled operation")
@@ -145,20 +163,20 @@ func TestOperationResource_HasTerminatedReturnsFalseNotTerminated(t *testing.T) 
 	}
 }
 
-func TestOperationResource_ErrorReturnsErrorIfCanceled(t *testing.T) {
-	if (OperationResource{Status: OperationCanceled}).Error() == "" {
+func TestOperationResource_GetErrorReturnsErrorIfCanceled(t *testing.T) {
+	if (OperationResource{Status: OperationCanceled}).GetError() == nil {
 		t.Errorf("azure: OperationResource#GetError failed to return an error for canceled operations")
 	}
 }
 
-func TestOperationResource_ErrorReturnsErrorIfFailed(t *testing.T) {
-	if (OperationResource{Status: OperationFailed}).Error() == "" {
+func TestOperationResource_GetErrorReturnsErrorIfFailed(t *testing.T) {
+	if (OperationResource{Status: OperationFailed}).GetError() == nil {
 		t.Errorf("azure: OperationResource#GetError failed to return an error for failed operations")
 	}
 }
 
-func TestOperationResource_ErrorDoesReturnUnlessFailedOrCanceled(t *testing.T) {
-	if (OperationResource{Status: OperationSucceeded}).Error() != "" {
+func TestOperationResource_GetErrorDoesReturnUnlessFailedOrCanceled(t *testing.T) {
+	if (OperationResource{Status: OperationSucceeded}).GetError() != nil {
 		t.Errorf("azure: OperationResource#GetError return an error for operation that was not canceled or failed")
 	}
 }
@@ -396,6 +414,27 @@ func TestDoPollForAsynchronous_ReturnsAnErrorForFailedOperations(t *testing.T) {
 
 	if err == nil || !strings.Contains(fmt.Sprintf("%v", err), "BadArgument") {
 		t.Errorf("azure: DoPollForAsynchronous failed to return an appropriate error for a canceled OperationResource")
+	}
+
+	autorest.Respond(r,
+		autorest.ByClosing())
+}
+
+func TestDoPollForAsynchronous_ReturnsNoErrorForSuccessfulOperations(t *testing.T) {
+	r1 := newAsynchronousResponse()
+	r2 := newOperationResourceResponse("busy")
+	r3 := newOperationResourceErrorResponse(OperationSucceeded)
+
+	client := mocks.NewSender()
+	client.AppendResponse(r1)
+	client.AppendAndRepeatResponse(r2, 2)
+	client.AppendAndRepeatResponse(r3, 1)
+
+	r, err := autorest.SendWithSender(client, mocks.NewRequest(),
+		DoPollForAsynchronous(time.Millisecond, time.Millisecond))
+
+	if err != nil {
+		t.Errorf("azure: DoPollForAsynchronous returned an error for a successful OperationResource")
 	}
 
 	autorest.Respond(r,
