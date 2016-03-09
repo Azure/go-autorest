@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v6.1.0
+- Introduced `date.ByUnmarshallingJSONDate` and `date.ByUnmarshallingJSONTime` to enable JSON encoded values.
+
 ## v6.0.0
 - Completely reworked the handling of polled and asynchronous requests
 - Removed unnecessary routines
