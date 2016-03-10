@@ -8,16 +8,18 @@ package date
 import (
 	"fmt"
 	"github.com/Azure/go-autorest/autorest"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"time"
 )
 
 const (
-	rfc3339FullDate = "2006-01-02"
-	dateFormat      = "%4d-%02d-%02d"
-	jsonFormat      = `"%4d-%02d-%02d"`
+	rfc3339FullDate     = "2006-01-02"
+	rfc3339FullDateJSON = `"2006-01-02"`
+	rfc3339             = "2006-01-02T15:04:05Z07:00"
+	rfc3339JSON         = `"2006-01-02T15:04:05Z07:00"`
+	dateFormat          = "%4d-%02d-%02d"
+	jsonFormat          = `"%4d-%02d-%02d"`
 )
 
 // Date defines a type similar to time.Time but assumes a layout of RFC3339 full-date (i.e.,
@@ -28,27 +30,36 @@ type Date struct {
 
 // ParseDate create a new Date from the passed string.
 func ParseDate(date string) (d Date, err error) {
-	d = Date{}
-	d.Time, err = time.Parse(rfc3339FullDate, date)
-	return d, err
+	return parseDate(date, rfc3339FullDate)
 }
 
-func readDate(r io.Reader) (Date, error) {
-	b, err := ioutil.ReadAll(r)
-	if err == nil {
-		return ParseDate(string(b))
-	}
-	return Date{}, err
+func parseDate(date string, format string) (Date, error) {
+	d, err := time.Parse(format, date)
+	return Date{Time: d}, err
 }
 
 // ByUnmarshallingDate returns a RespondDecorator that decodes the http.Response Body into a Date
 // pointed to by d.
 func ByUnmarshallingDate(d *Date) autorest.RespondDecorator {
+	return byUnmarshallingDate(d, rfc3339FullDate)
+}
+
+// ByUnmarshallingJSONDate returns a RespondDecorator that decodes JSON within the http.Response
+// Body into a Date pointed to by d.
+func ByUnmarshallingJSONDate(d *Date) autorest.RespondDecorator {
+	return byUnmarshallingDate(d, rfc3339FullDateJSON)
+}
+
+func byUnmarshallingDate(d *Date, format string) autorest.RespondDecorator {
 	return func(r autorest.Responder) autorest.Responder {
 		return autorest.ResponderFunc(func(resp *http.Response) error {
 			err := r.Respond(resp)
 			if err == nil {
-				*d, err = readDate(resp.Body)
+				var b []byte
+				b, err = ioutil.ReadAll(resp.Body)
+				if err == nil {
+					*d, err = parseDate(string(b), format)
+				}
 			}
 			return err
 		})
@@ -76,10 +87,7 @@ func (d Date) MarshalJSON() (json []byte, err error) {
 // UnmarshalJSON reconstitutes the Date from a JSON string conforming to RFC3339 full-date (i.e.,
 // 2006-01-02).
 func (d *Date) UnmarshalJSON(data []byte) (err error) {
-	if data[0] == '"' {
-		data = data[1 : len(data)-1]
-	}
-	d.Time, err = time.Parse(rfc3339FullDate, string(data))
+	d.Time, err = time.Parse(rfc3339FullDateJSON, string(data))
 	if err != nil {
 		return err
 	}

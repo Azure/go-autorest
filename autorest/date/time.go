@@ -2,7 +2,6 @@ package date
 
 import (
 	"github.com/Azure/go-autorest/autorest"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -16,27 +15,36 @@ type Time struct {
 
 // ParseTime creates a new Time from the passed string.
 func ParseTime(date string) (d Time, err error) {
-	d = Time{}
-	d.Time, err = time.Parse(time.RFC3339, date)
-	return d, err
+	return parseTime(date, rfc3339)
 }
 
-func readTime(r io.Reader) (Time, error) {
-	b, err := ioutil.ReadAll(r)
-	if err == nil {
-		return ParseTime(string(b))
-	}
-	return Time{}, err
+func parseTime(date string, format string) (Time, error) {
+	d, err := time.Parse(format, date)
+	return Time{Time: d}, err
 }
 
 // ByUnmarshallingTime returns a RespondDecorator that decodes the http.Response Body into a Time
 // pointed to by t.
 func ByUnmarshallingTime(t *Time) autorest.RespondDecorator {
+	return byUnmarshallingTime(t, rfc3339)
+}
+
+// ByUnmarshallingJSONTime returns a RespondDecorator that decodes the http.Response Body into a Time
+// pointed to by t.
+func ByUnmarshallingJSONTime(t *Time) autorest.RespondDecorator {
+	return byUnmarshallingTime(t, rfc3339JSON)
+}
+
+func byUnmarshallingTime(t *Time, format string) autorest.RespondDecorator {
 	return func(r autorest.Responder) autorest.Responder {
 		return autorest.ResponderFunc(func(resp *http.Response) error {
 			err := r.Respond(resp)
 			if err == nil {
-				*t, err = readTime(resp.Body)
+				var b []byte
+				b, err = ioutil.ReadAll(resp.Body)
+				if err == nil {
+					*t, err = parseTime(string(b), format)
+				}
 			}
 			return err
 		})

@@ -177,31 +177,63 @@ func TestDate_ByUnmarshallingTime(t *testing.T) {
 		t.Errorf("date: ByUnmarshallingTime failed (%v)", err)
 	}
 	if !reflect.DeepEqual(t1, t2) {
-		t.Errorf("date: ByUnmarshallingTime failed to properly unmarshall -- expected %v, received %v", t2, t1)
+		t.Errorf("date: ByUnmarshallingTime failed to properly unmarshall -- expected %#v, received %#v", t2, t1)
 	}
 }
 
-func TestDate_ByUnmarshallingTimeFailsWithInvalidValues(t *testing.T) {
+func TestDate_ByUnmarshallingJSONTime(t *testing.T) {
+	t1 := Time{}
+	t2 := Time{Time: time.Date(2001, time.February, 3, 4, 5, 6, 0, time.UTC)}
+
+	r := mocks.NewResponseWithContent(`"2001-02-03T04:05:06Z"`)
+	err := autorest.Respond(r,
+		ByUnmarshallingJSONTime(&t1),
+		autorest.ByClosing())
+	if err != nil {
+		t.Errorf("date: ByUnmarshallingJSONTime failed (%v)", err)
+	}
+	if !reflect.DeepEqual(t1, t2) {
+		t.Errorf("date: ByUnmarshallingJSONTime failed to properly unmarshall -- expected %#v, received %#v", t2, t1)
+	}
+}
+
+func TestDate_byUnmarshallingTime(t *testing.T) {
+	t1 := Time{}
+	t2 := Time{Time: time.Date(2001, time.February, 3, 4, 5, 6, 0, time.UTC)}
+
+	r := mocks.NewResponseWithContent("2001-02-03T04:05:06Z")
+	err := autorest.Respond(r,
+		byUnmarshallingTime(&t1, rfc3339),
+		autorest.ByClosing())
+	if err != nil {
+		t.Errorf("date: byUnmarshallingTime failed (%v)", err)
+	}
+	if !reflect.DeepEqual(t1, t2) {
+		t.Errorf("date: byUnmarshallingTime failed to properly unmarshall -- expected %#v, received %#v", t2, t1)
+	}
+}
+
+func TestDate_byUnmarshallingTimeFailsWithInvalidValues(t *testing.T) {
 	t1 := Time{}
 
 	r := mocks.NewResponseWithContent("Not a Time")
 	err := autorest.Respond(r,
-		ByUnmarshallingTime(&t1),
+		byUnmarshallingTime(&t1, rfc3339),
 		autorest.ByClosing())
 	if err == nil {
-		t.Errorf("date: ByUnmarshallingTime failed to return an error for an invalid string")
+		t.Errorf("date: byUnmarshallingTime failed to return an error for an invalid string")
 	}
 }
 
-func TestDate_ByUnmarshallingTimeFailsWithInvalidReader(t *testing.T) {
+func TestDate_byUnmarshallingTimeFailsWithInvalidReader(t *testing.T) {
 	t1 := Time{}
 
 	r := mocks.NewResponseWithContent("2001-02-03T04:05:06Z")
 	r.Body.Close()
 	err := autorest.Respond(r,
-		ByUnmarshallingTime(&t1),
+		byUnmarshallingTime(&t1, rfc3339),
 		autorest.ByClosing())
 	if err == nil {
-		t.Errorf("date: ByUnmarshallingTime failed to return an error for an invalid io.Reader")
+		t.Errorf("date: byUnmarshallingTime failed to return an error for an invalid io.Reader")
 	}
 }
