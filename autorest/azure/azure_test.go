@@ -238,11 +238,11 @@ func withAsyncResponseDecorator(n int) autorest.SendDecorator {
 				if i < n {
 					resp.StatusCode = http.StatusCreated
 					resp.Header = http.Header{}
-					resp.Header.Add(http.CanonicalHeaderKey(HeaderAsyncOperation), mocks.TestURL)
+					resp.Header.Add(http.CanonicalHeaderKey(headerAsyncOperation), mocks.TestURL)
 					i++
 				} else {
 					resp.StatusCode = http.StatusOK
-					resp.Header.Del(http.CanonicalHeaderKey(HeaderAsyncOperation))
+					resp.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
 				}
 			}
 			return resp, err

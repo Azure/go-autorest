@@ -2,6 +2,7 @@ package azure
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"sync"
@@ -15,169 +16,382 @@ import (
 func TestGetAsyncOperation_ReturnsAzureAsyncOperationHeader(t *testing.T) {
 	r := newAsynchronousResponse()
 
-	if GetAsyncOperation(r) != mocks.TestURL {
-		t.Errorf("azure: GetAsyncOperation failed to extract the Azure-AsyncOperation header -- expected %v, received %v", mocks.TestURL, GetAsyncOperation(r))
+	if getAsyncOperation(r) != mocks.TestAzureAsyncURL {
+		t.Errorf("azure: getAsyncOperation failed to extract the Azure-AsyncOperation header -- expected %v, received %v", mocks.TestURL, getAsyncOperation(r))
 	}
 }
 
 func TestGetAsyncOperation_ReturnsEmptyStringIfHeaderIsAbsent(t *testing.T) {
 	r := mocks.NewResponse()
 
-	if len(GetAsyncOperation(r)) != 0 {
-		t.Errorf("azure: GetAsyncOperation failed to return empty string when the Azure-AsyncOperation header is absent -- received %v", GetAsyncOperation(r))
+	if len(getAsyncOperation(r)) != 0 {
+		t.Errorf("azure: getAsyncOperation failed to return empty string when the Azure-AsyncOperation header is absent -- received %v", getAsyncOperation(r))
 	}
 }
 
-func TestIsAsynchronousResponse_ReturnsTrueForLongRunningResponse(t *testing.T) {
-	r := newAsynchronousResponse()
-
-	if !IsAsynchronousResponse(r) {
-		t.Errorf("azure: IsAsynchronousResponse returned false for a long-running response")
+func TestHasSucceeded_ReturnsTrueForSuccess(t *testing.T) {
+	if !hasSucceeded(operationSucceeded) {
+		t.Error("azure: hasSucceeded failed to return true for success")
 	}
 }
 
-func TestIsAsynchronousResponse_ReturnsFalseIfStatusCodeIsNotCreated(t *testing.T) {
-	r := newAsynchronousResponse()
-	r.StatusCode = http.StatusOK
-
-	if IsAsynchronousResponse(r) {
-		t.Errorf("azure: IsAsynchronousResponse returned true for a response without a 201 status code")
+func TestHasSucceeded_ReturnsFalseOtherwise(t *testing.T) {
+	if hasSucceeded("not a success string") {
+		t.Error("azure: hasSucceeded returned true for a non-success")
 	}
 }
 
-func TestIsAsynchronousResponse_ReturnsFalseIfAsyncHeaderIsAbsent(t *testing.T) {
-	r := newAsynchronousResponse()
-	r.Header.Del(HeaderAsyncOperation)
-
-	if IsAsynchronousResponse(r) {
-		t.Errorf("azure: IsAsynchronousResponse returned true for a response without an Azure-AsyncOperation header")
+func TestHasTerminated_ReturnsTrueForValidTerminationStates(t *testing.T) {
+	for _, state := range []string{operationSucceeded, operationCanceled, operationFailed} {
+		if !hasTerminated(state) {
+			t.Errorf("azure: hasTerminated failed to return true for the '%s' state", state)
+		}
 	}
 }
 
-func TestNewOperationResourceRequest_LeavesBodyOpen(t *testing.T) {
-	r := newAsynchronousResponse()
-
-	NewOperationResourceRequest(r, nil)
-	if !r.Body.(*mocks.Body).IsOpen() {
-		t.Error("azure: NewOperationResourceRequest closed the http.Request Body when the Azure-AsyncOperation header was missing")
-	}
-}
-
-func TestNewOperationResourceRequest_DoesNotReturnARequestWhenAzureAsyncOperationHeaderIsMissing(t *testing.T) {
-	r := newAsynchronousResponse()
-	r.Header.Del(HeaderAsyncOperation)
-
-	req, _ := NewOperationResourceRequest(r, nil)
-	if req != nil {
-		t.Error("azure: NewOperationResourceRequest returned an http.Request when the Azure-AsyncOperation header was missing")
-	}
-}
-
-func TestNewOperationResourceRequest_ReturnsAnErrorWhenPrepareFails(t *testing.T) {
-	r := newAsynchronousResponse()
-	r.Header.Set(http.CanonicalHeaderKey(HeaderAsyncOperation), mocks.TestBadURL)
-
-	_, err := NewOperationResourceRequest(r, nil)
-	if err == nil {
-		t.Error("azure: NewOperationResourceRequest failed to return an error when Prepare fails")
-	}
-}
-
-func TestNewOperationResourceRequest_DoesNotReturnARequestWhenPrepareFails(t *testing.T) {
-	r := newAsynchronousResponse()
-	r.Header.Set(http.CanonicalHeaderKey(HeaderAsyncOperation), mocks.TestBadURL)
-
-	req, _ := NewOperationResourceRequest(r, nil)
-	if req != nil {
-		t.Error("azure: NewOperationResourceRequest returned an http.Request when Prepare failed")
-	}
-}
-
-func TestNewOperationResourceRequest_ReturnsAGetRequest(t *testing.T) {
-	r := newAsynchronousResponse()
-
-	req, _ := NewOperationResourceRequest(r, nil)
-	if req.Method != "GET" {
-		t.Errorf("azure: NewOperationResourceRequest did not create an HTTP GET request -- actual method %v", req.Method)
-	}
-}
-
-func TestNewOperationResourceRequest_ProvidesTheURL(t *testing.T) {
-	r := newAsynchronousResponse()
-
-	req, _ := NewOperationResourceRequest(r, nil)
-	if req.URL.String() != mocks.TestURL {
-		t.Errorf("azure: NewOperationResourceRequest did not create an HTTP with the expected URL -- received %v, expected %v", req.URL, mocks.TestURL)
+func TestHasTerminated_ReturnsFalseForUnknownStates(t *testing.T) {
+	if hasTerminated("not a known state") {
+		t.Error("azure: hasTerminated returned true for an unknown state")
 	}
 }
 
 func TestOperationError_ErrorReturnsAString(t *testing.T) {
-	s := (OperationError{Code: "server code", Message: "server error"}).Error()
+	s := (operationError{Code: "server code", Message: "server error"}).Error()
 	if s == "" {
-		t.Errorf("azure: OperationError#Error failed to return an error")
+		t.Errorf("azure: operationError#Error failed to return an error")
 	}
 	if !strings.Contains(s, "server code") || !strings.Contains(s, "server error") {
-		t.Errorf("azure: OperationError#ToError returned a malformed error -- error(%v)", s)
+		t.Errorf("azure: operationError#Error returned a malformed error -- error='%v'", s)
 	}
 }
 
-func TestOperationResource_HasSucceededReturnsFalseIfCanceled(t *testing.T) {
-	if (OperationResource{Status: OperationCanceled}).HasSucceeded() {
-		t.Errorf("azure: OperationResource#HasSucceeded failed to return false for a canceled operation")
+func TestOperationResource_StateReturnsState(t *testing.T) {
+	if (operationResource{Status: "state"}).state() != "state" {
+		t.Errorf("azure: operationResource#state failed to return the correct state")
 	}
 }
 
-func TestOperationResource_HasSucceededReturnsFalseIfFailed(t *testing.T) {
-	if (OperationResource{Status: OperationFailed}).HasSucceeded() {
-		t.Errorf("azure: OperationResource#HasSucceeded failed to return false for a failed operation")
+func TestOperationResource_HasSucceededReturnsFalseIfNotSuccess(t *testing.T) {
+	if (operationResource{Status: "not a success string"}).hasSucceeded() {
+		t.Errorf("azure: operationResource#hasSucceeded failed to return false for a canceled operation")
 	}
 }
 
 func TestOperationResource_HasSucceededReturnsTrueIfSuccessful(t *testing.T) {
-	if !(OperationResource{Status: OperationSucceeded}).HasSucceeded() {
-		t.Errorf("azure: OperationResource#HasSucceeded failed to return true for a successful operation")
+	if !(operationResource{Status: operationSucceeded}).hasSucceeded() {
+		t.Errorf("azure: operationResource#hasSucceeded failed to return true for a successful operation")
 	}
 }
 
-func TestOperationResource_HasTerminatedReturnsTrueIfCanceled(t *testing.T) {
-	if !(OperationResource{Status: OperationCanceled}).HasTerminated() {
-		t.Errorf("azure: OperationResource#HasTerminated failed to return true for a canceled operation")
+func TestOperationResource_HasTerminatedReturnsTrueForKnownStates(t *testing.T) {
+	for _, state := range []string{operationSucceeded, operationCanceled, operationFailed} {
+		if !(operationResource{Status: state}).hasTerminated() {
+			t.Errorf("azure: operationResource#hasTerminated failed to return true for the '%s' state", state)
+		}
 	}
 }
 
-func TestOperationResource_HasTerminatedReturnsTrueIfFailed(t *testing.T) {
-	if !(OperationResource{Status: OperationFailed}).HasTerminated() {
-		t.Errorf("azure: OperationResource#HasTerminated failed to return true for a failed operation")
+func TestOperationResource_HasTerminatedReturnsFalseForUnknownStates(t *testing.T) {
+	if (operationResource{Status: "not a known state"}).hasTerminated() {
+		t.Errorf("azure: operationResource#hasTerminated returned true for a non-terminal operation")
 	}
 }
 
-func TestOperationResource_HasTerminatedReturnsTrueIfSuccessful(t *testing.T) {
-	if !(OperationResource{Status: OperationSucceeded}).HasTerminated() {
-		t.Errorf("azure: OperationResource#HasTerminated failed to return true for a successful operation")
+func TestProvisioningStatus_StateReturnsState(t *testing.T) {
+	if (provisioningStatus{provisioningProperties{"state"}}).state() != "state" {
+		t.Errorf("azure: provisioningStatus#state failed to return the correct state")
 	}
 }
 
-func TestOperationResource_HasTerminatedReturnsFalseNotTerminated(t *testing.T) {
-	if (OperationResource{Status: "UnknownStatus"}).HasTerminated() {
-		t.Errorf("azure: OperationResource#HasTerminated returned true for a non-terminal operation")
+func TestProvisioningStatus_HasSucceededReturnsFalseIfNotSuccess(t *testing.T) {
+	if (provisioningStatus{provisioningProperties{"not a success string"}}).hasSucceeded() {
+		t.Errorf("azure: provisioningStatus#hasSucceeded failed to return false for a canceled operation")
 	}
 }
 
-func TestOperationResource_GetErrorReturnsErrorIfCanceled(t *testing.T) {
-	if (OperationResource{Status: OperationCanceled}).GetError() == nil {
-		t.Errorf("azure: OperationResource#GetError failed to return an error for canceled operations")
+func TestProvisioningStatus_HasSucceededReturnsTrueIfSuccessful(t *testing.T) {
+	if !(provisioningStatus{provisioningProperties{operationSucceeded}}).hasSucceeded() {
+		t.Errorf("azure: provisioningStatus#hasSucceeded failed to return true for a successful operation")
 	}
 }
 
-func TestOperationResource_GetErrorReturnsErrorIfFailed(t *testing.T) {
-	if (OperationResource{Status: OperationFailed}).GetError() == nil {
-		t.Errorf("azure: OperationResource#GetError failed to return an error for failed operations")
+func TestProvisioningStatus_HasTerminatedReturnsTrueForKnownStates(t *testing.T) {
+	for _, state := range []string{operationSucceeded, operationCanceled, operationFailed} {
+		if !(provisioningStatus{provisioningProperties{state}}).hasTerminated() {
+			t.Errorf("azure: provisioningStatus#hasTerminated failed to return true for the '%s' state", state)
+		}
 	}
 }
 
-func TestOperationResource_GetErrorDoesReturnUnlessFailedOrCanceled(t *testing.T) {
-	if (OperationResource{Status: OperationSucceeded}).GetError() != nil {
-		t.Errorf("azure: OperationResource#GetError return an error for operation that was not canceled or failed")
+func TestProvisioningStatus_HasTerminatedReturnsFalseForUnknownStates(t *testing.T) {
+	if (provisioningStatus{provisioningProperties{"not a known state"}}).hasTerminated() {
+		t.Errorf("azure: provisioningStatus#hasTerminated returned true for a non-terminal operation")
+	}
+}
+
+func TestPollingState_HasSucceededReturnsFalseIfNotSuccess(t *testing.T) {
+	if (pollingState{state: "not a success string"}).hasSucceeded() {
+		t.Errorf("azure: pollingState#hasSucceeded failed to return false for a canceled operation")
+	}
+}
+
+func TestPollingState_HasSucceededReturnsTrueIfSuccessful(t *testing.T) {
+	if !(pollingState{state: operationSucceeded}).hasSucceeded() {
+		t.Errorf("azure: pollingState#hasSucceeded failed to return true for a successful operation")
+	}
+}
+
+func TestPollingState_HasTerminatedReturnsTrueForKnownStates(t *testing.T) {
+	for _, state := range []string{operationSucceeded, operationCanceled, operationFailed} {
+		if !(pollingState{state: state}).hasTerminated() {
+			t.Errorf("azure: pollingState#hasTerminated failed to return true for the '%s' state", state)
+		}
+	}
+}
+
+func TestPollingState_HasTerminatedReturnsFalseForUnknownStates(t *testing.T) {
+	if (pollingState{state: "not a known state"}).hasTerminated() {
+		t.Errorf("azure: pollingState#hasTerminated returned true for a non-terminal operation")
+	}
+}
+
+func TestNewPollingState_ReturnsAnErrorIfOneOccurs(t *testing.T) {
+	resp := mocks.NewResponseWithContent(operationResourceIllegal)
+	_, err := newPollingState(resp, false)
+	if err == nil {
+		t.Errorf("azure: newPollingState failed to return an error after a JSON parsing error")
+	}
+}
+
+func TestNewPollingState_ReturnsTerminatedForKnownProvisioningStates(t *testing.T) {
+	for _, state := range []string{operationSucceeded, operationCanceled, operationFailed} {
+		resp := mocks.NewResponseWithContent(fmt.Sprintf(pollingStateFormat, state))
+		resp.StatusCode = 42
+		ps, _ := newPollingState(resp, false)
+		if !ps.hasTerminated() {
+			t.Errorf("azure: newPollingState failed to return a terminating pollingState for the '%s' state", state)
+		}
+	}
+}
+
+func TestNewPollingState_ReturnsSuccessForSuccessfulProvisioningState(t *testing.T) {
+	resp := mocks.NewResponseWithContent(fmt.Sprintf(pollingStateFormat, operationSucceeded))
+	resp.StatusCode = 42
+	ps, _ := newPollingState(resp, false)
+	if !ps.hasSucceeded() {
+		t.Errorf("azure: newPollingState failed to return a successful pollingState for the '%s' state", operationSucceeded)
+	}
+}
+
+func TestNewPollingState_ReturnsInProgressForAllOtherProvisioningStates(t *testing.T) {
+	s := "not a recognized state"
+	resp := mocks.NewResponseWithContent(fmt.Sprintf(pollingStateFormat, s))
+	resp.StatusCode = 42
+	ps, _ := newPollingState(resp, false)
+	if ps.hasTerminated() {
+		t.Errorf("azure: newPollingState returned terminated for unknown state '%s'", s)
+	}
+}
+
+func TestNewPollingState_ReturnsSuccessWhenProvisioningStateFieldIsAbsentForSuccessStatusCodes(t *testing.T) {
+	for _, sc := range []int{http.StatusOK, http.StatusCreated, http.StatusNoContent} {
+		resp := mocks.NewResponseWithContent(pollingStateEmpty)
+		resp.StatusCode = sc
+		ps, _ := newPollingState(resp, false)
+		if !ps.hasSucceeded() {
+			t.Errorf("azure: newPollingState failed to return success when the provisionState field is absent for Status Code %d", sc)
+		}
+	}
+}
+
+func TestNewPollingState_ReturnsInProgressWhenProvisioningStateFieldIsAbsentForAccepted(t *testing.T) {
+	resp := mocks.NewResponseWithContent(pollingStateEmpty)
+	resp.StatusCode = http.StatusAccepted
+	ps, _ := newPollingState(resp, false)
+	if ps.hasTerminated() {
+		t.Errorf("azure: newPollingState returned terminated when the provisionState field is absent for Status Code Accepted")
+	}
+}
+
+func TestNewPollingState_ReturnsFailedWhenProvisioningStateFieldIsAbsentForUnknownStatusCodes(t *testing.T) {
+	resp := mocks.NewResponseWithContent(pollingStateEmpty)
+	resp.StatusCode = 42
+	ps, _ := newPollingState(resp, false)
+	if !ps.hasTerminated() || ps.hasSucceeded() {
+		t.Errorf("azure: newPollingState did not return failed when the provisionState field is absent for an unknown Status Code")
+	}
+}
+
+func TestNewPollingState_ReturnsTerminatedForKnownOperationResourceStates(t *testing.T) {
+	for _, state := range []string{operationSucceeded, operationCanceled, operationFailed} {
+		resp := mocks.NewResponseWithContent(fmt.Sprintf(operationResourceFormat, state))
+		resp.StatusCode = 42
+		ps, _ := newPollingState(resp, true)
+		if !ps.hasTerminated() {
+			t.Errorf("azure: newPollingState failed to return a terminating pollingState for the '%s' state", state)
+		}
+	}
+}
+
+func TestNewPollingState_ReturnsSuccessForSuccessfulOperationResourceState(t *testing.T) {
+	resp := mocks.NewResponseWithContent(fmt.Sprintf(operationResourceFormat, operationSucceeded))
+	resp.StatusCode = 42
+	ps, _ := newPollingState(resp, true)
+	if !ps.hasSucceeded() {
+		t.Errorf("azure: newPollingState failed to return a successful pollingState for the '%s' state", operationSucceeded)
+	}
+}
+
+func TestNewPollingState_ReturnsInProgressForAllOtherOperationResourceStates(t *testing.T) {
+	s := "not a recognized state"
+	resp := mocks.NewResponseWithContent(fmt.Sprintf(operationResourceFormat, s))
+	resp.StatusCode = 42
+	ps, _ := newPollingState(resp, true)
+	if ps.hasTerminated() {
+		t.Errorf("azure: newPollingState returned terminated for unknown state '%s'", s)
+	}
+}
+
+func TestNewPollingState_CopiesTheResponseBody(t *testing.T) {
+	s := fmt.Sprintf(pollingStateFormat, operationSucceeded)
+	resp := mocks.NewResponseWithContent(s)
+	resp.StatusCode = 42
+	newPollingState(resp, true)
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Errorf("azure: newPollingState failed to replace the http.Response Body -- Error='%v'", err)
+	}
+	if string(b) != s {
+		t.Errorf("azure: newPollingState failed to copy the http.Response Body -- Expected='%s' Received='%s'", s, string(b))
+	}
+}
+
+func TestNewPollingState_ClosesTheOriginalResponseBody(t *testing.T) {
+	resp := mocks.NewResponse()
+	b := resp.Body.(*mocks.Body)
+	newPollingState(resp, false)
+	if b.IsOpen() {
+		t.Error("azure: newPollingState failed to close the original http.Response Body")
+	}
+}
+
+func TestNewPollingRequest_FailsWhenResponseLacksRequest(t *testing.T) {
+	isOperationResource := false
+	resp := newAsynchronousResponse()
+	resp.Request = nil
+
+	_, err := newPollingRequest(resp, &isOperationResource)
+	if err == nil {
+		t.Error("azure: newPollingRequest failed to return an error when the http.Response lacked the original http.Request")
+	}
+}
+
+func TestNewPollingRequest_PrefersTheAzureAsyncOperationHeader(t *testing.T) {
+	isOperationResource := false
+	resp := newAsynchronousResponse()
+
+	req, _ := newPollingRequest(resp, &isOperationResource)
+	if req.URL.String() != mocks.TestAzureAsyncURL {
+		t.Error("azure: newPollingRequest failed to prefer the Azure-AsyncOperation header")
+	}
+}
+
+func TestNewPollingRequest_ReturnsTrueWhenUsingTheAzureAsyncOperationHeader(t *testing.T) {
+	isOperationResource := false
+	resp := newAsynchronousResponse()
+
+	newPollingRequest(resp, &isOperationResource)
+	if !isOperationResource {
+		t.Error("azure: newPollingRequest failed to return true when using the Azure-AsyncOperation header")
+	}
+}
+
+func TestNewPollingRequest_PrefersLocationWhenTheAzureAsyncOperationHeaderMissing(t *testing.T) {
+	isOperationResource := false
+	resp := newAsynchronousResponse()
+	resp.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+
+	req, _ := newPollingRequest(resp, &isOperationResource)
+	if req.URL.String() != mocks.TestLocationURL {
+		t.Error("azure: newPollingRequest failed to prefer the Location header when the Azure-AsyncOperation header is missing")
+	}
+}
+
+func TestNewPollingRequest_UsesTheObjectLocationIfAsyncHeadersAreMissing(t *testing.T) {
+	isOperationResource := false
+	resp := newAsynchronousResponse()
+	resp.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+	resp.Header.Del(http.CanonicalHeaderKey(autorest.HeaderLocation))
+	resp.Request.Method = methodPatch
+
+	req, _ := newPollingRequest(resp, &isOperationResource)
+	if req.URL.String() != mocks.TestURL {
+		t.Error("azure: newPollingRequest failed to use the Object URL when the asynchronous headers are missing")
+	}
+}
+
+func TestNewPollingRequest_RecognizesLowerCaseHTTPVerbs(t *testing.T) {
+	for _, m := range []string{"patch", "put"} {
+		isOperationResource := false
+		resp := newAsynchronousResponse()
+		resp.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+		resp.Header.Del(http.CanonicalHeaderKey(autorest.HeaderLocation))
+		resp.Request.Method = m
+
+		req, _ := newPollingRequest(resp, &isOperationResource)
+		if req.URL.String() != mocks.TestURL {
+			t.Errorf("azure: newPollingRequest failed to recognize the lower-case HTTP verb '%s'", m)
+		}
+	}
+}
+
+func TestNewPollingRequest_ReturnsAnErrorIfAsyncHeadersAreMissingForANewOrDeletedObject(t *testing.T) {
+	isOperationResource := false
+	resp := newAsynchronousResponse()
+	resp.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+	resp.Header.Del(http.CanonicalHeaderKey(autorest.HeaderLocation))
+
+	for _, m := range []string{methodDelete, methodPost} {
+		resp.Request.Method = m
+		req, err := newPollingRequest(resp, &isOperationResource)
+		if req != nil {
+			t.Errorf("azure: newPollingRequest returned an http.Request even though it could not determine the polling URL for Method '%s'", m)
+		}
+		if err == nil {
+			t.Errorf("azure: newPollingRequest failed to return an error even though it could not determine the polling URL for Method '%s'", m)
+		}
+	}
+}
+
+func TestNewPollingRequest_ReturnsAnErrorWhenPrepareFails(t *testing.T) {
+	isOperationResource := false
+	resp := newAsynchronousResponse()
+	resp.Header.Set(http.CanonicalHeaderKey(headerAsyncOperation), mocks.TestBadURL)
+
+	_, err := newPollingRequest(resp, &isOperationResource)
+	if err == nil {
+		t.Error("azure: newPollingRequest failed to return an error when Prepare fails")
+	}
+}
+
+func TestNewPollingRequest_DoesNotReturnARequestWhenPrepareFails(t *testing.T) {
+	isOperationResource := false
+	resp := newAsynchronousResponse()
+	resp.Header.Set(http.CanonicalHeaderKey(headerAsyncOperation), mocks.TestBadURL)
+
+	req, _ := newPollingRequest(resp, &isOperationResource)
+	if req != nil {
+		t.Error("azure: newPollingRequest returned an http.Request when Prepare failed")
+	}
+}
+
+func TestNewPollingRequest_ReturnsAGetRequest(t *testing.T) {
+	isOperationResource := false
+	resp := newAsynchronousResponse()
+
+	req, _ := newPollingRequest(resp, &isOperationResource)
+	if req.Method != "GET" {
+		t.Errorf("azure: newPollingRequest did not create an HTTP GET request -- actual method %v", req.Method)
 	}
 }
 
@@ -185,7 +399,7 @@ func TestDoPollForAsynchronous_IgnoresUnspecifiedStatusCodes(t *testing.T) {
 	client := mocks.NewSender()
 
 	r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
-		DoPollForAsynchronous(time.Duration(0), time.Duration(0)))
+		DoPollForAsynchronous(time.Duration(0)))
 
 	if client.Attempts() != 1 {
 		t.Errorf("azure: DoPollForAsynchronous polled for unspecified status code")
@@ -200,7 +414,7 @@ func TestDoPollForAsynchronous_PollsForSpecifiedStatusCodes(t *testing.T) {
 	client.AppendResponse(newAsynchronousResponse())
 
 	r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
-		DoPollForAsynchronous(time.Millisecond, time.Millisecond))
+		DoPollForAsynchronous(time.Millisecond))
 
 	if client.Attempts() != 2 {
 		t.Errorf("azure: DoPollForAsynchronous failed to poll for specified status code")
@@ -214,17 +428,23 @@ func TestDoPollForAsynchronous_CanBeCanceled(t *testing.T) {
 	cancel := make(chan struct{})
 	delay := 5 * time.Second
 
+	r1 := newAsynchronousResponse()
+
 	client := mocks.NewSender()
-	client.AppendResponse(newAsynchronousResponse())
+	client.AppendResponse(r1)
 	client.AppendAndRepeatResponse(newOperationResourceResponse("Busy"), -1)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 	start := time.Now()
 	go func() {
+		req := mocks.NewRequest()
+		req.Cancel = cancel
+
 		wg.Done()
-		r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
-			DoPollForAsynchronous(time.Millisecond, time.Millisecond))
+
+		r, _ := autorest.SendWithSender(client, req,
+			DoPollForAsynchronous(10*time.Second))
 		autorest.Respond(r,
 			autorest.ByClosing())
 	}()
@@ -238,8 +458,11 @@ func TestDoPollForAsynchronous_CanBeCanceled(t *testing.T) {
 
 func TestDoPollForAsynchronous_ClosesAllNonreturnedResponseBodiesWhenPolling(t *testing.T) {
 	r1 := newAsynchronousResponse()
+	b1 := r1.Body.(*mocks.Body)
 	r2 := newOperationResourceResponse("busy")
-	r3 := newOperationResourceResponse(OperationSucceeded)
+	b2 := r2.Body.(*mocks.Body)
+	r3 := newOperationResourceResponse(operationSucceeded)
+	b3 := r3.Body.(*mocks.Body)
 
 	client := mocks.NewSender()
 	client.AppendResponse(r1)
@@ -247,9 +470,9 @@ func TestDoPollForAsynchronous_ClosesAllNonreturnedResponseBodiesWhenPolling(t *
 	client.AppendResponse(r3)
 
 	r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
-		DoPollForAsynchronous(time.Millisecond, time.Millisecond))
+		DoPollForAsynchronous(time.Millisecond))
 
-	if r1.Body.(*mocks.Body).IsOpen() || r2.Body.(*mocks.Body).CloseAttempts() < 2 {
+	if b1.IsOpen() || b2.IsOpen() || b3.IsOpen() {
 		t.Errorf("azure: DoPollForAsynchronous did not close unreturned response bodies")
 	}
 
@@ -260,7 +483,7 @@ func TestDoPollForAsynchronous_ClosesAllNonreturnedResponseBodiesWhenPolling(t *
 func TestDoPollForAsynchronous_LeavesLastResponseBodyOpen(t *testing.T) {
 	r1 := newAsynchronousResponse()
 	r2 := newOperationResourceResponse("busy")
-	r3 := newOperationResourceResponse(OperationSucceeded)
+	r3 := newOperationResourceResponse(operationSucceeded)
 
 	client := mocks.NewSender()
 	client.AppendResponse(r1)
@@ -268,10 +491,31 @@ func TestDoPollForAsynchronous_LeavesLastResponseBodyOpen(t *testing.T) {
 	client.AppendResponse(r3)
 
 	r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
-		DoPollForAsynchronous(time.Millisecond, time.Millisecond))
+		DoPollForAsynchronous(time.Millisecond))
 
-	if !r.Body.(*mocks.Body).IsOpen() {
-		t.Errorf("azure: DoPollForAsynchronous did not leave open the body of the last response")
+	b, err := ioutil.ReadAll(r.Body)
+	if len(b) <= 0 || err != nil {
+		t.Errorf("azure: DoPollForAsynchronous did not leave open the body of the last response - Error='%v'", err)
+	}
+
+	autorest.Respond(r,
+		autorest.ByClosing())
+}
+
+func TestDoPollForAsynchronous_DoesNotPollIfOriginalRequestReturnedAnError(t *testing.T) {
+	r1 := newAsynchronousResponse()
+	r2 := newOperationResourceResponse("busy")
+
+	client := mocks.NewSender()
+	client.AppendResponse(r1)
+	client.AppendResponse(r2)
+	client.SetError(fmt.Errorf("Faux Error"))
+
+	r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
+		DoPollForAsynchronous(time.Millisecond))
+
+	if client.Attempts() != 1 {
+		t.Errorf("azure: DoPollForAsynchronous tried to poll after receiving an error")
 	}
 
 	autorest.Respond(r,
@@ -280,7 +524,7 @@ func TestDoPollForAsynchronous_LeavesLastResponseBodyOpen(t *testing.T) {
 
 func TestDoPollForAsynchronous_DoesNotPollIfCreatingOperationRequestFails(t *testing.T) {
 	r1 := newAsynchronousResponse()
-	mocks.SetResponseHeader(r1, http.CanonicalHeaderKey(HeaderAsyncOperation), mocks.TestBadURL)
+	mocks.SetResponseHeader(r1, http.CanonicalHeaderKey(headerAsyncOperation), mocks.TestBadURL)
 	r2 := newOperationResourceResponse("busy")
 
 	client := mocks.NewSender()
@@ -288,7 +532,7 @@ func TestDoPollForAsynchronous_DoesNotPollIfCreatingOperationRequestFails(t *tes
 	client.AppendAndRepeatResponse(r2, 2)
 
 	r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
-		DoPollForAsynchronous(time.Millisecond, time.Millisecond))
+		DoPollForAsynchronous(time.Millisecond))
 
 	if client.Attempts() > 1 {
 		t.Errorf("azure: DoPollForAsynchronous polled with an invalidly formed operation request")
@@ -309,7 +553,7 @@ func TestDoPollForAsynchronous_StopsPollingAfterAnError(t *testing.T) {
 	client.SetEmitErrorAfter(2)
 
 	r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
-		DoPollForAsynchronous(time.Millisecond, time.Millisecond))
+		DoPollForAsynchronous(time.Millisecond))
 
 	if client.Attempts() > 3 {
 		t.Errorf("azure: DoPollForAsynchronous failed to stop polling after receiving an error")
@@ -326,7 +570,7 @@ func TestDoPollForAsynchronous_ReturnsPollingError(t *testing.T) {
 	client.SetEmitErrorAfter(1)
 
 	r, err := autorest.SendWithSender(client, mocks.NewRequest(),
-		DoPollForAsynchronous(time.Millisecond, time.Millisecond))
+		DoPollForAsynchronous(time.Millisecond))
 
 	if err == nil {
 		t.Errorf("azure: DoPollForAsynchronous failed to return error from polling")
@@ -339,7 +583,7 @@ func TestDoPollForAsynchronous_ReturnsPollingError(t *testing.T) {
 func TestDoPollForAsynchronous_PollsUntilOperationResourceHasTerminated(t *testing.T) {
 	r1 := newAsynchronousResponse()
 	r2 := newOperationResourceResponse("busy")
-	r3 := newOperationResourceResponse(OperationCanceled)
+	r3 := newOperationResourceResponse(operationCanceled)
 
 	client := mocks.NewSender()
 	client.AppendResponse(r1)
@@ -347,7 +591,7 @@ func TestDoPollForAsynchronous_PollsUntilOperationResourceHasTerminated(t *testi
 	client.AppendAndRepeatResponse(r3, 1)
 
 	r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
-		DoPollForAsynchronous(time.Millisecond, time.Millisecond))
+		DoPollForAsynchronous(time.Millisecond))
 
 	if client.Attempts() < 4 {
 		t.Errorf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
@@ -360,7 +604,7 @@ func TestDoPollForAsynchronous_PollsUntilOperationResourceHasTerminated(t *testi
 func TestDoPollForAsynchronous_StopsPollingWhenOperationResourceHasTerminated(t *testing.T) {
 	r1 := newAsynchronousResponse()
 	r2 := newOperationResourceResponse("busy")
-	r3 := newOperationResourceResponse(OperationCanceled)
+	r3 := newOperationResourceResponse(operationCanceled)
 
 	client := mocks.NewSender()
 	client.AppendResponse(r1)
@@ -368,7 +612,7 @@ func TestDoPollForAsynchronous_StopsPollingWhenOperationResourceHasTerminated(t 
 	client.AppendAndRepeatResponse(r3, 2)
 
 	r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
-		DoPollForAsynchronous(time.Millisecond, time.Millisecond))
+		DoPollForAsynchronous(time.Millisecond))
 
 	if client.Attempts() > 4 {
 		t.Errorf("azure: DoPollForAsynchronous failed to stop after receiving a terminated OperationResource")
@@ -381,7 +625,7 @@ func TestDoPollForAsynchronous_StopsPollingWhenOperationResourceHasTerminated(t 
 func TestDoPollForAsynchronous_ReturnsAnErrorForCanceledOperations(t *testing.T) {
 	r1 := newAsynchronousResponse()
 	r2 := newOperationResourceResponse("busy")
-	r3 := newOperationResourceErrorResponse(OperationCanceled)
+	r3 := newOperationResourceErrorResponse(operationCanceled)
 
 	client := mocks.NewSender()
 	client.AppendResponse(r1)
@@ -389,9 +633,9 @@ func TestDoPollForAsynchronous_ReturnsAnErrorForCanceledOperations(t *testing.T)
 	client.AppendAndRepeatResponse(r3, 1)
 
 	r, err := autorest.SendWithSender(client, mocks.NewRequest(),
-		DoPollForAsynchronous(time.Millisecond, time.Millisecond))
+		DoPollForAsynchronous(time.Millisecond))
 
-	if err == nil || !strings.Contains(fmt.Sprintf("%v", err), "BadArgument") {
+	if err == nil || !strings.Contains(fmt.Sprintf("%v", err), "Canceled") {
 		t.Errorf("azure: DoPollForAsynchronous failed to return an appropriate error for a canceled OperationResource")
 	}
 
@@ -402,7 +646,7 @@ func TestDoPollForAsynchronous_ReturnsAnErrorForCanceledOperations(t *testing.T)
 func TestDoPollForAsynchronous_ReturnsAnErrorForFailedOperations(t *testing.T) {
 	r1 := newAsynchronousResponse()
 	r2 := newOperationResourceResponse("busy")
-	r3 := newOperationResourceErrorResponse(OperationFailed)
+	r3 := newOperationResourceErrorResponse(operationFailed)
 
 	client := mocks.NewSender()
 	client.AppendResponse(r1)
@@ -410,9 +654,9 @@ func TestDoPollForAsynchronous_ReturnsAnErrorForFailedOperations(t *testing.T) {
 	client.AppendAndRepeatResponse(r3, 1)
 
 	r, err := autorest.SendWithSender(client, mocks.NewRequest(),
-		DoPollForAsynchronous(time.Millisecond, time.Millisecond))
+		DoPollForAsynchronous(time.Millisecond))
 
-	if err == nil || !strings.Contains(fmt.Sprintf("%v", err), "BadArgument") {
+	if err == nil || !strings.Contains(fmt.Sprintf("%v", err), "Failed") {
 		t.Errorf("azure: DoPollForAsynchronous failed to return an appropriate error for a canceled OperationResource")
 	}
 
@@ -423,7 +667,7 @@ func TestDoPollForAsynchronous_ReturnsAnErrorForFailedOperations(t *testing.T) {
 func TestDoPollForAsynchronous_ReturnsNoErrorForSuccessfulOperations(t *testing.T) {
 	r1 := newAsynchronousResponse()
 	r2 := newOperationResourceResponse("busy")
-	r3 := newOperationResourceErrorResponse(OperationSucceeded)
+	r3 := newOperationResourceErrorResponse(operationSucceeded)
 
 	client := mocks.NewSender()
 	client.AppendResponse(r1)
@@ -431,7 +675,7 @@ func TestDoPollForAsynchronous_ReturnsNoErrorForSuccessfulOperations(t *testing.
 	client.AppendAndRepeatResponse(r3, 1)
 
 	r, err := autorest.SendWithSender(client, mocks.NewRequest(),
-		DoPollForAsynchronous(time.Millisecond, time.Millisecond))
+		DoPollForAsynchronous(time.Millisecond))
 
 	if err != nil {
 		t.Errorf("azure: DoPollForAsynchronous returned an error for a successful OperationResource")
@@ -444,8 +688,9 @@ func TestDoPollForAsynchronous_ReturnsNoErrorForSuccessfulOperations(t *testing.
 func TestDoPollForAsynchronous_StopsPollingIfItReceivesAnInvalidOperationResource(t *testing.T) {
 	r1 := newAsynchronousResponse()
 	r2 := newOperationResourceResponse("busy")
-	r3 := mocks.NewResponseWithContent(operationResourceIllegal)
-	r4 := newOperationResourceResponse(OperationSucceeded)
+	r3 := newOperationResourceResponse("busy")
+	r3.Body = mocks.NewBody(operationResourceIllegal)
+	r4 := newOperationResourceResponse(operationSucceeded)
 
 	client := mocks.NewSender()
 	client.AppendResponse(r1)
@@ -454,10 +699,10 @@ func TestDoPollForAsynchronous_StopsPollingIfItReceivesAnInvalidOperationResourc
 	client.AppendAndRepeatResponse(r4, 1)
 
 	r, err := autorest.SendWithSender(client, mocks.NewRequest(),
-		DoPollForAsynchronous(time.Millisecond, time.Millisecond))
+		DoPollForAsynchronous(time.Millisecond))
 
 	if client.Attempts() > 4 {
-		t.Errorf("azure: DoPollForAsynchronous failed to polling after receiving an invalid OperationResource")
+		t.Errorf("azure: DoPollForAsynchronous failed to stop polling after receiving an invalid OperationResource")
 	}
 	if err == nil {
 		t.Errorf("azure: DoPollForAsynchronous failed to return an error after receving an invalid OperationResource")
@@ -467,17 +712,31 @@ func TestDoPollForAsynchronous_StopsPollingIfItReceivesAnInvalidOperationResourc
 		autorest.ByClosing())
 }
 
-func newAsynchronousResponse() *http.Response {
-	r := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
-	mocks.SetResponseHeader(r, http.CanonicalHeaderKey(HeaderAsyncOperation), mocks.TestURL)
-	mocks.SetRetryHeader(r, retryDelay)
-	return r
-}
-
 const (
 	operationResourceIllegal = `
 	This is not JSON and should fail...badly.
-`
+	`
+
+	pollingStateFormat = `
+	{
+		"unused" : {
+			"somefield" : 42
+		},
+		"properties" : {
+			"provisioningState": "%s"
+		}
+	}
+	`
+
+	pollingStateEmpty = `
+	{
+		"unused" : {
+			"somefield" : 42
+		},
+		"properties" : {
+		}
+	}
+	`
 
 	operationResourceFormat = `
 	{
@@ -490,7 +749,7 @@ const (
 
 		"properties" : {}
 	}
-`
+	`
 
 	operationResourceErrorFormat = `
 	{
@@ -507,13 +766,27 @@ const (
 			"message" : "The provided database 'foo' has an invalid username."
 		}
 	}
-`
+	`
 )
 
+func newAsynchronousResponse() *http.Response {
+	r := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
+	r.Body = mocks.NewBody(fmt.Sprintf(pollingStateFormat, operationInProgress))
+	mocks.SetResponseHeader(r, http.CanonicalHeaderKey(headerAsyncOperation), mocks.TestAzureAsyncURL)
+	mocks.SetResponseHeader(r, http.CanonicalHeaderKey(autorest.HeaderLocation), mocks.TestLocationURL)
+	mocks.SetRetryHeader(r, retryDelay)
+	r.Request = mocks.NewRequestForURL(mocks.TestURL)
+	return r
+}
+
 func newOperationResourceResponse(status string) *http.Response {
-	return mocks.NewResponseWithContent(fmt.Sprintf(operationResourceFormat, status))
+	r := newAsynchronousResponse()
+	r.Body = mocks.NewBody(fmt.Sprintf(operationResourceFormat, status))
+	return r
 }
 
 func newOperationResourceErrorResponse(status string) *http.Response {
-	return mocks.NewResponseWithContent(fmt.Sprintf(operationResourceErrorFormat, status))
+	r := newAsynchronousResponse()
+	r.Body = mocks.NewBody(fmt.Sprintf(operationResourceErrorFormat, status))
+	return r
 }

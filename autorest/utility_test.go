@@ -1,12 +1,12 @@
 package autorest
 
 import (
+	"bytes"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"net/http"
 	"reflect"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -84,6 +84,56 @@ func TestCopyAndDecodeAlwaysReturnsACopy(t *testing.T) {
 	}
 }
 
+func TestTeeReadCloser_Copies(t *testing.T) {
+	v := &mocks.T{}
+	r := mocks.NewResponseWithContent(jsonT)
+	b := &bytes.Buffer{}
+
+	r.Body = TeeReadCloser(r.Body, b)
+
+	err := Respond(r,
+		ByUnmarshallingJSON(v),
+		ByClosing())
+	if err != nil {
+		t.Errorf("autorest: TeeReadCloser returned an unexpected error -- %v", err)
+	}
+	if b.String() != jsonT {
+		t.Errorf("autorest: TeeReadCloser failed to copy the bytes read")
+	}
+}
+
+func TestTeeReadCloser_PassesReadErrors(t *testing.T) {
+	v := &mocks.T{}
+	r := mocks.NewResponseWithContent(jsonT)
+
+	r.Body.(*mocks.Body).Close()
+	r.Body = TeeReadCloser(r.Body, &bytes.Buffer{})
+
+	err := Respond(r,
+		ByUnmarshallingJSON(v),
+		ByClosing())
+	if err == nil {
+		t.Errorf("autorest: TeeReadCloser failed to return the expected error")
+	}
+}
+
+func TestTeeReadCloser_ClosesWrappedReader(t *testing.T) {
+	v := &mocks.T{}
+	r := mocks.NewResponseWithContent(jsonT)
+
+	b := r.Body.(*mocks.Body)
+	r.Body = TeeReadCloser(r.Body, &bytes.Buffer{})
+	err := Respond(r,
+		ByUnmarshallingJSON(v),
+		ByClosing())
+	if err != nil {
+		t.Errorf("autorest: TeeReadCloser returned an unexpected error -- %v", err)
+	}
+	if b.IsOpen() {
+		t.Errorf("autorest: TeeReadCloser failed to close the nested io.ReadCloser")
+	}
+}
+
 func TestContainsIntFindsValue(t *testing.T) {
 	ints := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	v := 5
@@ -145,165 +195,6 @@ func TestEnsureStrings(t *testing.T) {
 	v := ensureValueStrings(m)
 	if !reflect.DeepEqual(v, r) {
 		t.Errorf("autorest: ensureValueStrings returned %v\n", v)
-	}
-}
-
-func Test_readBool(t *testing.T) {
-	m := map[string]bool{
-		"true":  true,
-		"True":  true,
-		"false": false,
-		"False": false,
-	}
-	for s, expected := range m {
-		b, err := readBool(strings.NewReader(s))
-		if err != nil {
-			t.Errorf("autorest: readBool returned an unexpected error -- %v", err)
-		}
-		if b != expected {
-			t.Errorf("autorest: readBool failed to parse value -- expected %v, received %v", expected, b)
-		}
-	}
-}
-
-func Test_readBoolFailsWithInvalidString(t *testing.T) {
-	_, err := readBool(strings.NewReader("Not a Boolean"))
-	if err == nil {
-		t.Errorf("autorest: readBool failed to return an error for an invalid string")
-	}
-}
-
-func Test_readBoolFailsWithBadReader(t *testing.T) {
-	r := mocks.NewBody("Some content")
-	r.Close()
-	_, err := readBool(r)
-	if err == nil {
-		t.Errorf("autorest: readBool failed to return an error with an invalid io.Reader")
-	}
-}
-
-func Test_readFloat32(t *testing.T) {
-	for _, ch := range []byte{'e', 'E', 'f', 'g', 'G'} {
-		f1 := float32(123456.789)
-		f2, err := readFloat32(strings.NewReader(strconv.FormatFloat(float64(f1), ch, -1, 32)))
-		if err != nil {
-			t.Errorf("autorest: readFloat32 returned an unexpected error for fmt %c -- %v", ch, err)
-		}
-		if f1 != f2 {
-			t.Errorf("autorest: readFloat32 failed to parse value using fmt %v -- expected %v, received %v", ch, f2, f1)
-		}
-	}
-}
-
-func Test_readFloat32FailsWithInvalidString(t *testing.T) {
-	_, err := readFloat32(strings.NewReader("Not a Float32"))
-	if err == nil {
-		t.Errorf("autorest: readFloat32 failed to return an error for an invalid string")
-	}
-}
-
-func Test_readFloat32FailsWithBadReader(t *testing.T) {
-	r := mocks.NewBody("Some content")
-	r.Close()
-	_, err := readFloat32(r)
-	if err == nil {
-		t.Errorf("autorest: readFloat32 failed to return an error with an invalid io.Reader")
-	}
-}
-
-func Test_readFloat64(t *testing.T) {
-	for _, ch := range []byte{'e', 'E', 'f', 'g', 'G'} {
-		f1 := float64(123456.789)
-		f2, err := readFloat64(strings.NewReader(strconv.FormatFloat(float64(f1), ch, -1, 64)))
-		if err != nil {
-			t.Errorf("autorest: readFloat64 returned an unexpected error for fmt %c -- %v", ch, err)
-		}
-		if f1 != f2 {
-			t.Errorf("autorest: readFloat64 failed to parse value using fmt %v -- expected %v, received %v", ch, f2, f1)
-		}
-	}
-}
-
-func Test_readFloat64FailsWithInvalidString(t *testing.T) {
-	_, err := readFloat64(strings.NewReader("Not a Float64"))
-	if err == nil {
-		t.Errorf("autorest: readFloat64 failed to return an error for an invalid string")
-	}
-}
-
-func Test_readFloat64FailsWithBadReader(t *testing.T) {
-	r := mocks.NewBody("Some content")
-	r.Close()
-	_, err := readFloat64(r)
-	if err == nil {
-		t.Errorf("autorest: readFloat64 failed to return an error with an invalid io.Reader")
-	}
-}
-
-func Test_readInt32(t *testing.T) {
-	for _, i1 := range []int32{-123, 123} {
-		i2, err := readInt32(strings.NewReader(strconv.FormatInt(int64(i1), 10)))
-		if err != nil {
-			t.Errorf("autorest: readFloat64 returned an unexpected error for %v -- %v", i1, err)
-		}
-		if i1 != i2 {
-			t.Errorf("autorest: readFloat64 failed to parse value -- expected %v, received %v", i2, i1)
-		}
-	}
-}
-
-func Test_readInt32FailsWithInvalidString(t *testing.T) {
-	_, err := readInt32(strings.NewReader("Not an Integer"))
-	if err == nil {
-		t.Errorf("autorest: readInt32 failed to return an error for an invalid string")
-	}
-}
-
-func Test_readInt32FailsWithBadReader(t *testing.T) {
-	r := mocks.NewBody("Some content")
-	r.Close()
-	_, err := readInt32(r)
-	if err == nil {
-		t.Errorf("autorest: readInt32 failed to return an error with an invalid io.Reader")
-	}
-}
-
-func Test_readInt64(t *testing.T) {
-	for _, i1 := range []int64{-123, 123} {
-		i2, err := readInt64(strings.NewReader(strconv.FormatInt(int64(i1), 10)))
-		if err != nil {
-			t.Errorf("autorest: readFloat64 returned an unexpected error for %v -- %v", i1, err)
-		}
-		if i1 != i2 {
-			t.Errorf("autorest: readFloat64 failed to parse value -- expected %v, received %v", i2, i1)
-		}
-	}
-}
-
-func Test_readInt64FailsWithInvalidString(t *testing.T) {
-	_, err := readInt64(strings.NewReader("Not an Integer"))
-	if err == nil {
-		t.Errorf("autorest: readInt64 failed to return an error for an invalid string")
-	}
-}
-
-func Test_readInt64FailsWithBadReader(t *testing.T) {
-	r := mocks.NewBody("Some content")
-	r.Close()
-	_, err := readInt64(r)
-	if err == nil {
-		t.Errorf("autorest: readInt64 failed to return an error with an invalid io.Reader")
-	}
-}
-
-func Test_readString(t *testing.T) {
-	s1 := "The string to return"
-	s2, err := readString(strings.NewReader(s1))
-	if err != nil {
-		t.Errorf("autorest: readString returned an error reading %v -- %v", s1, err)
-	}
-	if s1 != s2 {
-		t.Errorf("autorest: readString failed to read a string -- expected %v, received %v", s2, s1)
 	}
 }
 

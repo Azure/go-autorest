@@ -4,6 +4,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -19,7 +20,8 @@ func ParseTime(date string) (d Time, err error) {
 }
 
 func parseTime(date string, format string) (Time, error) {
-	d, err := time.Parse(format, date)
+	// Note: Convert the date first to uppercase since RFC3339 allows lower-case "t" and "z".
+	d, err := time.Parse(format, strings.ToUpper(date))
 	return Time{Time: d}, err
 }
 
