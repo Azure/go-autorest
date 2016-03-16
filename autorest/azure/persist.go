@@ -34,7 +34,7 @@ func SaveToken(path string, mode os.FileMode, token Token) error {
 		return fmt.Errorf("failed to create directory (%s) to store token in: %v", dir, err)
 	}
 
-	newFile, err := ioutil.TempFile(os.TempDir(), "token")
+	newFile, err := ioutil.TempFile(dir, "token")
 	if err != nil {
 		return fmt.Errorf("failed to create the temp file to write the token: %v", err)
 	}
@@ -49,7 +49,7 @@ func SaveToken(path string, mode os.FileMode, token Token) error {
 
 	// Atomic replace to avoid multi-writer file corruptions
 	if err := os.Rename(tempPath, path); err != nil {
-		return fmt.Errorf("failed to move temporary token to desired output location. source=(%s). destination=(%s). error = %v", tempPath, path, err)
+		return fmt.Errorf("failed to move temporary token to desired output location. src=%s dst=%s: %v", tempPath, path, err)
 	}
 	if err := os.Chmod(path, mode); err != nil {
 		return fmt.Errorf("failed to chmod the token file %s: %v", path, err)
