@@ -82,7 +82,9 @@ func (c *Sender) Do(r *http.Request) (resp *http.Response, err error) {
 	if len(c.responses) > 0 {
 		resp = c.responses[0]
 		if resp != nil {
-			resp.Body.(*Body).reset()
+			if b, ok := resp.Body.(*Body); ok {
+				b.reset()
+			}
 		}
 		c.repeatResponse[0]--
 		if c.repeatResponse[0] == 0 {
@@ -91,6 +93,9 @@ func (c *Sender) Do(r *http.Request) (resp *http.Response, err error) {
 		}
 	} else {
 		resp = NewResponse()
+	}
+	if resp != nil {
+		resp.Request = r
 	}
 
 	if c.emitErrorAfter > 0 {

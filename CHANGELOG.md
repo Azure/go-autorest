@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## v7.0.0
+- Reverted to only unmarshalling JSON, corrected handling of RFC3339 time strings
+- Added ByCopying responder with supporting TeeReadCloser
+- Rewrote Azure asynchronous handling
+
+The `json.Decoder` does not catch bad data as thoroughly as `json.Unmarshal`. Since
+`encoding/json` successfully deserializes all core types, and extended types normally provide
+their custom JSON serialization handlers, the code has been reverted back to using
+`json.Unmarshal`. The original change to use `json.Decode` was made to reduce duplicate
+code; there is no loss of function, and there is a gain in accuracy, by reverting.
+
+Additionally, Azure services indicate requests to be polled by multiple means. The existing code
+only checked for one of those (that is, the presence of the `Azure-AsyncOperation` header).
+The new code correctly covers all cases and aligns with the other Azure SDKs.
+
 ## v6.1.0
 - Introduced `date.ByUnmarshallingJSONDate` and `date.ByUnmarshallingJSONTime` to enable JSON encoded values.
 

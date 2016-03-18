@@ -21,6 +21,12 @@ const (
 
 	// TestURL is the URL used in tests.
 	TestURL = "https://microsoft.com/a/b/c/"
+
+	// TestAzureAsyncURL is a URL used in Azure asynchronous tests
+	TestAzureAsyncURL = "https://microsoft.com/a/b/c/async"
+
+	// TestLocationURL is a URL used in Azure asynchronous tests
+	TestLocationURL = "https://microsoft.com/a/b/c/location"
 )
 
 const (
