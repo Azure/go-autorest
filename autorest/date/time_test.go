@@ -15,9 +15,15 @@ func ExampleParseTime() {
 }
 
 func ExampleTime_MarshalBinary() {
-	ti, _ := ParseTime(rfc3339, "2001-02-03T04:05:06Z")
+	ti, err := ParseTime(rfc3339, "2001-02-03T04:05:06Z")
+	if err != nil {
+		fmt.Println(err)
+	}
 	d := Time{ti}
-	t, _ := d.MarshalBinary()
+	t, err := d.MarshalBinary()
+	if err != nil {
+		fmt.Println(err)
+	}
 	fmt.Println(string(t))
 	// Output: 2001-02-03T04:05:06Z
 }
@@ -26,8 +32,7 @@ func ExampleTime_UnmarshalBinary() {
 	d := Time{}
 	t := "2001-02-03T04:05:06Z"
 
-	err := d.UnmarshalBinary([]byte(t))
-	if err != nil {
+	if err := d.UnmarshalBinary([]byte(t)); err != nil {
 		fmt.Println(err)
 	}
 	fmt.Println(d)
@@ -35,8 +40,14 @@ func ExampleTime_UnmarshalBinary() {
 }
 
 func ExampleTime_MarshalJSON() {
-	d, _ := ParseTime(rfc3339, "2001-02-03T04:05:06Z")
-	j, _ := json.Marshal(d)
+	d, err := ParseTime(rfc3339, "2001-02-03T04:05:06Z")
+	if err != nil {
+		fmt.Println(err)
+	}
+	j, err := json.Marshal(d)
+	if err != nil {
+		fmt.Println(err)
+	}
 	fmt.Println(string(j))
 	// Output: "2001-02-03T04:05:06Z"
 }
@@ -45,12 +56,9 @@ func ExampleTime_UnmarshalJSON() {
 	var d struct {
 		Time Time `json:"datetime"`
 	}
-	j := `{
-    "datetime" : "2001-02-03T04:05:06Z"
-  }`
+	j := `{"datetime" : "2001-02-03T04:05:06Z"}`
 
-	err := json.Unmarshal([]byte(j), &d)
-	if err != nil {
+	if err := json.Unmarshal([]byte(j), &d); err != nil {
 		fmt.Println(err)
 	}
 	fmt.Println(d.Time)
@@ -58,8 +66,14 @@ func ExampleTime_UnmarshalJSON() {
 }
 
 func ExampleTime_MarshalText() {
-	d, _ := ParseTime(rfc3339, "2001-02-03T04:05:06Z")
-	t, _ := d.MarshalText()
+	d, err := ParseTime(rfc3339, "2001-02-03T04:05:06Z")
+	if err != nil {
+		fmt.Println(err)
+	}
+	t, err := d.MarshalText()
+	if err != nil {
+		fmt.Println(err)
+	}
 	fmt.Println(string(t))
 	// Output: 2001-02-03T04:05:06Z
 }
@@ -68,8 +82,7 @@ func ExampleTime_UnmarshalText() {
 	d := Time{}
 	t := "2001-02-03T04:05:06Z"
 
-	err := d.UnmarshalText([]byte(t))
-	if err != nil {
+	if err := d.UnmarshalText([]byte(t)); err != nil {
 		fmt.Println(err)
 	}
 	fmt.Println(d)
@@ -80,9 +93,8 @@ func TestUnmarshalTextforInvalidDate(t *testing.T) {
 	d := Time{}
 	dt := "2001-02-03T04:05:06AAA"
 
-	err := d.UnmarshalText([]byte(dt))
-	if err == nil {
-		t.Errorf("date: Time#Unmarshal failed for invalid date")
+	if err := d.UnmarshalText([]byte(dt)); err == nil {
+		t.Errorf("date: Time#Unmarshal was expecting error for invalid date")
 	}
 }
 
@@ -90,14 +102,16 @@ func TestUnmarshalJSONforInvalidDate(t *testing.T) {
 	d := Time{}
 	dt := `"2001-02-03T04:05:06AAA"`
 
-	err := d.UnmarshalJSON([]byte(dt))
-	if err == nil {
-		t.Errorf("date: Time#Unmarshal failed for invalid date")
+	if err := d.UnmarshalJSON([]byte(dt)); err == nil {
+		t.Errorf("date: Time#Unmarshal was expecting error for invalid date")
 	}
 }
 
 func TestTimeString(t *testing.T) {
-	ti, _ := ParseTime(rfc3339, "2001-02-03T04:05:06Z")
+	ti, err := ParseTime(rfc3339, "2001-02-03T04:05:06Z")
+	if err != nil {
+		fmt.Println(err)
+	}
 	d := Time{ti}
 	if d.String() != "2001-02-03T04:05:06Z" {
 		t.Errorf("date: Time#String failed (%v)", d.String())
@@ -120,8 +134,7 @@ func TestTimeBinaryRoundTrip(t *testing.T) {
 	}
 
 	d2 := Time{}
-	err = d2.UnmarshalBinary(t1)
-	if err != nil {
+	if err = d2.UnmarshalBinary(t1); err != nil {
 		t.Errorf("date: Time#UnmarshalBinary failed (%v)", err)
 	}
 
@@ -134,7 +147,7 @@ func TestTimeJSONRoundTrip(t *testing.T) {
 	type s struct {
 		Time Time `json:"datetime"`
 	}
-	var err error
+
 	ti, err := ParseTime(rfc3339, "2001-02-03T04:05:06Z")
 	d1 := s{Time: Time{ti}}
 	j, err := json.Marshal(d1)
@@ -143,8 +156,7 @@ func TestTimeJSONRoundTrip(t *testing.T) {
 	}
 
 	d2 := s{}
-	err = json.Unmarshal(j, &d2)
-	if err != nil {
+	if err = json.Unmarshal(j, &d2); err != nil {
 		t.Errorf("date: Time#UnmarshalJSON failed (%v)", err)
 	}
 
@@ -162,8 +174,7 @@ func TestTimeTextRoundTrip(t *testing.T) {
 	}
 
 	d2 := Time{}
-	err = d2.UnmarshalText(t1)
-	if err != nil {
+	if err = d2.UnmarshalText(t1); err != nil {
 		t.Errorf("date: Time#UnmarshalText failed (%v)", err)
 	}
 
@@ -178,11 +189,8 @@ func TestTimeToTime(t *testing.T) {
 	if err != nil {
 		t.Errorf("date: Time#ParseTime failed (%v)", err)
 	}
-	var v interface{} = d.ToTime()
-	switch v.(type) {
-	case time.Time:
-		return
-	default:
-		t.Errorf("date: Time#ToTime failed to return a time.Time")
+
+	if !(reflect.DeepEqual(d.ToTime(), ti)) {
+		t.Errorf("date: TimeRfc1123#ToTime Test failed to return a time.Time")
 	}
 }

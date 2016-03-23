@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	FullDate     = "2006-01-02"
-	FullDateJSON = `"2006-01-02"`
+	fullDate     = "2006-01-02"
+	fullDateJSON = `"2006-01-02"`
 	dateFormat   = "%04d-%02d-%02d"
 	jsonFormat   = `"%04d-%02d-%02d"`
 )
@@ -25,7 +25,7 @@ type Date struct {
 
 // ParseDate create a new Date from the passed string.
 func ParseDate(date string) (d Date, err error) {
-	return parseDate(date, FullDate)
+	return parseDate(date, fullDate)
 }
 
 func parseDate(date string, format string) (Date, error) {
@@ -54,11 +54,8 @@ func (d Date) MarshalJSON() (json []byte, err error) {
 // UnmarshalJSON reconstitutes the Date from a JSON string conforming to RFC3339 full-date (i.e.,
 // 2006-01-02).
 func (d *Date) UnmarshalJSON(data []byte) (err error) {
-	d.Time, err = time.Parse(FullDateJSON, string(data))
-	if err != nil {
-		return err
-	}
-	return nil
+	d.Time, err = time.Parse(fullDateJSON, string(data))
+	return err
 }
 
 // MarshalText preserves the Date as a byte array conforming to RFC3339 full-date (i.e.,
@@ -70,11 +67,8 @@ func (d Date) MarshalText() (text []byte, err error) {
 // UnmarshalText reconstitutes a Date saved as a byte array conforming to RFC3339 full-date (i.e.,
 // 2006-01-02).
 func (d *Date) UnmarshalText(data []byte) (err error) {
-	d.Time, err = time.Parse(FullDate, string(data))
-	if err != nil {
-		return err
-	}
-	return nil
+	d.Time, err = time.Parse(fullDate, string(data))
+	return err
 }
 
 // String returns the Date formatted as an RFC3339 full-date string (i.e., 2006-01-02).

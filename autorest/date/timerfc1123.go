@@ -10,9 +10,8 @@ const (
 	rfc1123     = time.RFC1123
 )
 
-// Time defines a type similar to time.Time but assumes a layout of RFC1123 date-time (i.e.,
+// TimeRfc1123 defines a type similar to time.Time but assumes a layout of RFC1123 date-time (i.e.,
 // Mon, 02 Jan 2006 15:04:05 MST).
-
 type TimeRfc1123 struct {
 	time.Time
 }
