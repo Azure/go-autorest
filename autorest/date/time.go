@@ -1,56 +1,18 @@
 package date
 
 import (
-	"github.com/Azure/go-autorest/autorest"
-	"io/ioutil"
-	"net/http"
-	"strings"
 	"time"
+)
+
+const (
+	rfc3339JSON = `"` + time.RFC3339Nano + `"`
+	rfc3339     = time.RFC3339Nano
 )
 
 // Time defines a type similar to time.Time but assumes a layout of RFC3339 date-time (i.e.,
 // 2006-01-02T15:04:05Z).
 type Time struct {
 	time.Time
-}
-
-// ParseTime creates a new Time from the passed string.
-func ParseTime(date string) (d Time, err error) {
-	return parseTime(date, rfc3339)
-}
-
-func parseTime(date string, format string) (Time, error) {
-	// Note: Convert the date first to uppercase since RFC3339 allows lower-case "t" and "z".
-	d, err := time.Parse(format, strings.ToUpper(date))
-	return Time{Time: d}, err
-}
-
-// ByUnmarshallingTime returns a RespondDecorator that decodes the http.Response Body into a Time
-// pointed to by t.
-func ByUnmarshallingTime(t *Time) autorest.RespondDecorator {
-	return byUnmarshallingTime(t, rfc3339)
-}
-
-// ByUnmarshallingJSONTime returns a RespondDecorator that decodes the http.Response Body into a Time
-// pointed to by t.
-func ByUnmarshallingJSONTime(t *Time) autorest.RespondDecorator {
-	return byUnmarshallingTime(t, rfc3339JSON)
-}
-
-func byUnmarshallingTime(t *Time, format string) autorest.RespondDecorator {
-	return func(r autorest.Responder) autorest.Responder {
-		return autorest.ResponderFunc(func(resp *http.Response) error {
-			err := r.Respond(resp)
-			if err == nil {
-				var b []byte
-				b, err = ioutil.ReadAll(resp.Body)
-				if err == nil {
-					*t, err = parseTime(string(b), format)
-				}
-			}
-			return err
-		})
-	}
 }
 
 // MarshalBinary preserves the Time as a byte array conforming to RFC3339 date-time (i.e.,
@@ -62,7 +24,7 @@ func (d Time) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary reconstitutes a Time saved as a byte array conforming to RFC3339 date-time
 // (i.e., 2006-01-02T15:04:05Z).
 func (d *Time) UnmarshalBinary(data []byte) error {
-	return d.Time.UnmarshalText(data)
+	return d.UnmarshalText(data)
 }
 
 // MarshalJSON preserves the Time as a JSON string conforming to RFC3339 date-time (i.e.,
@@ -73,27 +35,35 @@ func (d Time) MarshalJSON() (json []byte, err error) {
 
 // UnmarshalJSON reconstitutes the Time from a JSON string conforming to RFC3339 date-time
 // (i.e., 2006-01-02T15:04:05Z).
-func (d *Time) UnmarshalJSON(data []byte) (err error) {
-	return d.Time.UnmarshalJSON(data)
+func (t *Time) UnmarshalJSON(data []byte) (err error) {
+	t.Time, err = ParseTime(rfc3339JSON, string(data))
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // MarshalText preserves the Time as a byte array conforming to RFC3339 date-time (i.e.,
 // 2006-01-02T15:04:05Z).
-func (d Time) MarshalText() (text []byte, err error) {
-	return d.Time.MarshalText()
+func (t Time) MarshalText() (text []byte, err error) {
+	return t.Time.MarshalText()
 }
 
 // UnmarshalText reconstitutes a Time saved as a byte array conforming to RFC3339 date-time
 // (i.e., 2006-01-02T15:04:05Z).
-func (d *Time) UnmarshalText(data []byte) (err error) {
-	return d.Time.UnmarshalText(data)
+func (t *Time) UnmarshalText(data []byte) (err error) {
+	t.Time, err = ParseTime(rfc3339, string(data))
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // String returns the Time formatted as an RFC3339 date-time string (i.e.,
 // 2006-01-02T15:04:05Z).
-func (d Time) String() string {
+func (t Time) String() string {
 	// Note: time.Time.String does not return an RFC3339 compliant string, time.Time.MarshalText does.
-	b, err := d.Time.MarshalText()
+	b, err := t.MarshalText()
 	if err != nil {
 		return ""
 	}
