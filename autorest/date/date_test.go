@@ -11,7 +11,7 @@ import (
 func ExampleParseDate() {
 	d, err := ParseDate("2001-02-03")
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(err)
 	}
 	fmt.Println(d)
 	// Output: 2001-02-03
@@ -20,12 +20,12 @@ func ExampleParseDate() {
 func ExampleDate() {
 	d, err := ParseDate("2001-02-03")
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(err)
 	}
 
 	t, err := time.Parse(time.RFC3339, "2001-02-04T00:00:00Z")
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(err)
 	}
 
 	// Date acts as time.Time when the receiver
@@ -47,11 +47,11 @@ func ExampleDate() {
 func ExampleDate_MarshalBinary() {
 	d, err := ParseDate("2001-02-03")
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(err)
 	}
 	t, err := d.MarshalBinary()
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(err)
 	}
 	fmt.Println(string(t))
 	// Output: 2001-02-03
@@ -71,11 +71,11 @@ func ExampleDate_UnmarshalBinary() {
 func ExampleDate_MarshalJSON() {
 	d, err := ParseDate("2001-02-03")
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(err)
 	}
 	j, err := json.Marshal(d)
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(err)
 	}
 	fmt.Println(string(j))
 	// Output: "2001-02-03"
@@ -97,11 +97,11 @@ func ExampleDate_UnmarshalJSON() {
 func ExampleDate_MarshalText() {
 	d, err := ParseDate("2001-02-03")
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(err)
 	}
 	t, err := d.MarshalText()
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(err)
 	}
 	fmt.Println(string(t))
 	// Output: 2001-02-03
@@ -121,7 +121,7 @@ func ExampleDate_UnmarshalText() {
 func TestDateString(t *testing.T) {
 	d, err := ParseDate("2001-02-03")
 	if err != nil {
-		t.Errorf("date: String failed (%v)", err.Error())
+		t.Errorf("date: String failed (%v)", err)
 	}
 	if d.String() != "2001-02-03" {
 		t.Errorf("date: String failed (%v)", d.String())
@@ -130,6 +130,9 @@ func TestDateString(t *testing.T) {
 
 func TestDateBinaryRoundTrip(t *testing.T) {
 	d1, err := ParseDate("2001-02-03")
+	if err != nil {
+		t.Errorf("date: ParseDate failed (%v)", err)
+	}
 	t1, err := d1.MarshalBinary()
 	if err != nil {
 		t.Errorf("date: MarshalBinary failed (%v)", err)
@@ -152,6 +155,9 @@ func TestDateJSONRoundTrip(t *testing.T) {
 	var err error
 	d1 := s{}
 	d1.Date, err = ParseDate("2001-02-03")
+	if err != nil {
+		t.Errorf("date: ParseDate failed (%v)", err)
+	}
 
 	j, err := json.Marshal(d1)
 	if err != nil {
@@ -170,11 +176,13 @@ func TestDateJSONRoundTrip(t *testing.T) {
 
 func TestDateTextRoundTrip(t *testing.T) {
 	d1, err := ParseDate("2001-02-03")
+	if err != nil {
+		t.Errorf("date: ParseDate failed (%v)", err)
+	}
 	t1, err := d1.MarshalText()
 	if err != nil {
 		t.Errorf("date: MarshalText failed (%v)", err)
 	}
-
 	d2 := Date{}
 	if err = d2.UnmarshalText(t1); err != nil {
 		t.Errorf("date: UnmarshalText failed (%v)", err)
@@ -191,9 +199,7 @@ func TestDateToTime(t *testing.T) {
 	if err != nil {
 		t.Errorf("date: ParseDate failed (%v)", err)
 	}
-	if !(reflect.DeepEqual(d.ToTime(), d.Time)) {
-		t.Errorf("date: TimeRfc1123#ToTime Test failed to return a time.Time")
-	}
+	var _ time.Time = d.ToTime()
 }
 
 func TestDateUnmarshalJSONReturnsError(t *testing.T) {

@@ -127,6 +127,9 @@ func TestTimeStringReturnsEmptyStringForError(t *testing.T) {
 
 func TestTimeBinaryRoundTrip(t *testing.T) {
 	ti, err := ParseTime(rfc3339, "2001-02-03T04:05:06Z")
+	if err != nil {
+		t.Errorf("date: Time#ParseTime failed (%v)", err)
+	}
 	d1 := Time{ti}
 	t1, err := d1.MarshalBinary()
 	if err != nil {
@@ -149,6 +152,10 @@ func TestTimeJSONRoundTrip(t *testing.T) {
 	}
 
 	ti, err := ParseTime(rfc3339, "2001-02-03T04:05:06Z")
+	if err != nil {
+		t.Errorf("date: Time#ParseTime failed (%v)", err)
+	}
+
 	d1 := s{Time: Time{ti}}
 	j, err := json.Marshal(d1)
 	if err != nil {
@@ -167,6 +174,9 @@ func TestTimeJSONRoundTrip(t *testing.T) {
 
 func TestTimeTextRoundTrip(t *testing.T) {
 	ti, err := ParseTime(rfc3339, "2001-02-03T04:05:06Z")
+	if err != nil {
+		t.Errorf("date: Time#ParseTime failed (%v)", err)
+	}
 	d1 := Time{Time: ti}
 	t1, err := d1.MarshalText()
 	if err != nil {
@@ -189,8 +199,5 @@ func TestTimeToTime(t *testing.T) {
 	if err != nil {
 		t.Errorf("date: Time#ParseTime failed (%v)", err)
 	}
-
-	if !(reflect.DeepEqual(d.ToTime(), ti)) {
-		t.Errorf("date: TimeRfc1123#ToTime Test failed to return a time.Time")
-	}
+	var _ time.Time = d.ToTime()
 }
