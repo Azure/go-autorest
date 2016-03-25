@@ -1,9 +1,10 @@
 # CHANGELOG
 
 ## v7.0.0
-- Reverted to only unmarshalling JSON, corrected handling of RFC3339 time strings
 - Added ByCopying responder with supporting TeeReadCloser
 - Rewrote Azure asynchronous handling
+- Reverted to only unmarshalling JSON
+- Corrected handling of RFC3339 time strings and added support for Rfc1123 time format
 
 The `json.Decoder` does not catch bad data as thoroughly as `json.Unmarshal`. Since
 `encoding/json` successfully deserializes all core types, and extended types normally provide
