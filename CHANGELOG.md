@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v7.0.1
+- Fixed empty JSON input error in ByUnmarshallingJSON
+- Fixed polling support for GET calls
+- Changed format name from TimeRfc1123 to TimeRFC1123
+
+
 ## v7.0.0
 - Added ByCopying responder with supporting TeeReadCloser
 - Rewrote Azure asynchronous handling

@@ -21,6 +21,7 @@ const (
 	methodPatch  = "PATCH"
 	methodPost   = "POST"
 	methodPut    = "PUT"
+	methodGet    = "GET"
 
 	operationInProgress string = "InProgress"
 	operationCanceled   string = "Canceled"
@@ -234,7 +235,7 @@ func newPollingRequest(resp *http.Response, isAzureAsyncOperation *bool) (*http.
 	// Lastly, requests against an existing resource, use the last request URI
 	if uri == "" {
 		req.Method = strings.ToUpper(req.Method)
-		if req.Method == methodPatch || req.Method == methodPut {
+		if req.Method == methodPatch || req.Method == methodPut || req.Method == methodGet {
 			uri = req.URL.String()
 		}
 	}
