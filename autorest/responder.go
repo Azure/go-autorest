@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 // Responder is the interface that wraps the Respond method.
@@ -125,7 +126,7 @@ func ByUnmarshallingJSON(v interface{}) RespondDecorator {
 				b, errInner := ioutil.ReadAll(resp.Body)
 				if errInner != nil {
 					err = fmt.Errorf("Error occurred reading http.Response#Body - Error = '%v'", errInner)
-				} else {
+				} else if len(strings.Trim(string(b), " ")) > 0 {
 					errInner = json.Unmarshal(b, v)
 					if errInner != nil {
 						err = fmt.Errorf("Error occurred unmarshalling JSON - Error = '%v' JSON = '%s'", errInner, string(b))

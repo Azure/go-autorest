@@ -366,6 +366,17 @@ func TestByUnmarshallingJSONIncludesJSONInErrors(t *testing.T) {
 	}
 }
 
+func TestByUnmarshallingJSONEmptyInput(t *testing.T) {
+	v := &mocks.T{}
+	r := mocks.NewResponseWithContent(``)
+	err := Respond(r,
+		ByUnmarshallingJSON(v),
+		ByClosing())
+	if err != nil {
+		t.Errorf("autorest: ByUnmarshallingJSON failed to return nil in case of empty JSON (%v)", err)
+	}
+}
+
 func TestByUnmarshallingXML(t *testing.T) {
 	v := &mocks.T{}
 	r := mocks.NewResponseWithContent(xmlT)
