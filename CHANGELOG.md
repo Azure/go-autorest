@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v7.0.3
+- Corrected DoPollForAsynchronous to properly handle the initial response
+
 ## v7.0.2
 - Corrected DoPollForAsynchronous to continue using the polling method first discovered
 

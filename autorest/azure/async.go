@@ -179,6 +179,18 @@ func (ps pollingState) hasTerminated() bool {
 //	service initially returned the Azure-AsyncOperation header. The responseFormat field notes
 //	the expected response format.
 func updatePollingState(resp *http.Response, ps *pollingState) error {
+	// Determine the response shape
+	// -- The first response will always be a provisioningStatus response; only the polling requests,
+	//    depending on the header returned, may be something otherwise.
+	var pt provisioningTracker
+	if ps.responseFormat == usesOperationResponse {
+		pt = &operationResource{}
+	} else {
+		pt = &provisioningStatus{}
+	}
+
+	// If this is the first request (that is, the polling response shape is unknown), determine how
+	// to poll and what to expect
 	if ps.responseFormat == formatIsUnknown {
 		req := resp.Request
 		if req == nil {
@@ -211,13 +223,7 @@ func updatePollingState(resp *http.Response, ps *pollingState) error {
 		}
 	}
 
-	var pt provisioningTracker
-	if ps.responseFormat == usesOperationResponse {
-		pt = &operationResource{}
-	} else {
-		pt = &provisioningStatus{}
-	}
-
+	// Read and interpret the response (saving the Body in case no polling is necessary)
 	b := &bytes.Buffer{}
 	err := autorest.Respond(resp,
 		autorest.ByCopying(b),
@@ -228,6 +234,7 @@ func updatePollingState(resp *http.Response, ps *pollingState) error {
 		return err
 	}
 
+	// Interpret the results
 	// -- Terminal states apply regardless
 	// -- Unknown states are per-service inprogress states
 	// -- Otherwise, infer state from HTTP status code

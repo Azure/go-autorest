@@ -613,10 +613,125 @@ func TestDoPollForAsynchronous_ReturnsPollingError(t *testing.T) {
 		autorest.ByClosing())
 }
 
+func TestDoPollForAsynchronous_PollsForStatusAccepted(t *testing.T) {
+	r1 := newAsynchronousResponse()
+	r1.Status = "202 Accepted"
+	r1.StatusCode = http.StatusAccepted
+	r2 := newOperationResourceResponse("busy")
+	r3 := newOperationResourceResponse(operationCanceled)
+
+	client := mocks.NewSender()
+	client.AppendResponse(r1)
+	client.AppendAndRepeatResponse(r2, 2)
+	client.AppendAndRepeatResponse(r3, 1)
+
+	r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
+		DoPollForAsynchronous(time.Millisecond))
+
+	if client.Attempts() < 4 {
+		t.Errorf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
+	}
+
+	autorest.Respond(r,
+		autorest.ByClosing())
+}
+
+func TestDoPollForAsynchronous_PollsForStatusCreated(t *testing.T) {
+	r1 := newAsynchronousResponse()
+	r1.Status = "201 Created"
+	r1.StatusCode = http.StatusCreated
+	r2 := newOperationResourceResponse("busy")
+	r3 := newOperationResourceResponse(operationCanceled)
+
+	client := mocks.NewSender()
+	client.AppendResponse(r1)
+	client.AppendAndRepeatResponse(r2, 2)
+	client.AppendAndRepeatResponse(r3, 1)
+
+	r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
+		DoPollForAsynchronous(time.Millisecond))
+
+	if client.Attempts() < 4 {
+		t.Errorf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
+	}
+
+	autorest.Respond(r,
+		autorest.ByClosing())
+}
+
+func TestDoPollForAsynchronous_PollsUntilProvisioningStatusTerminates(t *testing.T) {
+	r1 := newAsynchronousResponse()
+	r1.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+	r2 := newProvisioningStatusResponse("busy")
+	r2.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+	r3 := newProvisioningStatusResponse(operationCanceled)
+	r3.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+
+	client := mocks.NewSender()
+	client.AppendResponse(r1)
+	client.AppendAndRepeatResponse(r2, 2)
+	client.AppendAndRepeatResponse(r3, 1)
+
+	r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
+		DoPollForAsynchronous(time.Millisecond))
+
+	if client.Attempts() < 4 {
+		t.Errorf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
+	}
+
+	autorest.Respond(r,
+		autorest.ByClosing())
+}
+
+func TestDoPollForAsynchronous_PollsUntilProvisioningStatusSucceeds(t *testing.T) {
+	r1 := newAsynchronousResponse()
+	r1.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+	r2 := newProvisioningStatusResponse("busy")
+	r2.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+	r3 := newProvisioningStatusResponse(operationSucceeded)
+	r3.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+
+	client := mocks.NewSender()
+	client.AppendResponse(r1)
+	client.AppendAndRepeatResponse(r2, 2)
+	client.AppendAndRepeatResponse(r3, 1)
+
+	r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
+		DoPollForAsynchronous(time.Millisecond))
+
+	if client.Attempts() < 4 {
+		t.Errorf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
+	}
+
+	autorest.Respond(r,
+		autorest.ByClosing())
+}
+
 func TestDoPollForAsynchronous_PollsUntilOperationResourceHasTerminated(t *testing.T) {
 	r1 := newAsynchronousResponse()
 	r2 := newOperationResourceResponse("busy")
 	r3 := newOperationResourceResponse(operationCanceled)
+
+	client := mocks.NewSender()
+	client.AppendResponse(r1)
+	client.AppendAndRepeatResponse(r2, 2)
+	client.AppendAndRepeatResponse(r3, 1)
+
+	r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
+		DoPollForAsynchronous(time.Millisecond))
+
+	if client.Attempts() < 4 {
+		t.Errorf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
+	}
+
+	autorest.Respond(r,
+		autorest.ByClosing())
+}
+
+func TestDoPollForAsynchronous_PollsUntilOperationResourceHasSucceeded(t *testing.T) {
+	r1 := newAsynchronousResponse()
+	r2 := newOperationResourceResponse("busy")
+	r3 := newOperationResourceResponse(operationSucceeded)
 
 	client := mocks.NewSender()
 	client.AppendResponse(r1)
@@ -803,7 +918,7 @@ const (
 )
 
 func newAsynchronousResponse() *http.Response {
-	r := mocks.NewResponseWithStatus("202 Accepted", http.StatusAccepted)
+	r := mocks.NewResponseWithStatus("201 Created", http.StatusCreated)
 	r.Body = mocks.NewBody(fmt.Sprintf(pollingStateFormat, operationInProgress))
 	mocks.SetResponseHeader(r, http.CanonicalHeaderKey(headerAsyncOperation), mocks.TestAzureAsyncURL)
 	mocks.SetResponseHeader(r, http.CanonicalHeaderKey(autorest.HeaderLocation), mocks.TestLocationURL)
@@ -821,5 +936,11 @@ func newOperationResourceResponse(status string) *http.Response {
 func newOperationResourceErrorResponse(status string) *http.Response {
 	r := newAsynchronousResponse()
 	r.Body = mocks.NewBody(fmt.Sprintf(operationResourceErrorFormat, status))
+	return r
+}
+
+func newProvisioningStatusResponse(status string) *http.Response {
+	r := newAsynchronousResponse()
+	r.Body = mocks.NewBody(fmt.Sprintf(pollingStateFormat, status))
 	return r
 }
