@@ -155,241 +155,274 @@ func TestPollingState_HasTerminatedReturnsFalseForUnknownStates(t *testing.T) {
 	}
 }
 
-func TestNewPollingState_ReturnsAnErrorIfOneOccurs(t *testing.T) {
+func TestUpdatePollingState_ReturnsAnErrorIfOneOccurs(t *testing.T) {
 	resp := mocks.NewResponseWithContent(operationResourceIllegal)
-	_, err := newPollingState(resp, false)
+	err := updatePollingState(resp, &pollingState{})
 	if err == nil {
-		t.Errorf("azure: newPollingState failed to return an error after a JSON parsing error")
+		t.Errorf("azure: updatePollingState failed to return an error after a JSON parsing error")
 	}
 }
 
-func TestNewPollingState_ReturnsTerminatedForKnownProvisioningStates(t *testing.T) {
+func TestUpdatePollingState_ReturnsTerminatedForKnownProvisioningStates(t *testing.T) {
 	for _, state := range []string{operationSucceeded, operationCanceled, operationFailed} {
 		resp := mocks.NewResponseWithContent(fmt.Sprintf(pollingStateFormat, state))
 		resp.StatusCode = 42
-		ps, _ := newPollingState(resp, false)
+		ps := &pollingState{responseFormat: usesProvisioningStatus}
+		updatePollingState(resp, ps)
 		if !ps.hasTerminated() {
-			t.Errorf("azure: newPollingState failed to return a terminating pollingState for the '%s' state", state)
+			t.Errorf("azure: updatePollingState failed to return a terminating pollingState for the '%s' state", state)
 		}
 	}
 }
 
-func TestNewPollingState_ReturnsSuccessForSuccessfulProvisioningState(t *testing.T) {
+func TestUpdatePollingState_ReturnsSuccessForSuccessfulProvisioningState(t *testing.T) {
 	resp := mocks.NewResponseWithContent(fmt.Sprintf(pollingStateFormat, operationSucceeded))
 	resp.StatusCode = 42
-	ps, _ := newPollingState(resp, false)
+	ps := &pollingState{responseFormat: usesProvisioningStatus}
+	updatePollingState(resp, ps)
 	if !ps.hasSucceeded() {
-		t.Errorf("azure: newPollingState failed to return a successful pollingState for the '%s' state", operationSucceeded)
+		t.Errorf("azure: updatePollingState failed to return a successful pollingState for the '%s' state", operationSucceeded)
 	}
 }
 
-func TestNewPollingState_ReturnsInProgressForAllOtherProvisioningStates(t *testing.T) {
+func TestUpdatePollingState_ReturnsInProgressForAllOtherProvisioningStates(t *testing.T) {
 	s := "not a recognized state"
 	resp := mocks.NewResponseWithContent(fmt.Sprintf(pollingStateFormat, s))
 	resp.StatusCode = 42
-	ps, _ := newPollingState(resp, false)
+	ps := &pollingState{responseFormat: usesProvisioningStatus}
+	updatePollingState(resp, ps)
 	if ps.hasTerminated() {
-		t.Errorf("azure: newPollingState returned terminated for unknown state '%s'", s)
+		t.Errorf("azure: updatePollingState returned terminated for unknown state '%s'", s)
 	}
 }
 
-func TestNewPollingState_ReturnsSuccessWhenProvisioningStateFieldIsAbsentForSuccessStatusCodes(t *testing.T) {
+func TestUpdatePollingState_ReturnsSuccessWhenProvisioningStateFieldIsAbsentForSuccessStatusCodes(t *testing.T) {
 	for _, sc := range []int{http.StatusOK, http.StatusCreated, http.StatusNoContent} {
 		resp := mocks.NewResponseWithContent(pollingStateEmpty)
 		resp.StatusCode = sc
-		ps, _ := newPollingState(resp, false)
+		ps := &pollingState{responseFormat: usesProvisioningStatus}
+		updatePollingState(resp, ps)
 		if !ps.hasSucceeded() {
-			t.Errorf("azure: newPollingState failed to return success when the provisionState field is absent for Status Code %d", sc)
+			t.Errorf("azure: updatePollingState failed to return success when the provisionState field is absent for Status Code %d", sc)
 		}
 	}
 }
 
-func TestNewPollingState_ReturnsInProgressWhenProvisioningStateFieldIsAbsentForAccepted(t *testing.T) {
+func TestUpdatePollingState_ReturnsInProgressWhenProvisioningStateFieldIsAbsentForAccepted(t *testing.T) {
 	resp := mocks.NewResponseWithContent(pollingStateEmpty)
 	resp.StatusCode = http.StatusAccepted
-	ps, _ := newPollingState(resp, false)
+	ps := &pollingState{responseFormat: usesProvisioningStatus}
+	updatePollingState(resp, ps)
 	if ps.hasTerminated() {
-		t.Errorf("azure: newPollingState returned terminated when the provisionState field is absent for Status Code Accepted")
+		t.Errorf("azure: updatePollingState returned terminated when the provisionState field is absent for Status Code Accepted")
 	}
 }
 
-func TestNewPollingState_ReturnsFailedWhenProvisioningStateFieldIsAbsentForUnknownStatusCodes(t *testing.T) {
+func TestUpdatePollingState_ReturnsFailedWhenProvisioningStateFieldIsAbsentForUnknownStatusCodes(t *testing.T) {
 	resp := mocks.NewResponseWithContent(pollingStateEmpty)
 	resp.StatusCode = 42
-	ps, _ := newPollingState(resp, false)
+	ps := &pollingState{responseFormat: usesProvisioningStatus}
+	updatePollingState(resp, ps)
 	if !ps.hasTerminated() || ps.hasSucceeded() {
-		t.Errorf("azure: newPollingState did not return failed when the provisionState field is absent for an unknown Status Code")
+		t.Errorf("azure: updatePollingState did not return failed when the provisionState field is absent for an unknown Status Code")
 	}
 }
 
-func TestNewPollingState_ReturnsTerminatedForKnownOperationResourceStates(t *testing.T) {
+func TestUpdatePollingState_ReturnsTerminatedForKnownOperationResourceStates(t *testing.T) {
 	for _, state := range []string{operationSucceeded, operationCanceled, operationFailed} {
 		resp := mocks.NewResponseWithContent(fmt.Sprintf(operationResourceFormat, state))
 		resp.StatusCode = 42
-		ps, _ := newPollingState(resp, true)
+		ps := &pollingState{responseFormat: usesOperationResponse}
+		updatePollingState(resp, ps)
 		if !ps.hasTerminated() {
-			t.Errorf("azure: newPollingState failed to return a terminating pollingState for the '%s' state", state)
+			t.Errorf("azure: updatePollingState failed to return a terminating pollingState for the '%s' state", state)
 		}
 	}
 }
 
-func TestNewPollingState_ReturnsSuccessForSuccessfulOperationResourceState(t *testing.T) {
+func TestUpdatePollingState_ReturnsSuccessForSuccessfulOperationResourceState(t *testing.T) {
 	resp := mocks.NewResponseWithContent(fmt.Sprintf(operationResourceFormat, operationSucceeded))
 	resp.StatusCode = 42
-	ps, _ := newPollingState(resp, true)
+	ps := &pollingState{responseFormat: usesOperationResponse}
+	updatePollingState(resp, ps)
 	if !ps.hasSucceeded() {
-		t.Errorf("azure: newPollingState failed to return a successful pollingState for the '%s' state", operationSucceeded)
+		t.Errorf("azure: updatePollingState failed to return a successful pollingState for the '%s' state", operationSucceeded)
 	}
 }
 
-func TestNewPollingState_ReturnsInProgressForAllOtherOperationResourceStates(t *testing.T) {
+func TestUpdatePollingState_ReturnsInProgressForAllOtherOperationResourceStates(t *testing.T) {
 	s := "not a recognized state"
 	resp := mocks.NewResponseWithContent(fmt.Sprintf(operationResourceFormat, s))
 	resp.StatusCode = 42
-	ps, _ := newPollingState(resp, true)
+	ps := &pollingState{responseFormat: usesOperationResponse}
+	updatePollingState(resp, ps)
 	if ps.hasTerminated() {
-		t.Errorf("azure: newPollingState returned terminated for unknown state '%s'", s)
+		t.Errorf("azure: updatePollingState returned terminated for unknown state '%s'", s)
 	}
 }
 
-func TestNewPollingState_CopiesTheResponseBody(t *testing.T) {
+func TestUpdatePollingState_CopiesTheResponseBody(t *testing.T) {
 	s := fmt.Sprintf(pollingStateFormat, operationSucceeded)
 	resp := mocks.NewResponseWithContent(s)
 	resp.StatusCode = 42
-	newPollingState(resp, true)
+	ps := &pollingState{responseFormat: usesOperationResponse}
+	updatePollingState(resp, ps)
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		t.Errorf("azure: newPollingState failed to replace the http.Response Body -- Error='%v'", err)
+		t.Errorf("azure: updatePollingState failed to replace the http.Response Body -- Error='%v'", err)
 	}
 	if string(b) != s {
-		t.Errorf("azure: newPollingState failed to copy the http.Response Body -- Expected='%s' Received='%s'", s, string(b))
+		t.Errorf("azure: updatePollingState failed to copy the http.Response Body -- Expected='%s' Received='%s'", s, string(b))
 	}
 }
 
-func TestNewPollingState_ClosesTheOriginalResponseBody(t *testing.T) {
+func TestUpdatePollingState_ClosesTheOriginalResponseBody(t *testing.T) {
 	resp := mocks.NewResponse()
 	b := resp.Body.(*mocks.Body)
-	newPollingState(resp, false)
+	ps := &pollingState{responseFormat: usesProvisioningStatus}
+	updatePollingState(resp, ps)
 	if b.IsOpen() {
-		t.Error("azure: newPollingState failed to close the original http.Response Body")
+		t.Error("azure: updatePollingState failed to close the original http.Response Body")
 	}
 }
 
-func TestNewPollingRequest_FailsWhenResponseLacksRequest(t *testing.T) {
-	isOperationResource := false
+func TestUpdatePollingState_FailsWhenResponseLacksRequest(t *testing.T) {
 	resp := newAsynchronousResponse()
 	resp.Request = nil
 
-	_, err := newPollingRequest(resp, &isOperationResource)
+	ps := pollingState{}
+	err := updatePollingState(resp, &ps)
 	if err == nil {
-		t.Error("azure: newPollingRequest failed to return an error when the http.Response lacked the original http.Request")
+		t.Error("azure: updatePollingState failed to return an error when the http.Response lacked the original http.Request")
 	}
 }
 
-func TestNewPollingRequest_PrefersTheAzureAsyncOperationHeader(t *testing.T) {
-	isOperationResource := false
-	resp := newAsynchronousResponse()
+func TestUpdatePollingState_SetsTheResponseFormatWhenUsingTheAzureAsyncOperationHeader(t *testing.T) {
+	ps := pollingState{}
+	updatePollingState(newAsynchronousResponse(), &ps)
 
-	req, _ := newPollingRequest(resp, &isOperationResource)
-	if req.URL.String() != mocks.TestAzureAsyncURL {
-		t.Error("azure: newPollingRequest failed to prefer the Azure-AsyncOperation header")
+	if ps.responseFormat != usesOperationResponse {
+		t.Error("azure: updatePollingState failed to set the correct response format when using the Azure-AsyncOperation header")
 	}
 }
 
-func TestNewPollingRequest_ReturnsTrueWhenUsingTheAzureAsyncOperationHeader(t *testing.T) {
-	isOperationResource := false
-	resp := newAsynchronousResponse()
-
-	newPollingRequest(resp, &isOperationResource)
-	if !isOperationResource {
-		t.Error("azure: newPollingRequest failed to return true when using the Azure-AsyncOperation header")
-	}
-}
-
-func TestNewPollingRequest_PrefersLocationWhenTheAzureAsyncOperationHeaderMissing(t *testing.T) {
-	isOperationResource := false
+func TestUpdatePollingState_SetsTheResponseFormatWhenUsingTheAzureAsyncOperationHeaderIsMissing(t *testing.T) {
 	resp := newAsynchronousResponse()
 	resp.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
 
-	req, _ := newPollingRequest(resp, &isOperationResource)
-	if req.URL.String() != mocks.TestLocationURL {
-		t.Error("azure: newPollingRequest failed to prefer the Location header when the Azure-AsyncOperation header is missing")
+	ps := pollingState{}
+	updatePollingState(resp, &ps)
+
+	if ps.responseFormat != usesProvisioningStatus {
+		t.Error("azure: updatePollingState failed to set the correct response format when the Azure-AsyncOperation header is absent")
 	}
 }
 
-func TestNewPollingRequest_UsesTheObjectLocationIfAsyncHeadersAreMissing(t *testing.T) {
-	isOperationResource := false
+func TestUpdatePollingState_DoesNotChangeAnExistingReponseFormat(t *testing.T) {
+	resp := newAsynchronousResponse()
+	resp.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+
+	ps := pollingState{responseFormat: usesOperationResponse}
+	updatePollingState(resp, &ps)
+
+	if ps.responseFormat != usesOperationResponse {
+		t.Error("azure: updatePollingState failed to leave an existing response format setting")
+	}
+}
+
+func TestUpdatePollingState_PrefersTheAzureAsyncOperationHeader(t *testing.T) {
+	resp := newAsynchronousResponse()
+
+	ps := pollingState{}
+	updatePollingState(resp, &ps)
+
+	if ps.uri != mocks.TestAzureAsyncURL {
+		t.Error("azure: updatePollingState failed to prefer the Azure-AsyncOperation header")
+	}
+}
+
+func TestUpdatePollingState_PrefersLocationWhenTheAzureAsyncOperationHeaderMissing(t *testing.T) {
+	resp := newAsynchronousResponse()
+	resp.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+
+	ps := pollingState{}
+	updatePollingState(resp, &ps)
+
+	if ps.uri != mocks.TestLocationURL {
+		t.Error("azure: updatePollingState failed to prefer the Location header when the Azure-AsyncOperation header is missing")
+	}
+}
+
+func TestUpdatePollingState_UsesTheObjectLocationIfAsyncHeadersAreMissing(t *testing.T) {
 	resp := newAsynchronousResponse()
 	resp.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
 	resp.Header.Del(http.CanonicalHeaderKey(autorest.HeaderLocation))
 	resp.Request.Method = methodPatch
 
-	req, _ := newPollingRequest(resp, &isOperationResource)
-	if req.URL.String() != mocks.TestURL {
-		t.Error("azure: newPollingRequest failed to use the Object URL when the asynchronous headers are missing")
+	ps := pollingState{}
+	updatePollingState(resp, &ps)
+
+	if ps.uri != mocks.TestURL {
+		t.Error("azure: updatePollingState failed to use the Object URL when the asynchronous headers are missing")
 	}
 }
 
-func TestNewPollingRequest_RecognizesLowerCaseHTTPVerbs(t *testing.T) {
-	for _, m := range []string{"patch", "put"} {
-		isOperationResource := false
+func TestUpdatePollingState_RecognizesLowerCaseHTTPVerbs(t *testing.T) {
+	for _, m := range []string{"patch", "put", "get"} {
 		resp := newAsynchronousResponse()
 		resp.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
 		resp.Header.Del(http.CanonicalHeaderKey(autorest.HeaderLocation))
 		resp.Request.Method = m
 
-		req, _ := newPollingRequest(resp, &isOperationResource)
-		if req.URL.String() != mocks.TestURL {
-			t.Errorf("azure: newPollingRequest failed to recognize the lower-case HTTP verb '%s'", m)
+		ps := pollingState{}
+		updatePollingState(resp, &ps)
+
+		if ps.uri != mocks.TestURL {
+			t.Errorf("azure: updatePollingState failed to recognize the lower-case HTTP verb '%s'", m)
 		}
 	}
 }
 
-func TestNewPollingRequest_ReturnsAnErrorIfAsyncHeadersAreMissingForANewOrDeletedObject(t *testing.T) {
-	isOperationResource := false
+func TestUpdatePollingState_ReturnsAnErrorIfAsyncHeadersAreMissingForANewOrDeletedObject(t *testing.T) {
 	resp := newAsynchronousResponse()
 	resp.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
 	resp.Header.Del(http.CanonicalHeaderKey(autorest.HeaderLocation))
 
 	for _, m := range []string{methodDelete, methodPost} {
 		resp.Request.Method = m
-		req, err := newPollingRequest(resp, &isOperationResource)
-		if req != nil {
-			t.Errorf("azure: newPollingRequest returned an http.Request even though it could not determine the polling URL for Method '%s'", m)
-		}
+		err := updatePollingState(resp, &pollingState{})
 		if err == nil {
-			t.Errorf("azure: newPollingRequest failed to return an error even though it could not determine the polling URL for Method '%s'", m)
+			t.Errorf("azure: updatePollingState failed to return an error even though it could not determine the polling URL for Method '%s'", m)
 		}
 	}
 }
 
-func TestNewPollingRequest_ReturnsAnErrorWhenPrepareFails(t *testing.T) {
-	isOperationResource := false
+func TestNewPollingRequest_FailsWhenResponseLacksRequest(t *testing.T) {
 	resp := newAsynchronousResponse()
-	resp.Header.Set(http.CanonicalHeaderKey(headerAsyncOperation), mocks.TestBadURL)
+	resp.Request = nil
 
-	_, err := newPollingRequest(resp, &isOperationResource)
+	_, err := newPollingRequest(resp, pollingState{})
+	if err == nil {
+		t.Error("azure: newPollingRequest failed to return an error when the http.Response lacked the original http.Request")
+	}
+}
+
+func TestNewPollingRequest_ReturnsAnErrorWhenPrepareFails(t *testing.T) {
+	_, err := newPollingRequest(newAsynchronousResponse(), pollingState{responseFormat: usesOperationResponse, uri: mocks.TestBadURL})
 	if err == nil {
 		t.Error("azure: newPollingRequest failed to return an error when Prepare fails")
 	}
 }
 
 func TestNewPollingRequest_DoesNotReturnARequestWhenPrepareFails(t *testing.T) {
-	isOperationResource := false
-	resp := newAsynchronousResponse()
-	resp.Header.Set(http.CanonicalHeaderKey(headerAsyncOperation), mocks.TestBadURL)
-
-	req, _ := newPollingRequest(resp, &isOperationResource)
+	req, _ := newPollingRequest(newAsynchronousResponse(), pollingState{responseFormat: usesOperationResponse, uri: mocks.TestBadURL})
 	if req != nil {
 		t.Error("azure: newPollingRequest returned an http.Request when Prepare failed")
 	}
 }
 
 func TestNewPollingRequest_ReturnsAGetRequest(t *testing.T) {
-	isOperationResource := false
-	resp := newAsynchronousResponse()
-
-	req, _ := newPollingRequest(resp, &isOperationResource)
+	req, _ := newPollingRequest(newAsynchronousResponse(), pollingState{responseFormat: usesOperationResponse, uri: mocks.TestAzureAsyncURL})
 	if req.Method != "GET" {
 		t.Errorf("azure: newPollingRequest did not create an HTTP GET request -- actual method %v", req.Method)
 	}
