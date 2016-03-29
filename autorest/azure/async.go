@@ -41,26 +41,9 @@ func DoPollForAsynchronous(delay time.Duration) autorest.SendDecorator {
 				return resp, err
 			}
 
-			// Note:
-			// 	newPollingState maps the operation status -- retrieved from either a provisioningState
-			// 	field, the status field of an OperationResource, or inferred from the HTTP status code --
-			// 	into a well-known states. Since the process begins from the initial request, the state
-			//	always comes from either a the provisioningState returned or is inferred from the HTTP
-			//	status code. Subsequent requests will return an Azure OperationResource object if the
-			//	service returns the Azure-AsyncOperation header. The boolean, isAzureAsyncOperation,
-			//	conveys to newPollingState if it should expect a provisioningState field or an
-			//	OperationResource object.
-			//
-
-			// Ensure a cancel channel exists since the loop requires it and it is optional.
-			if resp.Request.Cancel == nil {
-				resp.Request.Cancel = make(chan struct{})
-			}
-
-			isAzureAsyncOperation := false
-			ps := pollingState{state: operationFailed}
+			ps := pollingState{}
 			for err == nil {
-				ps, err = newPollingState(resp, isAzureAsyncOperation)
+				err = updatePollingState(resp, &ps)
 				if err != nil {
 					break
 				}
@@ -71,7 +54,7 @@ func DoPollForAsynchronous(delay time.Duration) autorest.SendDecorator {
 					break
 				}
 
-				r, err = newPollingRequest(resp, &isAzureAsyncOperation)
+				r, err = newPollingRequest(resp, ps)
 				if err != nil {
 					return resp, err
 				}
@@ -118,7 +101,11 @@ func (oe operationError) Error() string {
 }
 
 type operationResource struct {
+	// Note:
+	// 	The specification states services should return the "id" field. However some return it as
+	// 	"operationId".
 	ID              string                 `json:"id"`
+	OperationID     string                 `json:"operationId"`
 	Name            string                 `json:"name"`
 	Status          string                 `json:"status"`
 	Properties      map[string]interface{} `json:"properties"`
@@ -160,10 +147,20 @@ func (ps provisioningStatus) hasTerminated() bool {
 	return hasTerminated(ps.state())
 }
 
+type pollingResponseFormat string
+
+const (
+	usesOperationResponse  pollingResponseFormat = "OperationResponse"
+	usesProvisioningStatus pollingResponseFormat = "ProvisioningStatus"
+	formatIsUnknown        pollingResponseFormat = ""
+)
+
 type pollingState struct {
-	state   string
-	code    string
-	message string
+	responseFormat pollingResponseFormat
+	uri            string
+	state          string
+	code           string
+	message        string
 }
 
 func (ps pollingState) hasSucceeded() bool {
@@ -174,11 +171,48 @@ func (ps pollingState) hasTerminated() bool {
 	return hasTerminated(ps.state)
 }
 
-func newPollingState(resp *http.Response, isAzureAsyncOperation bool) (pollingState, error) {
-	pollState := pollingState{state: operationFailed}
+//	updatePollingState maps the operation status -- retrieved from either a provisioningState
+// 	field, the status field of an OperationResource, or inferred from the HTTP status code --
+// 	into a well-known states. Since the process begins from the initial request, the state
+//	always comes from either a the provisioningState returned or is inferred from the HTTP
+//	status code. Subsequent requests will read an Azure OperationResource object if the
+//	service initially returned the Azure-AsyncOperation header. The responseFormat field notes
+//	the expected response format.
+func updatePollingState(resp *http.Response, ps *pollingState) error {
+	if ps.responseFormat == formatIsUnknown {
+		req := resp.Request
+		if req == nil {
+			return autorest.NewError("azure", "updatePollingState", "Azure Polling Error - Original HTTP request is missing")
+		}
+
+		// Prefer the Azure-AsyncOperation header
+		ps.uri = getAsyncOperation(resp)
+		if ps.uri != "" {
+			ps.responseFormat = usesOperationResponse
+		} else {
+			ps.responseFormat = usesProvisioningStatus
+		}
+
+		// Else, use the Location header
+		if ps.uri == "" {
+			ps.uri = autorest.GetLocation(resp)
+		}
+
+		// Lastly, requests against an existing resource, use the last request URI
+		if ps.uri == "" {
+			m := strings.ToUpper(req.Method)
+			if m == methodPatch || m == methodPut || m == methodGet {
+				ps.uri = req.URL.String()
+			}
+		}
+
+		if ps.uri == "" {
+			return autorest.NewError("azure", "updatePollingState", "Azure Polling Error - Unable to obtain polling URI for %s %s", req.Method, req.RequestURI)
+		}
+	}
 
 	var pt provisioningTracker
-	if isAzureAsyncOperation {
+	if ps.responseFormat == usesOperationResponse {
 		pt = &operationResource{}
 	} else {
 		pt = &provisioningStatus{}
@@ -191,64 +225,43 @@ func newPollingState(resp *http.Response, isAzureAsyncOperation bool) (pollingSt
 		autorest.ByClosing())
 	resp.Body = ioutil.NopCloser(b)
 	if err != nil {
-		return pollState, err
+		return err
 	}
 
 	// -- Terminal states apply regardless
 	// -- Unknown states are per-service inprogress states
 	// -- Otherwise, infer state from HTTP status code
 	if pt.hasTerminated() {
-		pollState.state = pt.state()
+		ps.state = pt.state()
 	} else if pt.state() != "" {
-		pollState.state = operationInProgress
+		ps.state = operationInProgress
 	} else {
 		switch resp.StatusCode {
 		case http.StatusAccepted:
-			pollState.state = operationInProgress
+			ps.state = operationInProgress
 
 		case http.StatusNoContent, http.StatusCreated, http.StatusOK:
-			pollState.state = operationSucceeded
+			ps.state = operationSucceeded
 
 		default:
-			pollState.state = operationFailed
+			ps.state = operationFailed
 		}
 	}
 
-	return pollState, nil
+	return nil
 }
 
-func newPollingRequest(resp *http.Response, isAzureAsyncOperation *bool) (*http.Request, error) {
+func newPollingRequest(resp *http.Response, ps pollingState) (*http.Request, error) {
 	req := resp.Request
 	if req == nil {
 		return nil, autorest.NewError("azure", "newPollingRequest", "Azure Polling Error - Original HTTP request is missing")
 	}
 
-	// Prefer the Azure-AsyncOperation header
-	uri := getAsyncOperation(resp)
-	*isAzureAsyncOperation = (uri != "")
-
-	// Else, use the Location header
-	if !*isAzureAsyncOperation {
-		uri = autorest.GetLocation(resp)
-	}
-
-	// Lastly, requests against an existing resource, use the last request URI
-	if uri == "" {
-		req.Method = strings.ToUpper(req.Method)
-		if req.Method == methodPatch || req.Method == methodPut || req.Method == methodGet {
-			uri = req.URL.String()
-		}
-	}
-
-	if uri == "" {
-		return nil, autorest.NewError("azure", "newPollingRequest", "Azure Polling Error - Unable to obtain polling URI for %s %s", req.Method, req.RequestURI)
-	}
-
 	reqPoll, err := autorest.Prepare(&http.Request{Cancel: req.Cancel},
 		autorest.AsGet(),
-		autorest.WithBaseURL(uri))
+		autorest.WithBaseURL(ps.uri))
 	if err != nil {
-		return nil, autorest.NewErrorWithError(err, "azure", "newPollingRequest", nil, "Failure creating poll request to %s", uri)
+		return nil, autorest.NewErrorWithError(err, "azure", "newPollingRequest", nil, "Failure creating poll request to %s", ps.uri)
 	}
 
 	return reqPoll, nil
