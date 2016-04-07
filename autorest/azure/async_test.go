@@ -2,15 +2,14 @@ package azure
 
 import (
 	"fmt"
+	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/mocks"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/go-autorest/autorest/mocks"
 )
 
 func TestGetAsyncOperation_ReturnsAzureAsyncOperationHeader(t *testing.T) {
@@ -56,7 +55,7 @@ func TestHasTerminated_ReturnsFalseForUnknownStates(t *testing.T) {
 }
 
 func TestOperationError_ErrorReturnsAString(t *testing.T) {
-	s := (operationError{Code: "server code", Message: "server error"}).Error()
+	s := (ServiceError{Code: "server code", Message: "server error"}).Error()
 	if s == "" {
 		t.Errorf("azure: operationError#Error failed to return an error")
 	}
@@ -98,33 +97,33 @@ func TestOperationResource_HasTerminatedReturnsFalseForUnknownStates(t *testing.
 }
 
 func TestProvisioningStatus_StateReturnsState(t *testing.T) {
-	if (provisioningStatus{provisioningProperties{"state"}}).state() != "state" {
+	if (provisioningStatus{Properties: provisioningProperties{"state"}}).state() != "state" {
 		t.Errorf("azure: provisioningStatus#state failed to return the correct state")
 	}
 }
 
 func TestProvisioningStatus_HasSucceededReturnsFalseIfNotSuccess(t *testing.T) {
-	if (provisioningStatus{provisioningProperties{"not a success string"}}).hasSucceeded() {
+	if (provisioningStatus{Properties: provisioningProperties{"not a success string"}}).hasSucceeded() {
 		t.Errorf("azure: provisioningStatus#hasSucceeded failed to return false for a canceled operation")
 	}
 }
 
 func TestProvisioningStatus_HasSucceededReturnsTrueIfSuccessful(t *testing.T) {
-	if !(provisioningStatus{provisioningProperties{operationSucceeded}}).hasSucceeded() {
+	if !(provisioningStatus{Properties: provisioningProperties{operationSucceeded}}).hasSucceeded() {
 		t.Errorf("azure: provisioningStatus#hasSucceeded failed to return true for a successful operation")
 	}
 }
 
 func TestProvisioningStatus_HasTerminatedReturnsTrueForKnownStates(t *testing.T) {
 	for _, state := range []string{operationSucceeded, operationCanceled, operationFailed} {
-		if !(provisioningStatus{provisioningProperties{state}}).hasTerminated() {
+		if !(provisioningStatus{Properties: provisioningProperties{state}}).hasTerminated() {
 			t.Errorf("azure: provisioningStatus#hasTerminated failed to return true for the '%s' state", state)
 		}
 	}
 }
 
 func TestProvisioningStatus_HasTerminatedReturnsFalseForUnknownStates(t *testing.T) {
-	if (provisioningStatus{provisioningProperties{"not a known state"}}).hasTerminated() {
+	if (provisioningStatus{Properties: provisioningProperties{"not a known state"}}).hasTerminated() {
 		t.Errorf("azure: provisioningStatus#hasTerminated returned true for a non-terminal operation")
 	}
 }
@@ -812,6 +811,121 @@ func TestDoPollForAsynchronous_ReturnsAnErrorForFailedOperations(t *testing.T) {
 		autorest.ByClosing())
 }
 
+func TestDoPollForAsynchronous_ReturnsAnUnknownErrorForFailedOperations(t *testing.T) {
+	// Return unknown error if error not present in last response
+	r1 := newAsynchronousResponse()
+	r1.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+	r2 := newProvisioningStatusResponse("busy")
+	r2.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+	r3 := newProvisioningStatusResponse(operationFailed)
+	r3.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+
+	client := mocks.NewSender()
+	client.AppendResponse(r1)
+	client.AppendAndRepeatResponse(r2, 2)
+	client.AppendAndRepeatResponse(r3, 1)
+
+	r, err := autorest.SendWithSender(client, mocks.NewRequest(),
+		DoPollForAsynchronous(time.Millisecond))
+
+	expected := makeLongRunningOperationErrorString("Unknown", "None")
+	if err.Error() != expected {
+		t.Errorf("azure: DoPollForAsynchronous failed to return an appropriate error message for an unknown error. \n expected=%q \n got=%q",
+			expected, err.Error())
+	}
+
+	autorest.Respond(r,
+		autorest.ByClosing())
+}
+
+func TestDoPollForAsynchronous_ReturnsErrorForLastErrorResponse(t *testing.T) {
+	// Return error code and message if error present in last response
+	r1 := newAsynchronousResponse()
+	r1.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+	r2 := newProvisioningStatusResponse("busy")
+	r2.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+	r3 := newAsynchronousResponseWithError()
+	r3.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+
+	client := mocks.NewSender()
+	client.AppendResponse(r1)
+	client.AppendAndRepeatResponse(r2, 2)
+	client.AppendAndRepeatResponse(r3, 1)
+
+	r, err := autorest.SendWithSender(client, mocks.NewRequest(),
+		DoPollForAsynchronous(time.Millisecond))
+
+	expected := makeLongRunningOperationErrorString("NetcfgInvalidSubnet", "Subnet is not valid in virtual network.")
+	if err.Error() != expected {
+		t.Errorf("azure: DoPollForAsynchronous failed to return an appropriate error message for an unknown error. \n expected=%q \n got=%q",
+			expected, err.Error())
+	}
+
+	autorest.Respond(r,
+		autorest.ByClosing())
+}
+
+func TestDoPollForAsynchronous_ReturnsOperationResourceErrorForFailedOperations(t *testing.T) {
+	// Return Operation resource response with error code and message in last operation resource response
+	r1 := newAsynchronousResponse()
+	r2 := newOperationResourceResponse("busy")
+	r3 := newOperationResourceErrorResponse(operationFailed)
+
+	client := mocks.NewSender()
+	client.AppendResponse(r1)
+	client.AppendAndRepeatResponse(r2, 2)
+	client.AppendAndRepeatResponse(r3, 1)
+
+	r, err := autorest.SendWithSender(client, mocks.NewRequest(),
+		DoPollForAsynchronous(time.Millisecond))
+
+	expected := makeLongRunningOperationErrorString("BadArgument", "The provided database 'foo' has an invalid username.")
+	if err.Error() != expected {
+		t.Errorf("azure: DoPollForAsynchronous failed to return an appropriate error message for a failed Operations. \n expected=%q \n got=%q",
+			expected, err.Error())
+	}
+
+	autorest.Respond(r,
+		autorest.ByClosing())
+}
+
+func TestDoPollForAsynchronous_ReturnsErrorForFirstPutWithUnknownError(t *testing.T) {
+	// Return 400 bad response for unknown error in first put
+	r1 := newAsynchronousErrorResponseWithUnknownError()
+	client := mocks.NewSender()
+	client.AppendResponse(r1)
+
+	r, err := autorest.SendWithSender(client, mocks.NewRequest(),
+		DoPollForAsynchronous(time.Millisecond))
+
+	expected := makeLongRunningOperationErrorString("Unknown", "None")
+	if err.Error() != expected {
+		t.Errorf("azure: DoPollForAsynchronous failed to return an appropriate error message for a failed Operations. \n expected=%q \n got=%q",
+			expected, err.Error())
+	}
+
+	autorest.Respond(r,
+		autorest.ByClosing())
+}
+
+func TestDoPollForAsynchronous_ReturnsErrorForFirstPutRequest(t *testing.T) {
+	// Return 400 bad response with error code and message in first put
+	r1 := newAsynchronousResponseWithError()
+	client := mocks.NewSender()
+	client.AppendResponse(r1)
+
+	r, err := autorest.SendWithSender(client, mocks.NewRequest(),
+		DoPollForAsynchronous(time.Millisecond))
+
+	expected := makeLongRunningOperationErrorString("NetcfgInvalidSubnet", "Subnet is not valid in virtual network.")
+	if err.Error() != expected {
+		t.Errorf("azure: DoPollForAsynchronous failed to return an appropriate error message for a failed Operations. \n expected=%q \n got=%q", expected, err.Error())
+	}
+
+	autorest.Respond(r,
+		autorest.ByClosing())
+}
+
 func TestDoPollForAsynchronous_ReturnsNoErrorForSuccessfulOperations(t *testing.T) {
 	r1 := newAsynchronousResponse()
 	r2 := newOperationResourceResponse("busy")
@@ -864,7 +978,6 @@ const (
 	operationResourceIllegal = `
 	This is not JSON and should fail...badly.
 	`
-
 	pollingStateFormat = `
 	{
 		"unused" : {
@@ -872,6 +985,15 @@ const (
 		},
 		"properties" : {
 			"provisioningState": "%s"
+		}
+	}
+	`
+
+	errorResponse = `
+	{
+		"error" : {
+			"code" : "NetcfgInvalidSubnet",
+			"message" : "Subnet is not valid in virtual network."
 		}
 	}
 	`
@@ -927,6 +1049,21 @@ func newAsynchronousResponse() *http.Response {
 	return r
 }
 
+func newAsynchronousErrorResponseWithUnknownError() *http.Response {
+	r := mocks.NewResponseWithStatus("400 Bad Request", http.StatusBadRequest)
+	mocks.SetRetryHeader(r, retryDelay)
+	r.Request = mocks.NewRequestForURL(mocks.TestURL)
+	return r
+}
+
+func newAsynchronousResponseWithError() *http.Response {
+	r := mocks.NewResponseWithStatus("400 Bad Request", http.StatusBadRequest)
+	mocks.SetRetryHeader(r, retryDelay)
+	r.Request = mocks.NewRequestForURL(mocks.TestURL)
+	r.Body = mocks.NewBody(errorResponse)
+	return r
+}
+
 func newOperationResourceResponse(status string) *http.Response {
 	r := newAsynchronousResponse()
 	r.Body = mocks.NewBody(fmt.Sprintf(operationResourceFormat, status))
@@ -943,4 +1080,8 @@ func newProvisioningStatusResponse(status string) *http.Response {
 	r := newAsynchronousResponse()
 	r.Body = mocks.NewBody(fmt.Sprintf(pollingStateFormat, status))
 	return r
+}
+
+func makeLongRunningOperationErrorString(code string, message string) string {
+	return fmt.Sprintf("Long running operation terminated with status 'Failed': Code=%q Message=%q", code, message)
 }

@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v7.0.4
+- Better error messages for long running operation failures
+
 ## v7.0.3
 - Corrected DoPollForAsynchronous to properly handle the initial response
 
