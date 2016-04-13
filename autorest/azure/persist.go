@@ -40,7 +40,7 @@ func SaveToken(path string, mode os.FileMode, token Token) error {
 	}
 	tempPath := newFile.Name()
 
-	if json.NewEncoder(newFile).Encode(token); err != nil {
+	if err := json.NewEncoder(newFile).Encode(token); err != nil {
 		return fmt.Errorf("failed to encode token to file (%s) while saving token: %v", tempPath, err)
 	}
 	if err := newFile.Close(); err != nil {

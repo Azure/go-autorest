@@ -35,9 +35,10 @@ func TestLoggingInspectorWithInspectionEmitsErrors(t *testing.T) {
 	li := LoggingInspector{Logger: log.New(&b, "", 0)}
 	c.RequestInspector = li.WithInspection()
 
-	r.Body.Close()
-	Prepare(r,
-		c.WithInspection())
+	if _, err := Prepare(r,
+		c.WithInspection()); err != nil {
+		t.Error(err)
+	}
 
 	if len(b.String()) <= 0 {
 		t.Fatal("autorest: LoggingInspector#WithInspection did not record Request to the log")
@@ -81,9 +82,10 @@ func TestLoggingInspectorByInspectingEmitsErrors(t *testing.T) {
 	li := LoggingInspector{Logger: log.New(&b, "", 0)}
 	c.ResponseInspector = li.ByInspecting()
 
-	r.Body.Close()
-	Respond(r,
-		c.ByInspecting())
+	if err := Respond(r,
+		c.ByInspecting()); err != nil {
+		t.Fatal(err)
+	}
 
 	if len(b.String()) <= 0 {
 		t.Fatal("autorest: LoggingInspector#ByInspection did not record Response to the log")
