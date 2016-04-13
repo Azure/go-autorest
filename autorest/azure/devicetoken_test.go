@@ -50,11 +50,11 @@ func TestDeviceCodeIncludesResource(t *testing.T) {
 
 	code, err := InitiateDeviceAuth(client, TestOAuthConfig, TestClientID, TestResource)
 	if err != nil {
-		t.Errorf("azure: unexpected error initiating device auth")
+		t.Fatalf("azure: unexpected error initiating device auth")
 	}
 
 	if code.Resource != TestResource {
-		t.Errorf("azure: InitiateDeviceAuth failed to stash the resource in the DeviceCode struct")
+		t.Fatalf("azure: InitiateDeviceAuth failed to stash the resource in the DeviceCode struct")
 	}
 }
 
@@ -65,7 +65,7 @@ func TestDeviceCodeReturnsErrorIfSendingFails(t *testing.T) {
 
 	_, err := InitiateDeviceAuth(client, TestOAuthConfig, TestClientID, TestResource)
 	if err == nil || !strings.Contains(err.Error(), errCodeSendingFails) {
-		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", errCodeSendingFails, err.Error())
+		t.Fatalf("azure: failed to get correct error expected(%s) actual(%s)", errCodeSendingFails, err.Error())
 	}
 }
 
@@ -77,11 +77,11 @@ func TestDeviceCodeReturnsErrorIfBadRequest(t *testing.T) {
 
 	_, err := InitiateDeviceAuth(client, TestOAuthConfig, TestClientID, TestResource)
 	if err == nil || !strings.Contains(err.Error(), errCodeHandlingFails) {
-		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", errCodeHandlingFails, err.Error())
+		t.Fatalf("azure: failed to get correct error expected(%s) actual(%s)", errCodeHandlingFails, err.Error())
 	}
 
 	if body.IsOpen() {
-		t.Errorf("response body was left open!")
+		t.Fatalf("response body was left open!")
 	}
 }
 
@@ -94,11 +94,11 @@ func TestDeviceCodeReturnsErrorIfCannotDeserializeDeviceCode(t *testing.T) {
 
 	_, err := InitiateDeviceAuth(client, TestOAuthConfig, TestClientID, TestResource)
 	if err == nil || !strings.Contains(err.Error(), errCodeHandlingFails) {
-		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", errCodeHandlingFails, err.Error())
+		t.Fatalf("azure: failed to get correct error expected(%s) actual(%s)", errCodeHandlingFails, err.Error())
 	}
 
 	if body.IsOpen() {
-		t.Errorf("response body was left open!")
+		t.Fatalf("response body was left open!")
 	}
 }
 
@@ -118,11 +118,11 @@ func TestDeviceTokenReturns(t *testing.T) {
 
 	_, err := WaitForUserCompletion(client, deviceCode())
 	if err != nil {
-		t.Errorf("azure: got error unexpectedly")
+		t.Fatalf("azure: got error unexpectedly")
 	}
 
 	if body.IsOpen() {
-		t.Errorf("response body was left open!")
+		t.Fatalf("response body was left open!")
 	}
 }
 
@@ -133,7 +133,7 @@ func TestDeviceTokenReturnsErrorIfSendingFails(t *testing.T) {
 
 	_, err := WaitForUserCompletion(client, deviceCode())
 	if err == nil || !strings.Contains(err.Error(), errTokenSendingFails) {
-		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", errTokenSendingFails, err.Error())
+		t.Fatalf("azure: failed to get correct error expected(%s) actual(%s)", errTokenSendingFails, err.Error())
 	}
 }
 
@@ -145,11 +145,11 @@ func TestDeviceTokenReturnsErrorIfServerError(t *testing.T) {
 
 	_, err := WaitForUserCompletion(client, deviceCode())
 	if err == nil || !strings.Contains(err.Error(), errTokenHandlingFails) {
-		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", errTokenHandlingFails, err.Error())
+		t.Fatalf("azure: failed to get correct error expected(%s) actual(%s)", errTokenHandlingFails, err.Error())
 	}
 
 	if body.IsOpen() {
-		t.Errorf("response body was left open!")
+		t.Fatalf("response body was left open!")
 	}
 }
 
@@ -162,11 +162,11 @@ func TestDeviceTokenReturnsErrorIfCannotDeserializeDeviceToken(t *testing.T) {
 
 	_, err := WaitForUserCompletion(client, deviceCode())
 	if err == nil || !strings.Contains(err.Error(), errTokenHandlingFails) {
-		t.Errorf("azure: failed to get correct error expected(%s) actual(%s)", errTokenHandlingFails, err.Error())
+		t.Fatalf("azure: failed to get correct error expected(%s) actual(%s)", errTokenHandlingFails, err.Error())
 	}
 
 	if body.IsOpen() {
-		t.Errorf("response body was left open!")
+		t.Fatalf("response body was left open!")
 	}
 }
 
@@ -182,11 +182,11 @@ func TestDeviceTokenReturnsErrorIfAuthorizationPending(t *testing.T) {
 
 	_, err := CheckForUserCompletion(client, deviceCode())
 	if err != ErrDeviceAuthorizationPending {
-		t.Errorf("!!!")
+		t.Fatalf("!!!")
 	}
 
 	if body.IsOpen() {
-		t.Errorf("response body was left open!")
+		t.Fatalf("response body was left open!")
 	}
 }
 
@@ -198,11 +198,11 @@ func TestDeviceTokenReturnsErrorIfSlowDown(t *testing.T) {
 
 	_, err := CheckForUserCompletion(client, deviceCode())
 	if err != ErrDeviceSlowDown {
-		t.Errorf("!!!")
+		t.Fatalf("!!!")
 	}
 
 	if body.IsOpen() {
-		t.Errorf("response body was left open!")
+		t.Fatalf("response body was left open!")
 	}
 }
 
@@ -234,7 +234,7 @@ func TestDeviceTokenSucceedsWithIntermediateAuthPending(t *testing.T) {
 
 	_, err := WaitForUserCompletion(client, deviceCode())
 	if err != nil {
-		t.Errorf("unexpected error occurred")
+		t.Fatalf("unexpected error occurred")
 	}
 }
 
@@ -245,7 +245,7 @@ func TestDeviceTokenSucceedsWithIntermediateSlowDown(t *testing.T) {
 
 	_, err := WaitForUserCompletion(client, deviceCode())
 	if err != nil {
-		t.Errorf("unexpected error occurred")
+		t.Fatalf("unexpected error occurred")
 	}
 }
 
@@ -257,11 +257,11 @@ func TestDeviceTokenReturnsErrorIfAccessDenied(t *testing.T) {
 
 	_, err := WaitForUserCompletion(client, deviceCode())
 	if err != ErrDeviceAccessDenied {
-		t.Errorf("azure: got wrong error expected(%s) actual(%s)", ErrDeviceAccessDenied.Error(), err.Error())
+		t.Fatalf("azure: got wrong error expected(%s) actual(%s)", ErrDeviceAccessDenied.Error(), err.Error())
 	}
 
 	if body.IsOpen() {
-		t.Errorf("response body was left open!")
+		t.Fatalf("response body was left open!")
 	}
 }
 
@@ -273,11 +273,11 @@ func TestDeviceTokenReturnsErrorIfCodeExpired(t *testing.T) {
 
 	_, err := WaitForUserCompletion(client, deviceCode())
 	if err != ErrDeviceCodeExpired {
-		t.Errorf("azure: got wrong error expected(%s) actual(%s)", ErrDeviceCodeExpired.Error(), err.Error())
+		t.Fatalf("azure: got wrong error expected(%s) actual(%s)", ErrDeviceCodeExpired.Error(), err.Error())
 	}
 
 	if body.IsOpen() {
-		t.Errorf("response body was left open!")
+		t.Fatalf("response body was left open!")
 	}
 }
 
@@ -289,13 +289,13 @@ func TestDeviceTokenReturnsErrorForUnknownError(t *testing.T) {
 
 	_, err := WaitForUserCompletion(client, deviceCode())
 	if err == nil {
-		t.Errorf("failed to get error")
+		t.Fatalf("failed to get error")
 	}
 	if err != ErrDeviceGeneric {
-		t.Errorf("azure: got wrong error expected(%s) actual(%s)", ErrDeviceGeneric.Error(), err.Error())
+		t.Fatalf("azure: got wrong error expected(%s) actual(%s)", ErrDeviceGeneric.Error(), err.Error())
 	}
 
 	if body.IsOpen() {
-		t.Errorf("response body was left open!")
+		t.Fatalf("response body was left open!")
 	}
 }

@@ -48,7 +48,7 @@ func TestWithReturningClientIDReturnsError(t *testing.T) {
 		WithReturningClientID(uuid))
 
 	if errOut == nil || errIn != errOut {
-		t.Errorf("azure: WithReturningClientID failed to exit early when receiving an error -- expected (%v), received (%v)",
+		t.Fatalf("azure: WithReturningClientID failed to exit early when receiving an error -- expected (%v), received (%v)",
 			errIn, errOut)
 	}
 }
@@ -59,7 +59,7 @@ func TestWithClientID(t *testing.T) {
 		WithClientID(uuid))
 
 	if req.Header.Get(HeaderClientID) != uuid {
-		t.Errorf("azure: WithClientID failed to set %s -- expected %s, received %s",
+		t.Fatalf("azure: WithClientID failed to set %s -- expected %s, received %s",
 			HeaderClientID, uuid, req.Header.Get(HeaderClientID))
 	}
 }
@@ -70,7 +70,7 @@ func TestWithReturnClientID(t *testing.T) {
 		WithReturnClientID(b))
 
 	if req.Header.Get(HeaderReturnClientID) != strconv.FormatBool(b) {
-		t.Errorf("azure: WithReturnClientID failed to set %s -- expected %s, received %s",
+		t.Fatalf("azure: WithReturnClientID failed to set %s -- expected %s, received %s",
 			HeaderClientID, strconv.FormatBool(b), req.Header.Get(HeaderClientID))
 	}
 }
@@ -81,7 +81,7 @@ func TestExtractClientID(t *testing.T) {
 	mocks.SetResponseHeader(resp, HeaderClientID, uuid)
 
 	if ExtractClientID(resp) != uuid {
-		t.Errorf("azure: ExtractClientID failed to extract the %s -- expected %s, received %s",
+		t.Fatalf("azure: ExtractClientID failed to extract the %s -- expected %s, received %s",
 			HeaderClientID, uuid, ExtractClientID(resp))
 	}
 }
@@ -92,27 +92,27 @@ func TestExtractRequestID(t *testing.T) {
 	mocks.SetResponseHeader(resp, HeaderRequestID, uuid)
 
 	if ExtractRequestID(resp) != uuid {
-		t.Errorf("azure: ExtractRequestID failed to extract the %s -- expected %s, received %s",
+		t.Fatalf("azure: ExtractRequestID failed to extract the %s -- expected %s, received %s",
 			HeaderRequestID, uuid, ExtractRequestID(resp))
 	}
 }
 
 func TestIsAzureError_ReturnsTrueForAzureError(t *testing.T) {
 	if !IsAzureError(&RequestError{}) {
-		t.Errorf("azure: IsAzureError failed to return true for an Azure Service error")
+		t.Fatalf("azure: IsAzureError failed to return true for an Azure Service error")
 	}
 }
 
 func TestIsAzureError_ReturnsFalseForNonAzureError(t *testing.T) {
 	if IsAzureError(fmt.Errorf("An Error")) {
-		t.Errorf("azure: IsAzureError return true for an non-Azure Service error")
+		t.Fatalf("azure: IsAzureError return true for an non-Azure Service error")
 	}
 }
 
 func TestNewErrorWithError_UsesReponseStatusCode(t *testing.T) {
 	e := NewErrorWithError(fmt.Errorf("Error"), "packageType", "method", mocks.NewResponseWithStatus("Forbidden", http.StatusForbidden), "message")
 	if e.StatusCode != http.StatusForbidden {
-		t.Errorf("azure: NewErrorWithError failed to use the Status Code of the passed Response -- expected %v, received %v", http.StatusForbidden, e.StatusCode)
+		t.Fatalf("azure: NewErrorWithError failed to use the Status Code of the passed Response -- expected %v, received %v", http.StatusForbidden, e.StatusCode)
 	}
 }
 
@@ -124,7 +124,7 @@ func TestNewErrorWithError_ReturnsUnwrappedError(t *testing.T) {
 	e2 := NewErrorWithError(&e1, "packageType", "method", nil, "message")
 
 	if !reflect.DeepEqual(e1, e2) {
-		t.Errorf("azure: NewErrorWithError wrapped an RequestError -- expected %T, received %T", e1, e2)
+		t.Fatalf("azure: NewErrorWithError wrapped an RequestError -- expected %T, received %T", e1, e2)
 	}
 }
 
@@ -133,7 +133,7 @@ func TestNewErrorWithError_WrapsAnError(t *testing.T) {
 	var e2 interface{} = NewErrorWithError(e1, "packageType", "method", nil, "message")
 
 	if _, ok := e2.(RequestError); !ok {
-		t.Errorf("azure: NewErrorWithError failed to wrap a standard error -- received %T", e2)
+		t.Fatalf("azure: NewErrorWithError failed to wrap a standard error -- received %T", e2)
 	}
 }
 
@@ -212,7 +212,7 @@ func TestWithErrorUnlessStatusCode_FoundAzureError(t *testing.T) {
 	defer r.Body.Close()
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if string(b) != j {
 		t.Fatalf("response body is wrong. got=%q expected=%q", string(b), j)

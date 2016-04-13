@@ -93,14 +93,14 @@ func TestSendWithSenderRunsDecoratorsInOrder(t *testing.T) {
 		withMessage(&s, "b"),
 		withMessage(&s, "c"))
 	if err != nil {
-		t.Errorf("autorest: SendWithSender returned an error (%v)", err)
+		t.Fatalf("autorest: SendWithSender returned an error (%v)", err)
 	}
 
 	Respond(r,
 		ByClosing())
 
 	if s != "abc" {
-		t.Errorf("autorest: SendWithSender invoke decorators out of order; expected 'abc', received '%s'", s)
+		t.Fatalf("autorest: SendWithSender invoke decorators out of order; expected 'abc', received '%s'", s)
 	}
 }
 
@@ -119,7 +119,7 @@ func TestCreateSender(t *testing.T) {
 	s.Do(&http.Request{})
 
 	if !f {
-		t.Error("autorest: CreateSender failed to apply supplied decorator")
+		t.Fatal("autorest: CreateSender failed to apply supplied decorator")
 	}
 }
 
@@ -137,7 +137,7 @@ func TestSend(t *testing.T) {
 		})())
 
 	if !f {
-		t.Error("autorest: Send failed to apply supplied decorator")
+		t.Fatal("autorest: Send failed to apply supplied decorator")
 	}
 }
 
@@ -151,7 +151,7 @@ func TestAfterDelayWaits(t *testing.T) {
 		AfterDelay(d))
 	s := time.Since(tt)
 	if s < d {
-		t.Error("autorest: AfterDelay failed to wait for at least the specified duration")
+		t.Fatal("autorest: AfterDelay failed to wait for at least the specified duration")
 	}
 
 	Respond(r,
@@ -177,7 +177,7 @@ func TestAfterDelay_Cancels(t *testing.T) {
 	close(cancel)
 	time.Sleep(5 * time.Millisecond)
 	if time.Since(tt) >= delay {
-		t.Error("autorest: AfterDelay failed to cancel")
+		t.Fatal("autorest: AfterDelay failed to cancel")
 	}
 }
 
@@ -190,7 +190,7 @@ func TestAfterDelayDoesNotWaitTooLong(t *testing.T) {
 		AfterDelay(d))
 
 	if time.Since(start) > (5 * d) {
-		t.Error("autorest: AfterDelay waited too long (exceeded 5 times specified duration)")
+		t.Fatal("autorest: AfterDelay waited too long (exceeded 5 times specified duration)")
 	}
 
 	Respond(r,
@@ -206,9 +206,9 @@ func TestAsIs(t *testing.T) {
 	r2, err := SendWithSender(client, mocks.NewRequest(),
 		AsIs())
 	if err != nil {
-		t.Errorf("autorest: AsIs returned an unexpected error (%v)", err)
+		t.Fatalf("autorest: AsIs returned an unexpected error (%v)", err)
 	} else if !reflect.DeepEqual(r1, r2) {
-		t.Errorf("autorest: AsIs modified the response -- received %v, expected %v", r2, r1)
+		t.Fatalf("autorest: AsIs modified the response -- received %v, expected %v", r2, r1)
 	}
 
 	Respond(r1,
@@ -226,7 +226,7 @@ func TestDoCloseIfError(t *testing.T) {
 		DoCloseIfError())
 
 	if r.Body.(*mocks.Body).IsOpen() {
-		t.Error("autorest: Expected DoCloseIfError to close response body -- it was left open")
+		t.Fatal("autorest: Expected DoCloseIfError to close response body -- it was left open")
 	}
 
 	Respond(r,
@@ -278,7 +278,7 @@ func TestDoErrorIfStatusCode(t *testing.T) {
 		DoErrorIfStatusCode(http.StatusBadRequest),
 		DoCloseIfError())
 	if err == nil {
-		t.Error("autorest: DoErrorIfStatusCode failed to emit an error for passed code")
+		t.Fatal("autorest: DoErrorIfStatusCode failed to emit an error for passed code")
 	}
 
 	Respond(r,
@@ -293,7 +293,7 @@ func TestDoErrorIfStatusCodeIgnoresStatusCodes(t *testing.T) {
 		DoErrorIfStatusCode(http.StatusBadRequest),
 		DoCloseIfError())
 	if err != nil {
-		t.Error("autorest: DoErrorIfStatusCode failed to ignore a status code")
+		t.Fatal("autorest: DoErrorIfStatusCode failed to ignore a status code")
 	}
 
 	Respond(r,
@@ -308,7 +308,7 @@ func TestDoErrorUnlessStatusCode(t *testing.T) {
 		DoErrorUnlessStatusCode(http.StatusAccepted),
 		DoCloseIfError())
 	if err == nil {
-		t.Error("autorest: DoErrorUnlessStatusCode failed to emit an error for an unknown status code")
+		t.Fatal("autorest: DoErrorUnlessStatusCode failed to emit an error for an unknown status code")
 	}
 
 	Respond(r,
@@ -323,7 +323,7 @@ func TestDoErrorUnlessStatusCodeIgnoresStatusCodes(t *testing.T) {
 		DoErrorUnlessStatusCode(http.StatusAccepted),
 		DoCloseIfError())
 	if err != nil {
-		t.Error("autorest: DoErrorUnlessStatusCode emitted an error for a knonwn status code")
+		t.Fatal("autorest: DoErrorUnlessStatusCode emitted an error for a knonwn status code")
 	}
 
 	Respond(r,
@@ -336,11 +336,11 @@ func TestDoRetryForAttemptsStopsAfterSuccess(t *testing.T) {
 	r, err := SendWithSender(client, mocks.NewRequest(),
 		DoRetryForAttempts(5, time.Duration(0)))
 	if client.Attempts() != 1 {
-		t.Errorf("autorest: DoRetryForAttempts failed to stop after success -- expected attempts %v, actual %v",
+		t.Fatalf("autorest: DoRetryForAttempts failed to stop after success -- expected attempts %v, actual %v",
 			1, client.Attempts())
 	}
 	if err != nil {
-		t.Errorf("autorest: DoRetryForAttempts returned an unexpected error (%v)", err)
+		t.Fatalf("autorest: DoRetryForAttempts returned an unexpected error (%v)", err)
 	}
 
 	Respond(r,
@@ -355,14 +355,14 @@ func TestDoRetryForAttemptsStopsAfterAttempts(t *testing.T) {
 		DoRetryForAttempts(5, time.Duration(0)),
 		DoCloseIfError())
 	if err == nil {
-		t.Error("autorest: Mock client failed to emit errors")
+		t.Fatal("autorest: Mock client failed to emit errors")
 	}
 
 	Respond(r,
 		ByClosing())
 
 	if client.Attempts() != 5 {
-		t.Error("autorest: DoRetryForAttempts failed to stop after specified number of attempts")
+		t.Fatal("autorest: DoRetryForAttempts failed to stop after specified number of attempts")
 	}
 }
 
@@ -373,11 +373,11 @@ func TestDoRetryForAttemptsReturnsResponse(t *testing.T) {
 	r, err := SendWithSender(client, mocks.NewRequest(),
 		DoRetryForAttempts(1, time.Duration(0)))
 	if err == nil {
-		t.Error("autorest: Mock client failed to emit errors")
+		t.Fatal("autorest: Mock client failed to emit errors")
 	}
 
 	if r == nil {
-		t.Error("autorest: DoRetryForAttempts failed to return the underlying response")
+		t.Fatal("autorest: DoRetryForAttempts failed to return the underlying response")
 	}
 
 	Respond(r,
@@ -390,11 +390,11 @@ func TestDoRetryForDurationStopsAfterSuccess(t *testing.T) {
 	r, err := SendWithSender(client, mocks.NewRequest(),
 		DoRetryForDuration(10*time.Millisecond, time.Duration(0)))
 	if client.Attempts() != 1 {
-		t.Errorf("autorest: DoRetryForDuration failed to stop after success -- expected attempts %v, actual %v",
+		t.Fatalf("autorest: DoRetryForDuration failed to stop after success -- expected attempts %v, actual %v",
 			1, client.Attempts())
 	}
 	if err != nil {
-		t.Errorf("autorest: DoRetryForDuration returned an unexpected error (%v)", err)
+		t.Fatalf("autorest: DoRetryForDuration returned an unexpected error (%v)", err)
 	}
 
 	Respond(r,
@@ -411,11 +411,11 @@ func TestDoRetryForDurationStopsAfterDuration(t *testing.T) {
 		DoRetryForDuration(d, time.Duration(0)),
 		DoCloseIfError())
 	if err == nil {
-		t.Error("autorest: Mock client failed to emit errors")
+		t.Fatal("autorest: Mock client failed to emit errors")
 	}
 
 	if time.Since(start) < d {
-		t.Error("autorest: DoRetryForDuration failed stopped too soon")
+		t.Fatal("autorest: DoRetryForDuration failed stopped too soon")
 	}
 
 	Respond(r,
@@ -432,11 +432,11 @@ func TestDoRetryForDurationStopsWithinReason(t *testing.T) {
 		DoRetryForDuration(d, time.Duration(0)),
 		DoCloseIfError())
 	if err == nil {
-		t.Error("autorest: Mock client failed to emit errors")
+		t.Fatal("autorest: Mock client failed to emit errors")
 	}
 
 	if time.Since(start) > (5 * d) {
-		t.Error("autorest: DoRetryForDuration failed stopped soon enough (exceeded 5 times specified duration)")
+		t.Fatal("autorest: DoRetryForDuration failed stopped soon enough (exceeded 5 times specified duration)")
 	}
 
 	Respond(r,
@@ -451,11 +451,11 @@ func TestDoRetryForDurationReturnsResponse(t *testing.T) {
 		DoRetryForDuration(10*time.Millisecond, time.Duration(0)),
 		DoCloseIfError())
 	if err == nil {
-		t.Error("autorest: Mock client failed to emit errors")
+		t.Fatal("autorest: Mock client failed to emit errors")
 	}
 
 	if r == nil {
-		t.Error("autorest: DoRetryForDuration failed to return the underlying response")
+		t.Fatal("autorest: DoRetryForDuration failed to return the underlying response")
 	}
 
 	Respond(r,
@@ -467,7 +467,7 @@ func TestDelayForBackoff(t *testing.T) {
 	start := time.Now()
 	DelayForBackoff(d, 1, nil)
 	if time.Since(start) < d {
-		t.Error("autorest: DelayForBackoff did not delay as long as expected")
+		t.Fatal("autorest: DelayForBackoff did not delay as long as expected")
 	}
 }
 
@@ -486,7 +486,7 @@ func TestDelayForBackoff_Cancels(t *testing.T) {
 	close(cancel)
 	time.Sleep(5 * time.Millisecond)
 	if time.Since(start) >= delay {
-		t.Error("autorest: DelayForBackoff failed to cancel")
+		t.Fatal("autorest: DelayForBackoff failed to cancel")
 	}
 }
 
@@ -495,7 +495,7 @@ func TestDelayForBackoffWithinReason(t *testing.T) {
 	start := time.Now()
 	DelayForBackoff(d, 1, nil)
 	if time.Since(start) > (5 * d) {
-		t.Error("autorest: DelayForBackoff delayed too long (exceeded 5 times the specified duration)")
+		t.Fatal("autorest: DelayForBackoff delayed too long (exceeded 5 times the specified duration)")
 	}
 }
 
@@ -506,7 +506,7 @@ func TestDoPollForStatusCodes_IgnoresUnspecifiedStatusCodes(t *testing.T) {
 		DoPollForStatusCodes(time.Duration(0), time.Duration(0)))
 
 	if client.Attempts() != 1 {
-		t.Errorf("autorest: Sender#DoPollForStatusCodes polled for unspecified status code")
+		t.Fatalf("autorest: Sender#DoPollForStatusCodes polled for unspecified status code")
 	}
 
 	Respond(r,
@@ -521,7 +521,7 @@ func TestDoPollForStatusCodes_PollsForSpecifiedStatusCodes(t *testing.T) {
 		DoPollForStatusCodes(time.Millisecond, time.Millisecond, http.StatusAccepted))
 
 	if client.Attempts() != 2 {
-		t.Errorf("autorest: Sender#DoPollForStatusCodes failed to poll for specified status code")
+		t.Fatalf("autorest: Sender#DoPollForStatusCodes failed to poll for specified status code")
 	}
 
 	Respond(r,
@@ -551,7 +551,7 @@ func TestDoPollForStatusCodes_CanBeCanceled(t *testing.T) {
 	close(cancel)
 	time.Sleep(5 * time.Millisecond)
 	if time.Since(start) >= delay {
-		t.Errorf("autorest: Sender#DoPollForStatusCodes failed to cancel")
+		t.Fatalf("autorest: Sender#DoPollForStatusCodes failed to cancel")
 	}
 }
 
@@ -565,7 +565,7 @@ func TestDoPollForStatusCodes_ClosesAllNonreturnedResponseBodiesWhenPolling(t *t
 		DoPollForStatusCodes(time.Millisecond, time.Millisecond, http.StatusAccepted))
 
 	if resp.Body.(*mocks.Body).IsOpen() || resp.Body.(*mocks.Body).CloseAttempts() < 2 {
-		t.Errorf("autorest: Sender#DoPollForStatusCodes did not close unreturned response bodies")
+		t.Fatalf("autorest: Sender#DoPollForStatusCodes did not close unreturned response bodies")
 	}
 
 	Respond(r,
@@ -580,7 +580,7 @@ func TestDoPollForStatusCodes_LeavesLastResponseBodyOpen(t *testing.T) {
 		DoPollForStatusCodes(time.Millisecond, time.Millisecond, http.StatusAccepted))
 
 	if !r.Body.(*mocks.Body).IsOpen() {
-		t.Errorf("autorest: Sender#DoPollForStatusCodes did not leave open the body of the last response")
+		t.Fatalf("autorest: Sender#DoPollForStatusCodes did not leave open the body of the last response")
 	}
 
 	Respond(r,
@@ -597,7 +597,7 @@ func TestDoPollForStatusCodes_StopsPollingAfterAnError(t *testing.T) {
 		DoPollForStatusCodes(time.Millisecond, time.Millisecond, http.StatusAccepted))
 
 	if client.Attempts() > 2 {
-		t.Errorf("autorest: Sender#DoPollForStatusCodes failed to stop polling after receiving an error")
+		t.Fatalf("autorest: Sender#DoPollForStatusCodes failed to stop polling after receiving an error")
 	}
 
 	Respond(r,
@@ -614,7 +614,7 @@ func TestDoPollForStatusCodes_ReturnsPollingError(t *testing.T) {
 		DoPollForStatusCodes(time.Millisecond, time.Millisecond, http.StatusAccepted))
 
 	if err == nil {
-		t.Errorf("autorest: Sender#DoPollForStatusCodes failed to return error from polling")
+		t.Fatalf("autorest: Sender#DoPollForStatusCodes failed to return error from polling")
 	}
 
 	Respond(r,
@@ -630,7 +630,7 @@ func TestWithLogging_Logs(t *testing.T) {
 		WithLogging(logger))
 
 	if buf.String() == "" {
-		t.Error("autorest: Sender#WithLogging failed to log the request")
+		t.Fatal("autorest: Sender#WithLogging failed to log the request")
 	}
 
 	Respond(r,
@@ -648,10 +648,10 @@ func TestWithLogging_HandlesMissingResponse(t *testing.T) {
 		WithLogging(logger))
 
 	if r != nil || err == nil {
-		t.Error("autorest: Sender#WithLogging returned a valid response -- expecting nil")
+		t.Fatal("autorest: Sender#WithLogging returned a valid response -- expecting nil")
 	}
 	if buf.String() == "" {
-		t.Error("autorest: Sender#WithLogging failed to log the request for a nil response")
+		t.Fatal("autorest: Sender#WithLogging failed to log the request for a nil response")
 	}
 
 	Respond(r,

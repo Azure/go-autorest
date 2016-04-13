@@ -16,7 +16,7 @@ func TestGetAsyncOperation_ReturnsAzureAsyncOperationHeader(t *testing.T) {
 	r := newAsynchronousResponse()
 
 	if getAsyncOperation(r) != mocks.TestAzureAsyncURL {
-		t.Errorf("azure: getAsyncOperation failed to extract the Azure-AsyncOperation header -- expected %v, received %v", mocks.TestURL, getAsyncOperation(r))
+		t.Fatalf("azure: getAsyncOperation failed to extract the Azure-AsyncOperation header -- expected %v, received %v", mocks.TestURL, getAsyncOperation(r))
 	}
 }
 
@@ -24,133 +24,133 @@ func TestGetAsyncOperation_ReturnsEmptyStringIfHeaderIsAbsent(t *testing.T) {
 	r := mocks.NewResponse()
 
 	if len(getAsyncOperation(r)) != 0 {
-		t.Errorf("azure: getAsyncOperation failed to return empty string when the Azure-AsyncOperation header is absent -- received %v", getAsyncOperation(r))
+		t.Fatalf("azure: getAsyncOperation failed to return empty string when the Azure-AsyncOperation header is absent -- received %v", getAsyncOperation(r))
 	}
 }
 
 func TestHasSucceeded_ReturnsTrueForSuccess(t *testing.T) {
 	if !hasSucceeded(operationSucceeded) {
-		t.Error("azure: hasSucceeded failed to return true for success")
+		t.Fatal("azure: hasSucceeded failed to return true for success")
 	}
 }
 
 func TestHasSucceeded_ReturnsFalseOtherwise(t *testing.T) {
 	if hasSucceeded("not a success string") {
-		t.Error("azure: hasSucceeded returned true for a non-success")
+		t.Fatal("azure: hasSucceeded returned true for a non-success")
 	}
 }
 
 func TestHasTerminated_ReturnsTrueForValidTerminationStates(t *testing.T) {
 	for _, state := range []string{operationSucceeded, operationCanceled, operationFailed} {
 		if !hasTerminated(state) {
-			t.Errorf("azure: hasTerminated failed to return true for the '%s' state", state)
+			t.Fatalf("azure: hasTerminated failed to return true for the '%s' state", state)
 		}
 	}
 }
 
 func TestHasTerminated_ReturnsFalseForUnknownStates(t *testing.T) {
 	if hasTerminated("not a known state") {
-		t.Error("azure: hasTerminated returned true for an unknown state")
+		t.Fatal("azure: hasTerminated returned true for an unknown state")
 	}
 }
 
 func TestOperationError_ErrorReturnsAString(t *testing.T) {
 	s := (ServiceError{Code: "server code", Message: "server error"}).Error()
 	if s == "" {
-		t.Errorf("azure: operationError#Error failed to return an error")
+		t.Fatalf("azure: operationError#Error failed to return an error")
 	}
 	if !strings.Contains(s, "server code") || !strings.Contains(s, "server error") {
-		t.Errorf("azure: operationError#Error returned a malformed error -- error='%v'", s)
+		t.Fatalf("azure: operationError#Error returned a malformed error -- error='%v'", s)
 	}
 }
 
 func TestOperationResource_StateReturnsState(t *testing.T) {
 	if (operationResource{Status: "state"}).state() != "state" {
-		t.Errorf("azure: operationResource#state failed to return the correct state")
+		t.Fatalf("azure: operationResource#state failed to return the correct state")
 	}
 }
 
 func TestOperationResource_HasSucceededReturnsFalseIfNotSuccess(t *testing.T) {
 	if (operationResource{Status: "not a success string"}).hasSucceeded() {
-		t.Errorf("azure: operationResource#hasSucceeded failed to return false for a canceled operation")
+		t.Fatalf("azure: operationResource#hasSucceeded failed to return false for a canceled operation")
 	}
 }
 
 func TestOperationResource_HasSucceededReturnsTrueIfSuccessful(t *testing.T) {
 	if !(operationResource{Status: operationSucceeded}).hasSucceeded() {
-		t.Errorf("azure: operationResource#hasSucceeded failed to return true for a successful operation")
+		t.Fatalf("azure: operationResource#hasSucceeded failed to return true for a successful operation")
 	}
 }
 
 func TestOperationResource_HasTerminatedReturnsTrueForKnownStates(t *testing.T) {
 	for _, state := range []string{operationSucceeded, operationCanceled, operationFailed} {
 		if !(operationResource{Status: state}).hasTerminated() {
-			t.Errorf("azure: operationResource#hasTerminated failed to return true for the '%s' state", state)
+			t.Fatalf("azure: operationResource#hasTerminated failed to return true for the '%s' state", state)
 		}
 	}
 }
 
 func TestOperationResource_HasTerminatedReturnsFalseForUnknownStates(t *testing.T) {
 	if (operationResource{Status: "not a known state"}).hasTerminated() {
-		t.Errorf("azure: operationResource#hasTerminated returned true for a non-terminal operation")
+		t.Fatalf("azure: operationResource#hasTerminated returned true for a non-terminal operation")
 	}
 }
 
 func TestProvisioningStatus_StateReturnsState(t *testing.T) {
 	if (provisioningStatus{Properties: provisioningProperties{"state"}}).state() != "state" {
-		t.Errorf("azure: provisioningStatus#state failed to return the correct state")
+		t.Fatalf("azure: provisioningStatus#state failed to return the correct state")
 	}
 }
 
 func TestProvisioningStatus_HasSucceededReturnsFalseIfNotSuccess(t *testing.T) {
 	if (provisioningStatus{Properties: provisioningProperties{"not a success string"}}).hasSucceeded() {
-		t.Errorf("azure: provisioningStatus#hasSucceeded failed to return false for a canceled operation")
+		t.Fatalf("azure: provisioningStatus#hasSucceeded failed to return false for a canceled operation")
 	}
 }
 
 func TestProvisioningStatus_HasSucceededReturnsTrueIfSuccessful(t *testing.T) {
 	if !(provisioningStatus{Properties: provisioningProperties{operationSucceeded}}).hasSucceeded() {
-		t.Errorf("azure: provisioningStatus#hasSucceeded failed to return true for a successful operation")
+		t.Fatalf("azure: provisioningStatus#hasSucceeded failed to return true for a successful operation")
 	}
 }
 
 func TestProvisioningStatus_HasTerminatedReturnsTrueForKnownStates(t *testing.T) {
 	for _, state := range []string{operationSucceeded, operationCanceled, operationFailed} {
 		if !(provisioningStatus{Properties: provisioningProperties{state}}).hasTerminated() {
-			t.Errorf("azure: provisioningStatus#hasTerminated failed to return true for the '%s' state", state)
+			t.Fatalf("azure: provisioningStatus#hasTerminated failed to return true for the '%s' state", state)
 		}
 	}
 }
 
 func TestProvisioningStatus_HasTerminatedReturnsFalseForUnknownStates(t *testing.T) {
 	if (provisioningStatus{Properties: provisioningProperties{"not a known state"}}).hasTerminated() {
-		t.Errorf("azure: provisioningStatus#hasTerminated returned true for a non-terminal operation")
+		t.Fatalf("azure: provisioningStatus#hasTerminated returned true for a non-terminal operation")
 	}
 }
 
 func TestPollingState_HasSucceededReturnsFalseIfNotSuccess(t *testing.T) {
 	if (pollingState{state: "not a success string"}).hasSucceeded() {
-		t.Errorf("azure: pollingState#hasSucceeded failed to return false for a canceled operation")
+		t.Fatalf("azure: pollingState#hasSucceeded failed to return false for a canceled operation")
 	}
 }
 
 func TestPollingState_HasSucceededReturnsTrueIfSuccessful(t *testing.T) {
 	if !(pollingState{state: operationSucceeded}).hasSucceeded() {
-		t.Errorf("azure: pollingState#hasSucceeded failed to return true for a successful operation")
+		t.Fatalf("azure: pollingState#hasSucceeded failed to return true for a successful operation")
 	}
 }
 
 func TestPollingState_HasTerminatedReturnsTrueForKnownStates(t *testing.T) {
 	for _, state := range []string{operationSucceeded, operationCanceled, operationFailed} {
 		if !(pollingState{state: state}).hasTerminated() {
-			t.Errorf("azure: pollingState#hasTerminated failed to return true for the '%s' state", state)
+			t.Fatalf("azure: pollingState#hasTerminated failed to return true for the '%s' state", state)
 		}
 	}
 }
 
 func TestPollingState_HasTerminatedReturnsFalseForUnknownStates(t *testing.T) {
 	if (pollingState{state: "not a known state"}).hasTerminated() {
-		t.Errorf("azure: pollingState#hasTerminated returned true for a non-terminal operation")
+		t.Fatalf("azure: pollingState#hasTerminated returned true for a non-terminal operation")
 	}
 }
 
@@ -158,7 +158,7 @@ func TestUpdatePollingState_ReturnsAnErrorIfOneOccurs(t *testing.T) {
 	resp := mocks.NewResponseWithContent(operationResourceIllegal)
 	err := updatePollingState(resp, &pollingState{})
 	if err == nil {
-		t.Errorf("azure: updatePollingState failed to return an error after a JSON parsing error")
+		t.Fatalf("azure: updatePollingState failed to return an error after a JSON parsing error")
 	}
 }
 
@@ -169,7 +169,7 @@ func TestUpdatePollingState_ReturnsTerminatedForKnownProvisioningStates(t *testi
 		ps := &pollingState{responseFormat: usesProvisioningStatus}
 		updatePollingState(resp, ps)
 		if !ps.hasTerminated() {
-			t.Errorf("azure: updatePollingState failed to return a terminating pollingState for the '%s' state", state)
+			t.Fatalf("azure: updatePollingState failed to return a terminating pollingState for the '%s' state", state)
 		}
 	}
 }
@@ -180,7 +180,7 @@ func TestUpdatePollingState_ReturnsSuccessForSuccessfulProvisioningState(t *test
 	ps := &pollingState{responseFormat: usesProvisioningStatus}
 	updatePollingState(resp, ps)
 	if !ps.hasSucceeded() {
-		t.Errorf("azure: updatePollingState failed to return a successful pollingState for the '%s' state", operationSucceeded)
+		t.Fatalf("azure: updatePollingState failed to return a successful pollingState for the '%s' state", operationSucceeded)
 	}
 }
 
@@ -191,7 +191,7 @@ func TestUpdatePollingState_ReturnsInProgressForAllOtherProvisioningStates(t *te
 	ps := &pollingState{responseFormat: usesProvisioningStatus}
 	updatePollingState(resp, ps)
 	if ps.hasTerminated() {
-		t.Errorf("azure: updatePollingState returned terminated for unknown state '%s'", s)
+		t.Fatalf("azure: updatePollingState returned terminated for unknown state '%s'", s)
 	}
 }
 
@@ -202,7 +202,7 @@ func TestUpdatePollingState_ReturnsSuccessWhenProvisioningStateFieldIsAbsentForS
 		ps := &pollingState{responseFormat: usesProvisioningStatus}
 		updatePollingState(resp, ps)
 		if !ps.hasSucceeded() {
-			t.Errorf("azure: updatePollingState failed to return success when the provisionState field is absent for Status Code %d", sc)
+			t.Fatalf("azure: updatePollingState failed to return success when the provisionState field is absent for Status Code %d", sc)
 		}
 	}
 }
@@ -213,7 +213,7 @@ func TestUpdatePollingState_ReturnsInProgressWhenProvisioningStateFieldIsAbsentF
 	ps := &pollingState{responseFormat: usesProvisioningStatus}
 	updatePollingState(resp, ps)
 	if ps.hasTerminated() {
-		t.Errorf("azure: updatePollingState returned terminated when the provisionState field is absent for Status Code Accepted")
+		t.Fatalf("azure: updatePollingState returned terminated when the provisionState field is absent for Status Code Accepted")
 	}
 }
 
@@ -223,7 +223,7 @@ func TestUpdatePollingState_ReturnsFailedWhenProvisioningStateFieldIsAbsentForUn
 	ps := &pollingState{responseFormat: usesProvisioningStatus}
 	updatePollingState(resp, ps)
 	if !ps.hasTerminated() || ps.hasSucceeded() {
-		t.Errorf("azure: updatePollingState did not return failed when the provisionState field is absent for an unknown Status Code")
+		t.Fatalf("azure: updatePollingState did not return failed when the provisionState field is absent for an unknown Status Code")
 	}
 }
 
@@ -234,7 +234,7 @@ func TestUpdatePollingState_ReturnsTerminatedForKnownOperationResourceStates(t *
 		ps := &pollingState{responseFormat: usesOperationResponse}
 		updatePollingState(resp, ps)
 		if !ps.hasTerminated() {
-			t.Errorf("azure: updatePollingState failed to return a terminating pollingState for the '%s' state", state)
+			t.Fatalf("azure: updatePollingState failed to return a terminating pollingState for the '%s' state", state)
 		}
 	}
 }
@@ -245,7 +245,7 @@ func TestUpdatePollingState_ReturnsSuccessForSuccessfulOperationResourceState(t 
 	ps := &pollingState{responseFormat: usesOperationResponse}
 	updatePollingState(resp, ps)
 	if !ps.hasSucceeded() {
-		t.Errorf("azure: updatePollingState failed to return a successful pollingState for the '%s' state", operationSucceeded)
+		t.Fatalf("azure: updatePollingState failed to return a successful pollingState for the '%s' state", operationSucceeded)
 	}
 }
 
@@ -256,7 +256,7 @@ func TestUpdatePollingState_ReturnsInProgressForAllOtherOperationResourceStates(
 	ps := &pollingState{responseFormat: usesOperationResponse}
 	updatePollingState(resp, ps)
 	if ps.hasTerminated() {
-		t.Errorf("azure: updatePollingState returned terminated for unknown state '%s'", s)
+		t.Fatalf("azure: updatePollingState returned terminated for unknown state '%s'", s)
 	}
 }
 
@@ -268,10 +268,10 @@ func TestUpdatePollingState_CopiesTheResponseBody(t *testing.T) {
 	updatePollingState(resp, ps)
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		t.Errorf("azure: updatePollingState failed to replace the http.Response Body -- Error='%v'", err)
+		t.Fatalf("azure: updatePollingState failed to replace the http.Response Body -- Error='%v'", err)
 	}
 	if string(b) != s {
-		t.Errorf("azure: updatePollingState failed to copy the http.Response Body -- Expected='%s' Received='%s'", s, string(b))
+		t.Fatalf("azure: updatePollingState failed to copy the http.Response Body -- Expected='%s' Received='%s'", s, string(b))
 	}
 }
 
@@ -281,7 +281,7 @@ func TestUpdatePollingState_ClosesTheOriginalResponseBody(t *testing.T) {
 	ps := &pollingState{responseFormat: usesProvisioningStatus}
 	updatePollingState(resp, ps)
 	if b.IsOpen() {
-		t.Error("azure: updatePollingState failed to close the original http.Response Body")
+		t.Fatal("azure: updatePollingState failed to close the original http.Response Body")
 	}
 }
 
@@ -292,7 +292,7 @@ func TestUpdatePollingState_FailsWhenResponseLacksRequest(t *testing.T) {
 	ps := pollingState{}
 	err := updatePollingState(resp, &ps)
 	if err == nil {
-		t.Error("azure: updatePollingState failed to return an error when the http.Response lacked the original http.Request")
+		t.Fatal("azure: updatePollingState failed to return an error when the http.Response lacked the original http.Request")
 	}
 }
 
@@ -301,7 +301,7 @@ func TestUpdatePollingState_SetsTheResponseFormatWhenUsingTheAzureAsyncOperation
 	updatePollingState(newAsynchronousResponse(), &ps)
 
 	if ps.responseFormat != usesOperationResponse {
-		t.Error("azure: updatePollingState failed to set the correct response format when using the Azure-AsyncOperation header")
+		t.Fatal("azure: updatePollingState failed to set the correct response format when using the Azure-AsyncOperation header")
 	}
 }
 
@@ -313,7 +313,7 @@ func TestUpdatePollingState_SetsTheResponseFormatWhenUsingTheAzureAsyncOperation
 	updatePollingState(resp, &ps)
 
 	if ps.responseFormat != usesProvisioningStatus {
-		t.Error("azure: updatePollingState failed to set the correct response format when the Azure-AsyncOperation header is absent")
+		t.Fatal("azure: updatePollingState failed to set the correct response format when the Azure-AsyncOperation header is absent")
 	}
 }
 
@@ -325,7 +325,7 @@ func TestUpdatePollingState_DoesNotChangeAnExistingReponseFormat(t *testing.T) {
 	updatePollingState(resp, &ps)
 
 	if ps.responseFormat != usesOperationResponse {
-		t.Error("azure: updatePollingState failed to leave an existing response format setting")
+		t.Fatal("azure: updatePollingState failed to leave an existing response format setting")
 	}
 }
 
@@ -336,7 +336,7 @@ func TestUpdatePollingState_PrefersTheAzureAsyncOperationHeader(t *testing.T) {
 	updatePollingState(resp, &ps)
 
 	if ps.uri != mocks.TestAzureAsyncURL {
-		t.Error("azure: updatePollingState failed to prefer the Azure-AsyncOperation header")
+		t.Fatal("azure: updatePollingState failed to prefer the Azure-AsyncOperation header")
 	}
 }
 
@@ -348,7 +348,7 @@ func TestUpdatePollingState_PrefersLocationWhenTheAzureAsyncOperationHeaderMissi
 	updatePollingState(resp, &ps)
 
 	if ps.uri != mocks.TestLocationURL {
-		t.Error("azure: updatePollingState failed to prefer the Location header when the Azure-AsyncOperation header is missing")
+		t.Fatal("azure: updatePollingState failed to prefer the Location header when the Azure-AsyncOperation header is missing")
 	}
 }
 
@@ -362,7 +362,7 @@ func TestUpdatePollingState_UsesTheObjectLocationIfAsyncHeadersAreMissing(t *tes
 	updatePollingState(resp, &ps)
 
 	if ps.uri != mocks.TestURL {
-		t.Error("azure: updatePollingState failed to use the Object URL when the asynchronous headers are missing")
+		t.Fatal("azure: updatePollingState failed to use the Object URL when the asynchronous headers are missing")
 	}
 }
 
@@ -377,7 +377,7 @@ func TestUpdatePollingState_RecognizesLowerCaseHTTPVerbs(t *testing.T) {
 		updatePollingState(resp, &ps)
 
 		if ps.uri != mocks.TestURL {
-			t.Errorf("azure: updatePollingState failed to recognize the lower-case HTTP verb '%s'", m)
+			t.Fatalf("azure: updatePollingState failed to recognize the lower-case HTTP verb '%s'", m)
 		}
 	}
 }
@@ -391,7 +391,7 @@ func TestUpdatePollingState_ReturnsAnErrorIfAsyncHeadersAreMissingForANewOrDelet
 		resp.Request.Method = m
 		err := updatePollingState(resp, &pollingState{})
 		if err == nil {
-			t.Errorf("azure: updatePollingState failed to return an error even though it could not determine the polling URL for Method '%s'", m)
+			t.Fatalf("azure: updatePollingState failed to return an error even though it could not determine the polling URL for Method '%s'", m)
 		}
 	}
 }
@@ -402,28 +402,28 @@ func TestNewPollingRequest_FailsWhenResponseLacksRequest(t *testing.T) {
 
 	_, err := newPollingRequest(resp, pollingState{})
 	if err == nil {
-		t.Error("azure: newPollingRequest failed to return an error when the http.Response lacked the original http.Request")
+		t.Fatal("azure: newPollingRequest failed to return an error when the http.Response lacked the original http.Request")
 	}
 }
 
 func TestNewPollingRequest_ReturnsAnErrorWhenPrepareFails(t *testing.T) {
 	_, err := newPollingRequest(newAsynchronousResponse(), pollingState{responseFormat: usesOperationResponse, uri: mocks.TestBadURL})
 	if err == nil {
-		t.Error("azure: newPollingRequest failed to return an error when Prepare fails")
+		t.Fatal("azure: newPollingRequest failed to return an error when Prepare fails")
 	}
 }
 
 func TestNewPollingRequest_DoesNotReturnARequestWhenPrepareFails(t *testing.T) {
 	req, _ := newPollingRequest(newAsynchronousResponse(), pollingState{responseFormat: usesOperationResponse, uri: mocks.TestBadURL})
 	if req != nil {
-		t.Error("azure: newPollingRequest returned an http.Request when Prepare failed")
+		t.Fatal("azure: newPollingRequest returned an http.Request when Prepare failed")
 	}
 }
 
 func TestNewPollingRequest_ReturnsAGetRequest(t *testing.T) {
 	req, _ := newPollingRequest(newAsynchronousResponse(), pollingState{responseFormat: usesOperationResponse, uri: mocks.TestAzureAsyncURL})
 	if req.Method != "GET" {
-		t.Errorf("azure: newPollingRequest did not create an HTTP GET request -- actual method %v", req.Method)
+		t.Fatalf("azure: newPollingRequest did not create an HTTP GET request -- actual method %v", req.Method)
 	}
 }
 
@@ -434,7 +434,7 @@ func TestDoPollForAsynchronous_IgnoresUnspecifiedStatusCodes(t *testing.T) {
 		DoPollForAsynchronous(time.Duration(0)))
 
 	if client.Attempts() != 1 {
-		t.Errorf("azure: DoPollForAsynchronous polled for unspecified status code")
+		t.Fatalf("azure: DoPollForAsynchronous polled for unspecified status code")
 	}
 
 	autorest.Respond(r,
@@ -449,7 +449,7 @@ func TestDoPollForAsynchronous_PollsForSpecifiedStatusCodes(t *testing.T) {
 		DoPollForAsynchronous(time.Millisecond))
 
 	if client.Attempts() != 2 {
-		t.Errorf("azure: DoPollForAsynchronous failed to poll for specified status code")
+		t.Fatalf("azure: DoPollForAsynchronous failed to poll for specified status code")
 	}
 
 	autorest.Respond(r,
@@ -484,7 +484,7 @@ func TestDoPollForAsynchronous_CanBeCanceled(t *testing.T) {
 	close(cancel)
 	time.Sleep(5 * time.Millisecond)
 	if time.Since(start) >= delay {
-		t.Errorf("azure: DoPollForAsynchronous failed to cancel")
+		t.Fatalf("azure: DoPollForAsynchronous failed to cancel")
 	}
 }
 
@@ -505,7 +505,7 @@ func TestDoPollForAsynchronous_ClosesAllNonreturnedResponseBodiesWhenPolling(t *
 		DoPollForAsynchronous(time.Millisecond))
 
 	if b1.IsOpen() || b2.IsOpen() || b3.IsOpen() {
-		t.Errorf("azure: DoPollForAsynchronous did not close unreturned response bodies")
+		t.Fatalf("azure: DoPollForAsynchronous did not close unreturned response bodies")
 	}
 
 	autorest.Respond(r,
@@ -527,7 +527,7 @@ func TestDoPollForAsynchronous_LeavesLastResponseBodyOpen(t *testing.T) {
 
 	b, err := ioutil.ReadAll(r.Body)
 	if len(b) <= 0 || err != nil {
-		t.Errorf("azure: DoPollForAsynchronous did not leave open the body of the last response - Error='%v'", err)
+		t.Fatalf("azure: DoPollForAsynchronous did not leave open the body of the last response - Error='%v'", err)
 	}
 
 	autorest.Respond(r,
@@ -547,7 +547,7 @@ func TestDoPollForAsynchronous_DoesNotPollIfOriginalRequestReturnedAnError(t *te
 		DoPollForAsynchronous(time.Millisecond))
 
 	if client.Attempts() != 1 {
-		t.Errorf("azure: DoPollForAsynchronous tried to poll after receiving an error")
+		t.Fatalf("azure: DoPollForAsynchronous tried to poll after receiving an error")
 	}
 
 	autorest.Respond(r,
@@ -567,7 +567,7 @@ func TestDoPollForAsynchronous_DoesNotPollIfCreatingOperationRequestFails(t *tes
 		DoPollForAsynchronous(time.Millisecond))
 
 	if client.Attempts() > 1 {
-		t.Errorf("azure: DoPollForAsynchronous polled with an invalidly formed operation request")
+		t.Fatalf("azure: DoPollForAsynchronous polled with an invalidly formed operation request")
 	}
 
 	autorest.Respond(r,
@@ -588,7 +588,7 @@ func TestDoPollForAsynchronous_StopsPollingAfterAnError(t *testing.T) {
 		DoPollForAsynchronous(time.Millisecond))
 
 	if client.Attempts() > 3 {
-		t.Errorf("azure: DoPollForAsynchronous failed to stop polling after receiving an error")
+		t.Fatalf("azure: DoPollForAsynchronous failed to stop polling after receiving an error")
 	}
 
 	autorest.Respond(r,
@@ -605,7 +605,7 @@ func TestDoPollForAsynchronous_ReturnsPollingError(t *testing.T) {
 		DoPollForAsynchronous(time.Millisecond))
 
 	if err == nil {
-		t.Errorf("azure: DoPollForAsynchronous failed to return error from polling")
+		t.Fatalf("azure: DoPollForAsynchronous failed to return error from polling")
 	}
 
 	autorest.Respond(r,
@@ -628,7 +628,7 @@ func TestDoPollForAsynchronous_PollsForStatusAccepted(t *testing.T) {
 		DoPollForAsynchronous(time.Millisecond))
 
 	if client.Attempts() < 4 {
-		t.Errorf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
+		t.Fatalf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
 	}
 
 	autorest.Respond(r,
@@ -651,7 +651,7 @@ func TestDoPollForAsynchronous_PollsForStatusCreated(t *testing.T) {
 		DoPollForAsynchronous(time.Millisecond))
 
 	if client.Attempts() < 4 {
-		t.Errorf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
+		t.Fatalf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
 	}
 
 	autorest.Respond(r,
@@ -675,7 +675,7 @@ func TestDoPollForAsynchronous_PollsUntilProvisioningStatusTerminates(t *testing
 		DoPollForAsynchronous(time.Millisecond))
 
 	if client.Attempts() < 4 {
-		t.Errorf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
+		t.Fatalf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
 	}
 
 	autorest.Respond(r,
@@ -699,7 +699,7 @@ func TestDoPollForAsynchronous_PollsUntilProvisioningStatusSucceeds(t *testing.T
 		DoPollForAsynchronous(time.Millisecond))
 
 	if client.Attempts() < 4 {
-		t.Errorf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
+		t.Fatalf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
 	}
 
 	autorest.Respond(r,
@@ -720,7 +720,7 @@ func TestDoPollForAsynchronous_PollsUntilOperationResourceHasTerminated(t *testi
 		DoPollForAsynchronous(time.Millisecond))
 
 	if client.Attempts() < 4 {
-		t.Errorf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
+		t.Fatalf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
 	}
 
 	autorest.Respond(r,
@@ -741,7 +741,7 @@ func TestDoPollForAsynchronous_PollsUntilOperationResourceHasSucceeded(t *testin
 		DoPollForAsynchronous(time.Millisecond))
 
 	if client.Attempts() < 4 {
-		t.Errorf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
+		t.Fatalf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
 	}
 
 	autorest.Respond(r,
@@ -762,7 +762,7 @@ func TestDoPollForAsynchronous_StopsPollingWhenOperationResourceHasTerminated(t 
 		DoPollForAsynchronous(time.Millisecond))
 
 	if client.Attempts() > 4 {
-		t.Errorf("azure: DoPollForAsynchronous failed to stop after receiving a terminated OperationResource")
+		t.Fatalf("azure: DoPollForAsynchronous failed to stop after receiving a terminated OperationResource")
 	}
 
 	autorest.Respond(r,
@@ -783,7 +783,7 @@ func TestDoPollForAsynchronous_ReturnsAnErrorForCanceledOperations(t *testing.T)
 		DoPollForAsynchronous(time.Millisecond))
 
 	if err == nil || !strings.Contains(fmt.Sprintf("%v", err), "Canceled") {
-		t.Errorf("azure: DoPollForAsynchronous failed to return an appropriate error for a canceled OperationResource")
+		t.Fatalf("azure: DoPollForAsynchronous failed to return an appropriate error for a canceled OperationResource")
 	}
 
 	autorest.Respond(r,
@@ -804,7 +804,7 @@ func TestDoPollForAsynchronous_ReturnsAnErrorForFailedOperations(t *testing.T) {
 		DoPollForAsynchronous(time.Millisecond))
 
 	if err == nil || !strings.Contains(fmt.Sprintf("%v", err), "Failed") {
-		t.Errorf("azure: DoPollForAsynchronous failed to return an appropriate error for a canceled OperationResource")
+		t.Fatalf("azure: DoPollForAsynchronous failed to return an appropriate error for a canceled OperationResource")
 	}
 
 	autorest.Respond(r,
@@ -830,7 +830,7 @@ func TestDoPollForAsynchronous_ReturnsAnUnknownErrorForFailedOperations(t *testi
 
 	expected := makeLongRunningOperationErrorString("Unknown", "None")
 	if err.Error() != expected {
-		t.Errorf("azure: DoPollForAsynchronous failed to return an appropriate error message for an unknown error. \n expected=%q \n got=%q",
+		t.Fatalf("azure: DoPollForAsynchronous failed to return an appropriate error message for an unknown error. \n expected=%q \n got=%q",
 			expected, err.Error())
 	}
 
@@ -857,7 +857,7 @@ func TestDoPollForAsynchronous_ReturnsErrorForLastErrorResponse(t *testing.T) {
 
 	expected := makeLongRunningOperationErrorString("NetcfgInvalidSubnet", "Subnet is not valid in virtual network.")
 	if err.Error() != expected {
-		t.Errorf("azure: DoPollForAsynchronous failed to return an appropriate error message for an unknown error. \n expected=%q \n got=%q",
+		t.Fatalf("azure: DoPollForAsynchronous failed to return an appropriate error message for an unknown error. \n expected=%q \n got=%q",
 			expected, err.Error())
 	}
 
@@ -881,7 +881,7 @@ func TestDoPollForAsynchronous_ReturnsOperationResourceErrorForFailedOperations(
 
 	expected := makeLongRunningOperationErrorString("BadArgument", "The provided database 'foo' has an invalid username.")
 	if err.Error() != expected {
-		t.Errorf("azure: DoPollForAsynchronous failed to return an appropriate error message for a failed Operations. \n expected=%q \n got=%q",
+		t.Fatalf("azure: DoPollForAsynchronous failed to return an appropriate error message for a failed Operations. \n expected=%q \n got=%q",
 			expected, err.Error())
 	}
 
@@ -900,7 +900,7 @@ func TestDoPollForAsynchronous_ReturnsErrorForFirstPutWithUnknownError(t *testin
 
 	expected := makeLongRunningOperationErrorString("Unknown", "None")
 	if err.Error() != expected {
-		t.Errorf("azure: DoPollForAsynchronous failed to return an appropriate error message for a failed Operations. \n expected=%q \n got=%q",
+		t.Fatalf("azure: DoPollForAsynchronous failed to return an appropriate error message for a failed Operations. \n expected=%q \n got=%q",
 			expected, err.Error())
 	}
 
@@ -919,7 +919,7 @@ func TestDoPollForAsynchronous_ReturnsErrorForFirstPutRequest(t *testing.T) {
 
 	expected := makeLongRunningOperationErrorString("NetcfgInvalidSubnet", "Subnet is not valid in virtual network.")
 	if err.Error() != expected {
-		t.Errorf("azure: DoPollForAsynchronous failed to return an appropriate error message for a failed Operations. \n expected=%q \n got=%q", expected, err.Error())
+		t.Fatalf("azure: DoPollForAsynchronous failed to return an appropriate error message for a failed Operations. \n expected=%q \n got=%q", expected, err.Error())
 	}
 
 	autorest.Respond(r,
@@ -940,7 +940,7 @@ func TestDoPollForAsynchronous_ReturnsNoErrorForSuccessfulOperations(t *testing.
 		DoPollForAsynchronous(time.Millisecond))
 
 	if err != nil {
-		t.Errorf("azure: DoPollForAsynchronous returned an error for a successful OperationResource")
+		t.Fatalf("azure: DoPollForAsynchronous returned an error for a successful OperationResource")
 	}
 
 	autorest.Respond(r,
@@ -964,10 +964,10 @@ func TestDoPollForAsynchronous_StopsPollingIfItReceivesAnInvalidOperationResourc
 		DoPollForAsynchronous(time.Millisecond))
 
 	if client.Attempts() > 4 {
-		t.Errorf("azure: DoPollForAsynchronous failed to stop polling after receiving an invalid OperationResource")
+		t.Fatalf("azure: DoPollForAsynchronous failed to stop polling after receiving an invalid OperationResource")
 	}
 	if err == nil {
-		t.Errorf("azure: DoPollForAsynchronous failed to return an error after receving an invalid OperationResource")
+		t.Fatalf("azure: DoPollForAsynchronous failed to return an error after receving an invalid OperationResource")
 	}
 
 	autorest.Respond(r,

@@ -81,10 +81,10 @@ func TestCreateResponderDoesNotModify(t *testing.T) {
 	p := CreateResponder()
 	err := p.Respond(r1)
 	if err != nil {
-		t.Errorf("autorest: CreateResponder failed (%v)", err)
+		t.Fatalf("autorest: CreateResponder failed (%v)", err)
 	}
 	if !reflect.DeepEqual(r1, r2) {
-		t.Errorf("autorest: CreateResponder without decorators modified the response")
+		t.Fatalf("autorest: CreateResponder without decorators modified the response")
 	}
 }
 
@@ -106,11 +106,11 @@ func TestCreateResponderRunsDecoratorsInOrder(t *testing.T) {
 	p := CreateResponder(d(1), d(2), d(3))
 	err := p.Respond(&http.Response{})
 	if err != nil {
-		t.Errorf("autorest: Respond failed (%v)", err)
+		t.Fatalf("autorest: Respond failed (%v)", err)
 	}
 
 	if s != "123" {
-		t.Errorf("autorest: CreateResponder invoked decorators in an incorrect order; expected '123', received '%s'", s)
+		t.Fatalf("autorest: CreateResponder invoked decorators in an incorrect order; expected '123', received '%s'", s)
 	}
 }
 
@@ -123,7 +123,7 @@ func TestByIgnoring(t *testing.T) {
 				return ResponderFunc(func(r2 *http.Response) error {
 					r1 := mocks.NewResponse()
 					if !reflect.DeepEqual(r1, r2) {
-						t.Errorf("autorest: ByIgnoring modified the HTTP Response -- received %v, expected %v", r2, r1)
+						t.Fatalf("autorest: ByIgnoring modified the HTTP Response -- received %v, expected %v", r2, r1)
 					}
 					return nil
 				})
@@ -142,10 +142,10 @@ func TestByCopying_Copies(t *testing.T) {
 		ByUnmarshallingJSON(&mocks.T{}),
 		ByClosing())
 	if err != nil {
-		t.Errorf("autorest: ByCopying returned an unexpected error -- %v", err)
+		t.Fatalf("autorest: ByCopying returned an unexpected error -- %v", err)
 	}
 	if b.String() != jsonT {
-		t.Errorf("autorest: ByCopying failed to copy the bytes read")
+		t.Fatalf("autorest: ByCopying failed to copy the bytes read")
 	}
 }
 
@@ -158,7 +158,7 @@ func TestByCopying_ReturnsNestedErrors(t *testing.T) {
 		ByUnmarshallingJSON(&mocks.T{}),
 		ByClosing())
 	if err == nil {
-		t.Errorf("autorest: ByCopying failed to return the expected error")
+		t.Fatalf("autorest: ByCopying failed to return the expected error")
 	}
 }
 
@@ -199,10 +199,10 @@ func TestByClosing(t *testing.T) {
 	r := mocks.NewResponse()
 	err := Respond(r, ByClosing())
 	if err != nil {
-		t.Errorf("autorest: ByClosing failed (%v)", err)
+		t.Fatalf("autorest: ByClosing failed (%v)", err)
 	}
 	if r.Body.(*mocks.Body).IsOpen() {
-		t.Errorf("autorest: ByClosing did not close the response body")
+		t.Fatalf("autorest: ByClosing did not close the response body")
 	}
 }
 
@@ -248,7 +248,7 @@ func TestByClosingClosesEvenAfterErrors(t *testing.T) {
 		ByClosing())
 
 	if r.Body.(*mocks.Body).IsOpen() {
-		t.Errorf("autorest: ByClosing did not close the response body after an error occurred")
+		t.Fatalf("autorest: ByClosing did not close the response body after an error occurred")
 	}
 }
 
@@ -261,7 +261,7 @@ func TestByClosingClosesReturnsNestedErrors(t *testing.T) {
 		ByClosing())
 
 	if err == nil || !reflect.DeepEqual(e, err) {
-		t.Errorf("autorest: ByClosing failed to return a nested error")
+		t.Fatalf("autorest: ByClosing failed to return a nested error")
 	}
 }
 
@@ -313,7 +313,7 @@ func TestByClosingIfErrorClosesIfAnErrorOccurs(t *testing.T) {
 		ByClosingIfError())
 
 	if r.Body.(*mocks.Body).IsOpen() {
-		t.Errorf("autorest: ByClosingIfError did not close the response body after an error occurred")
+		t.Fatalf("autorest: ByClosingIfError did not close the response body after an error occurred")
 	}
 }
 
@@ -323,7 +323,7 @@ func TestByClosingIfErrorDoesNotClosesIfNoErrorOccurs(t *testing.T) {
 		ByClosingIfError())
 
 	if !r.Body.(*mocks.Body).IsOpen() {
-		t.Errorf("autorest: ByClosingIfError closed the response body even though no error occurred")
+		t.Fatalf("autorest: ByClosingIfError closed the response body even though no error occurred")
 	}
 }
 
@@ -334,10 +334,10 @@ func TestByUnmarshallingJSON(t *testing.T) {
 		ByUnmarshallingJSON(v),
 		ByClosing())
 	if err != nil {
-		t.Errorf("autorest: ByUnmarshallingJSON failed (%v)", err)
+		t.Fatalf("autorest: ByUnmarshallingJSON failed (%v)", err)
 	}
 	if v.Name != "Rob Pike" || v.Age != 42 {
-		t.Errorf("autorest: ByUnmarshallingJSON failed to properly unmarshal")
+		t.Fatalf("autorest: ByUnmarshallingJSON failed to properly unmarshal")
 	}
 }
 
@@ -350,7 +350,7 @@ func TestByUnmarshallingJSON_HandlesReadErrors(t *testing.T) {
 		ByUnmarshallingJSON(v),
 		ByClosing())
 	if err == nil {
-		t.Errorf("autorest: ByUnmarshallingJSON failed to receive / respond to read error")
+		t.Fatalf("autorest: ByUnmarshallingJSON failed to receive / respond to read error")
 	}
 }
 
@@ -362,7 +362,7 @@ func TestByUnmarshallingJSONIncludesJSONInErrors(t *testing.T) {
 		ByUnmarshallingJSON(v),
 		ByClosing())
 	if err == nil || !strings.Contains(err.Error(), j) {
-		t.Errorf("autorest: ByUnmarshallingJSON failed to return JSON in error (%v)", err)
+		t.Fatalf("autorest: ByUnmarshallingJSON failed to return JSON in error (%v)", err)
 	}
 }
 
@@ -373,7 +373,7 @@ func TestByUnmarshallingJSONEmptyInput(t *testing.T) {
 		ByUnmarshallingJSON(v),
 		ByClosing())
 	if err != nil {
-		t.Errorf("autorest: ByUnmarshallingJSON failed to return nil in case of empty JSON (%v)", err)
+		t.Fatalf("autorest: ByUnmarshallingJSON failed to return nil in case of empty JSON (%v)", err)
 	}
 }
 
@@ -384,10 +384,10 @@ func TestByUnmarshallingXML(t *testing.T) {
 		ByUnmarshallingXML(v),
 		ByClosing())
 	if err != nil {
-		t.Errorf("autorest: ByUnmarshallingXML failed (%v)", err)
+		t.Fatalf("autorest: ByUnmarshallingXML failed (%v)", err)
 	}
 	if v.Name != "Rob Pike" || v.Age != 42 {
-		t.Errorf("autorest: ByUnmarshallingXML failed to properly unmarshal")
+		t.Fatalf("autorest: ByUnmarshallingXML failed to properly unmarshal")
 	}
 }
 
@@ -400,7 +400,7 @@ func TestByUnmarshallingXML_HandlesReadErrors(t *testing.T) {
 		ByUnmarshallingXML(v),
 		ByClosing())
 	if err == nil {
-		t.Errorf("autorest: ByUnmarshallingXML failed to receive / respond to read error")
+		t.Fatalf("autorest: ByUnmarshallingXML failed to receive / respond to read error")
 	}
 }
 
@@ -412,14 +412,14 @@ func TestByUnmarshallingXMLIncludesXMLInErrors(t *testing.T) {
 		ByUnmarshallingXML(v),
 		ByClosing())
 	if err == nil || !strings.Contains(err.Error(), x) {
-		t.Errorf("autorest: ByUnmarshallingXML failed to return XML in error (%v)", err)
+		t.Fatalf("autorest: ByUnmarshallingXML failed to return XML in error (%v)", err)
 	}
 }
 
 func TestRespondAcceptsNullResponse(t *testing.T) {
 	err := Respond(nil)
 	if err != nil {
-		t.Errorf("autorest: Respond returned an unexpected error when given a null Response (%v)", err)
+		t.Fatalf("autorest: Respond returned an unexpected error when given a null Response (%v)", err)
 	}
 }
 
@@ -434,7 +434,7 @@ func TestWithErrorUnlessStatusCode(t *testing.T) {
 		ByClosingIfError())
 
 	if err != nil {
-		t.Errorf("autorest: WithErrorUnlessStatusCode returned an error (%v) for an acceptable status code (%s)", err, r.Status)
+		t.Fatalf("autorest: WithErrorUnlessStatusCode returned an error (%v) for an acceptable status code (%s)", err, r.Status)
 	}
 }
 
@@ -449,7 +449,7 @@ func TestWithErrorUnlessStatusCodeEmitsErrorForUnacceptableStatusCode(t *testing
 		ByClosingIfError())
 
 	if err == nil {
-		t.Errorf("autorest: WithErrorUnlessStatusCode failed to return an error for an unacceptable status code (%s)", r.Status)
+		t.Fatalf("autorest: WithErrorUnlessStatusCode failed to return an error for an unacceptable status code (%s)", r.Status)
 	}
 }
 
@@ -462,7 +462,7 @@ func TestWithErrorUnlessOK(t *testing.T) {
 		ByClosingIfError())
 
 	if err != nil {
-		t.Errorf("autorest: WithErrorUnlessOK returned an error for OK status code (%v)", err)
+		t.Fatalf("autorest: WithErrorUnlessOK returned an error for OK status code (%v)", err)
 	}
 }
 
@@ -477,7 +477,7 @@ func TestWithErrorUnlessOKEmitsErrorIfNotOK(t *testing.T) {
 		ByClosingIfError())
 
 	if err == nil {
-		t.Errorf("autorest: WithErrorUnlessOK failed to return an error for a non-OK status code (%v)", err)
+		t.Fatalf("autorest: WithErrorUnlessOK failed to return an error for a non-OK status code (%v)", err)
 	}
 }
 
@@ -487,7 +487,7 @@ func TestExtractHeader(t *testing.T) {
 	mocks.SetResponseHeaderValues(r, mocks.TestHeader, v)
 
 	if !reflect.DeepEqual(ExtractHeader(mocks.TestHeader, r), v) {
-		t.Errorf("autorest: ExtractHeader failed to retrieve the expected header -- expected [%s]%v, received [%s]%v",
+		t.Fatalf("autorest: ExtractHeader failed to retrieve the expected header -- expected [%s]%v, received [%s]%v",
 			mocks.TestHeader, v, mocks.TestHeader, ExtractHeader(mocks.TestHeader, r))
 	}
 }
@@ -497,7 +497,7 @@ func TestExtractHeaderHandlesMissingHeader(t *testing.T) {
 	r := mocks.NewResponse()
 
 	if !reflect.DeepEqual(ExtractHeader(mocks.TestHeader, r), v) {
-		t.Errorf("autorest: ExtractHeader failed to handle a missing header -- expected %v, received %v",
+		t.Fatalf("autorest: ExtractHeader failed to handle a missing header -- expected %v, received %v",
 			v, ExtractHeader(mocks.TestHeader, r))
 	}
 }
@@ -508,7 +508,7 @@ func TestExtractHeaderValue(t *testing.T) {
 	mocks.SetResponseHeader(r, mocks.TestHeader, v)
 
 	if ExtractHeaderValue(mocks.TestHeader, r) != v {
-		t.Errorf("autorest: ExtractHeader failed to retrieve the expected header -- expected [%s]%v, received [%s]%v",
+		t.Fatalf("autorest: ExtractHeader failed to retrieve the expected header -- expected [%s]%v, received [%s]%v",
 			mocks.TestHeader, v, mocks.TestHeader, ExtractHeaderValue(mocks.TestHeader, r))
 	}
 }
@@ -518,7 +518,7 @@ func TestExtractHeaderValueHandlesMissingHeader(t *testing.T) {
 	v := ""
 
 	if ExtractHeaderValue(mocks.TestHeader, r) != v {
-		t.Errorf("autorest: ExtractHeader failed to retrieve the expected header -- expected [%s]%v, received [%s]%v",
+		t.Fatalf("autorest: ExtractHeader failed to retrieve the expected header -- expected [%s]%v, received [%s]%v",
 			mocks.TestHeader, v, mocks.TestHeader, ExtractHeaderValue(mocks.TestHeader, r))
 	}
 }
@@ -529,7 +529,7 @@ func TestExtractHeaderValueRetrievesFirstValue(t *testing.T) {
 	mocks.SetResponseHeaderValues(r, mocks.TestHeader, v)
 
 	if ExtractHeaderValue(mocks.TestHeader, r) != v[0] {
-		t.Errorf("autorest: ExtractHeader failed to retrieve the expected header -- expected [%s]%v, received [%s]%v",
+		t.Fatalf("autorest: ExtractHeader failed to retrieve the expected header -- expected [%s]%v, received [%s]%v",
 			mocks.TestHeader, v[0], mocks.TestHeader, ExtractHeaderValue(mocks.TestHeader, r))
 	}
 }

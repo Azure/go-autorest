@@ -11,7 +11,7 @@ func TestResponseHasStatusCode(t *testing.T) {
 	codes := []int{http.StatusOK, http.StatusAccepted}
 	resp := &http.Response{StatusCode: http.StatusAccepted}
 	if !ResponseHasStatusCode(resp, codes...) {
-		t.Errorf("autorest: ResponseHasStatusCode failed to find %v in %v", resp.StatusCode, codes)
+		t.Fatalf("autorest: ResponseHasStatusCode failed to find %v in %v", resp.StatusCode, codes)
 	}
 }
 
@@ -19,7 +19,7 @@ func TestResponseHasStatusCodeNotPresent(t *testing.T) {
 	codes := []int{http.StatusOK, http.StatusAccepted}
 	resp := &http.Response{StatusCode: http.StatusInternalServerError}
 	if ResponseHasStatusCode(resp, codes...) {
-		t.Errorf("autorest: ResponseHasStatusCode unexpectedly found %v in %v", resp.StatusCode, codes)
+		t.Fatalf("autorest: ResponseHasStatusCode unexpectedly found %v in %v", resp.StatusCode, codes)
 	}
 }
 
@@ -28,7 +28,7 @@ func TestNewPollingRequestDoesNotReturnARequestWhenLocationHeaderIsMissing(t *te
 
 	req, _ := NewPollingRequest(resp, nil)
 	if req != nil {
-		t.Error("autorest: NewPollingRequest returned an http.Request when the Location header was missing")
+		t.Fatal("autorest: NewPollingRequest returned an http.Request when the Location header was missing")
 	}
 }
 
@@ -39,7 +39,7 @@ func TestNewPollingRequestReturnsAnErrorWhenPrepareFails(t *testing.T) {
 
 	_, err := NewPollingRequest(resp, nil)
 	if err == nil {
-		t.Error("autorest: NewPollingRequest failed to return an error when Prepare fails")
+		t.Fatal("autorest: NewPollingRequest failed to return an error when Prepare fails")
 	}
 }
 
@@ -50,7 +50,7 @@ func TestNewPollingRequestDoesNotReturnARequestWhenPrepareFails(t *testing.T) {
 
 	req, _ := NewPollingRequest(resp, nil)
 	if req != nil {
-		t.Error("autorest: NewPollingRequest returned an http.Request when Prepare failed")
+		t.Fatal("autorest: NewPollingRequest returned an http.Request when Prepare failed")
 	}
 }
 
@@ -60,7 +60,7 @@ func TestNewPollingRequestReturnsAGetRequest(t *testing.T) {
 
 	req, _ := NewPollingRequest(resp, nil)
 	if req.Method != "GET" {
-		t.Errorf("autorest: NewPollingRequest did not create an HTTP GET request -- actual method %v", req.Method)
+		t.Fatalf("autorest: NewPollingRequest did not create an HTTP GET request -- actual method %v", req.Method)
 	}
 }
 
@@ -70,7 +70,7 @@ func TestNewPollingRequestProvidesTheURL(t *testing.T) {
 
 	req, _ := NewPollingRequest(resp, nil)
 	if req.URL.String() != mocks.TestURL {
-		t.Errorf("autorest: NewPollingRequest did not create an HTTP with the expected URL -- received %v, expected %v", req.URL, mocks.TestURL)
+		t.Fatalf("autorest: NewPollingRequest did not create an HTTP with the expected URL -- received %v, expected %v", req.URL, mocks.TestURL)
 	}
 }
 
@@ -80,7 +80,7 @@ func TestGetLocation(t *testing.T) {
 
 	l := GetLocation(resp)
 	if len(l) == 0 {
-		t.Errorf("autorest: GetLocation failed to return Location header -- expected %v, received %v", mocks.TestURL, l)
+		t.Fatalf("autorest: GetLocation failed to return Location header -- expected %v, received %v", mocks.TestURL, l)
 	}
 }
 
@@ -89,7 +89,7 @@ func TestGetLocationReturnsEmptyStringForMissingLocation(t *testing.T) {
 
 	l := GetLocation(resp)
 	if len(l) != 0 {
-		t.Errorf("autorest: GetLocation return a value without a Location header -- received %v", l)
+		t.Fatalf("autorest: GetLocation return a value without a Location header -- received %v", l)
 	}
 }
 
@@ -99,7 +99,7 @@ func TestGetRetryAfter(t *testing.T) {
 
 	d := GetRetryAfter(resp, DefaultPollingDelay)
 	if d != mocks.TestDelay {
-		t.Errorf("autorest: GetRetryAfter failed to returned the expected delay -- expected %v, received %v", mocks.TestDelay, d)
+		t.Fatalf("autorest: GetRetryAfter failed to returned the expected delay -- expected %v, received %v", mocks.TestDelay, d)
 	}
 }
 
@@ -108,7 +108,7 @@ func TestGetRetryAfterReturnsDefaultDelayIfRetryHeaderIsMissing(t *testing.T) {
 
 	d := GetRetryAfter(resp, DefaultPollingDelay)
 	if d != DefaultPollingDelay {
-		t.Errorf("autorest: GetRetryAfter failed to returned the default delay for a missing Retry-After header -- expected %v, received %v",
+		t.Fatalf("autorest: GetRetryAfter failed to returned the default delay for a missing Retry-After header -- expected %v, received %v",
 			DefaultPollingDelay, d)
 	}
 }
@@ -120,7 +120,7 @@ func TestGetRetryAfterReturnsDefaultDelayIfRetryHeaderIsMalformed(t *testing.T) 
 
 	d := GetRetryAfter(resp, DefaultPollingDelay)
 	if d != DefaultPollingDelay {
-		t.Errorf("autorest: GetRetryAfter failed to returned the default delay for a malformed Retry-After header -- expected %v, received %v",
+		t.Fatalf("autorest: GetRetryAfter failed to returned the default delay for a malformed Retry-After header -- expected %v, received %v",
 			DefaultPollingDelay, d)
 	}
 }
