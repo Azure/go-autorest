@@ -30,7 +30,7 @@ func TestNewDecoderCreatesJSONDecoder(t *testing.T) {
 	d := NewDecoder(EncodedAsJSON, strings.NewReader(jsonT))
 	_, ok := d.(*json.Decoder)
 	if d == nil || !ok {
-		t.Error("autorest: NewDecoder failed to create a JSON decoder when requested")
+		t.Fatal("autorest: NewDecoder failed to create a JSON decoder when requested")
 	}
 }
 
@@ -38,49 +38,49 @@ func TestNewDecoderCreatesXMLDecoder(t *testing.T) {
 	d := NewDecoder(EncodedAsXML, strings.NewReader(xmlT))
 	_, ok := d.(*xml.Decoder)
 	if d == nil || !ok {
-		t.Error("autorest: NewDecoder failed to create an XML decoder when requested")
+		t.Fatal("autorest: NewDecoder failed to create an XML decoder when requested")
 	}
 }
 
 func TestNewDecoderReturnsNilForUnknownEncoding(t *testing.T) {
 	d := NewDecoder("unknown", strings.NewReader(xmlT))
 	if d != nil {
-		t.Error("autorest: NewDecoder created a decoder for an unknown encoding")
+		t.Fatal("autorest: NewDecoder created a decoder for an unknown encoding")
 	}
 }
 
 func TestCopyAndDecodeDecodesJSON(t *testing.T) {
 	_, err := CopyAndDecode(EncodedAsJSON, strings.NewReader(jsonT), &mocks.T{})
 	if err != nil {
-		t.Errorf("autorest: CopyAndDecode returned an error with valid JSON - %v", err)
+		t.Fatalf("autorest: CopyAndDecode returned an error with valid JSON - %v", err)
 	}
 }
 
 func TestCopyAndDecodeDecodesXML(t *testing.T) {
 	_, err := CopyAndDecode(EncodedAsXML, strings.NewReader(xmlT), &mocks.T{})
 	if err != nil {
-		t.Errorf("autorest: CopyAndDecode returned an error with valid XML - %v", err)
+		t.Fatalf("autorest: CopyAndDecode returned an error with valid XML - %v", err)
 	}
 }
 
 func TestCopyAndDecodeReturnsJSONDecodingErrors(t *testing.T) {
 	_, err := CopyAndDecode(EncodedAsJSON, strings.NewReader(jsonT[0:len(jsonT)-2]), &mocks.T{})
 	if err == nil {
-		t.Errorf("autorest: CopyAndDecode failed to return an error with invalid JSON")
+		t.Fatalf("autorest: CopyAndDecode failed to return an error with invalid JSON")
 	}
 }
 
 func TestCopyAndDecodeReturnsXMLDecodingErrors(t *testing.T) {
 	_, err := CopyAndDecode(EncodedAsXML, strings.NewReader(xmlT[0:len(xmlT)-2]), &mocks.T{})
 	if err == nil {
-		t.Errorf("autorest: CopyAndDecode failed to return an error with invalid XML")
+		t.Fatalf("autorest: CopyAndDecode failed to return an error with invalid XML")
 	}
 }
 
 func TestCopyAndDecodeAlwaysReturnsACopy(t *testing.T) {
 	b, _ := CopyAndDecode(EncodedAsJSON, strings.NewReader(jsonT), &mocks.T{})
 	if b.String() != jsonT {
-		t.Errorf("autorest: CopyAndDecode failed to return a valid copy of the data - %v", b.String())
+		t.Fatalf("autorest: CopyAndDecode failed to return a valid copy of the data - %v", b.String())
 	}
 }
 
@@ -95,10 +95,10 @@ func TestTeeReadCloser_Copies(t *testing.T) {
 		ByUnmarshallingJSON(v),
 		ByClosing())
 	if err != nil {
-		t.Errorf("autorest: TeeReadCloser returned an unexpected error -- %v", err)
+		t.Fatalf("autorest: TeeReadCloser returned an unexpected error -- %v", err)
 	}
 	if b.String() != jsonT {
-		t.Errorf("autorest: TeeReadCloser failed to copy the bytes read")
+		t.Fatalf("autorest: TeeReadCloser failed to copy the bytes read")
 	}
 }
 
@@ -113,7 +113,7 @@ func TestTeeReadCloser_PassesReadErrors(t *testing.T) {
 		ByUnmarshallingJSON(v),
 		ByClosing())
 	if err == nil {
-		t.Errorf("autorest: TeeReadCloser failed to return the expected error")
+		t.Fatalf("autorest: TeeReadCloser failed to return the expected error")
 	}
 }
 
@@ -127,10 +127,10 @@ func TestTeeReadCloser_ClosesWrappedReader(t *testing.T) {
 		ByUnmarshallingJSON(v),
 		ByClosing())
 	if err != nil {
-		t.Errorf("autorest: TeeReadCloser returned an unexpected error -- %v", err)
+		t.Fatalf("autorest: TeeReadCloser returned an unexpected error -- %v", err)
 	}
 	if b.IsOpen() {
-		t.Errorf("autorest: TeeReadCloser failed to close the nested io.ReadCloser")
+		t.Fatalf("autorest: TeeReadCloser failed to close the nested io.ReadCloser")
 	}
 }
 
@@ -138,7 +138,7 @@ func TestContainsIntFindsValue(t *testing.T) {
 	ints := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	v := 5
 	if !containsInt(ints, v) {
-		t.Errorf("autorest: containsInt failed to find %v in %v", v, ints)
+		t.Fatalf("autorest: containsInt failed to find %v in %v", v, ints)
 	}
 }
 
@@ -146,21 +146,21 @@ func TestContainsIntDoesNotFindValue(t *testing.T) {
 	ints := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	v := 42
 	if containsInt(ints, v) {
-		t.Errorf("autorest: containsInt unexpectedly found %v in %v", v, ints)
+		t.Fatalf("autorest: containsInt unexpectedly found %v in %v", v, ints)
 	}
 }
 
 func TestContainsIntAcceptsEmptyList(t *testing.T) {
 	ints := make([]int, 10)
 	if containsInt(ints, 42) {
-		t.Errorf("autorest: containsInt failed to handle an empty list")
+		t.Fatalf("autorest: containsInt failed to handle an empty list")
 	}
 }
 
 func TestContainsIntAcceptsNilList(t *testing.T) {
 	var ints []int
 	if containsInt(ints, 42) {
-		t.Errorf("autorest: containsInt failed to handle an nil list")
+		t.Fatalf("autorest: containsInt failed to handle an nil list")
 	}
 }
 
@@ -177,7 +177,7 @@ func TestEscapeStrings(t *testing.T) {
 	}
 	v := escapeValueStrings(m)
 	if !reflect.DeepEqual(v, r) {
-		t.Errorf("autorest: ensureValueStrings returned %v\n", v)
+		t.Fatalf("autorest: ensureValueStrings returned %v\n", v)
 	}
 }
 
@@ -194,7 +194,7 @@ func TestEnsureStrings(t *testing.T) {
 	}
 	v := ensureValueStrings(m)
 	if !reflect.DeepEqual(v, r) {
-		t.Errorf("autorest: ensureValueStrings returned %v\n", v)
+		t.Fatalf("autorest: ensureValueStrings returned %v\n", v)
 	}
 }
 
@@ -203,7 +203,7 @@ func doEnsureBodyClosed(t *testing.T) SendDecorator {
 		return SenderFunc(func(r *http.Request) (*http.Response, error) {
 			resp, err := s.Do(r)
 			if resp != nil && resp.Body != nil && resp.Body.(*mocks.Body).IsOpen() {
-				t.Error("autorest: Expected Body to be closed -- it was left open")
+				t.Fatal("autorest: Expected Body to be closed -- it was left open")
 			}
 			return resp, err
 		})

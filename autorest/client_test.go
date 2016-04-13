@@ -24,7 +24,7 @@ func TestLoggingInspectorWithInspection(t *testing.T) {
 		c.WithInspection())
 
 	if len(b.String()) <= 0 {
-		t.Error("autorest: LoggingInspector#WithInspection did not record Request to the log")
+		t.Fatal("autorest: LoggingInspector#WithInspection did not record Request to the log")
 	}
 }
 
@@ -40,7 +40,7 @@ func TestLoggingInspectorWithInspectionEmitsErrors(t *testing.T) {
 		c.WithInspection())
 
 	if len(b.String()) <= 0 {
-		t.Error("autorest: LoggingInspector#WithInspection did not record Request to the log")
+		t.Fatal("autorest: LoggingInspector#WithInspection did not record Request to the log")
 	}
 }
 
@@ -56,7 +56,7 @@ func TestLoggingInspectorWithInspectionRestoresBody(t *testing.T) {
 
 	s, _ := ioutil.ReadAll(r.Body)
 	if len(s) <= 0 {
-		t.Error("autorest: LoggingInspector#WithInspection did not restore the Request body")
+		t.Fatal("autorest: LoggingInspector#WithInspection did not restore the Request body")
 	}
 }
 
@@ -70,7 +70,7 @@ func TestLoggingInspectorByInspecting(t *testing.T) {
 		c.ByInspecting())
 
 	if len(b.String()) <= 0 {
-		t.Error("autorest: LoggingInspector#ByInspection did not record Response to the log")
+		t.Fatal("autorest: LoggingInspector#ByInspection did not record Response to the log")
 	}
 }
 
@@ -86,7 +86,7 @@ func TestLoggingInspectorByInspectingEmitsErrors(t *testing.T) {
 		c.ByInspecting())
 
 	if len(b.String()) <= 0 {
-		t.Error("autorest: LoggingInspector#ByInspection did not record Response to the log")
+		t.Fatal("autorest: LoggingInspector#ByInspection did not record Response to the log")
 	}
 }
 
@@ -102,7 +102,7 @@ func TestLoggingInspectorByInspectingRestoresBody(t *testing.T) {
 
 	s, _ := ioutil.ReadAll(r.Body)
 	if len(s) <= 0 {
-		t.Error("autorest: LoggingInspector#ByInspecting did not restore the Response body")
+		t.Fatal("autorest: LoggingInspector#ByInspecting did not restore the Response body")
 	}
 }
 
@@ -111,7 +111,7 @@ func TestNewClientWithUserAgent(t *testing.T) {
 	c := NewClientWithUserAgent(ua)
 
 	if c.UserAgent != ua {
-		t.Errorf("autorest: NewClientWithUserAgent failed to set the UserAgent -- expected %s, received %s",
+		t.Fatalf("autorest: NewClientWithUserAgent failed to set the UserAgent -- expected %s, received %s",
 			ua, c.UserAgent)
 	}
 }
@@ -120,7 +120,7 @@ func TestClientSenderReturnsHttpClientByDefault(t *testing.T) {
 	c := Client{}
 
 	if fmt.Sprintf("%T", c.sender()) != "*http.Client" {
-		t.Error("autorest: Client#sender failed to return http.Client by default")
+		t.Fatal("autorest: Client#sender failed to return http.Client by default")
 	}
 }
 
@@ -131,7 +131,7 @@ func TestClientSenderReturnsSetSender(t *testing.T) {
 	c.Sender = s
 
 	if c.sender() != s {
-		t.Error("autorest: Client#sender failed to return set Sender")
+		t.Fatal("autorest: Client#sender failed to return set Sender")
 	}
 }
 
@@ -143,7 +143,7 @@ func TestClientDoInvokesSender(t *testing.T) {
 
 	c.Do(&http.Request{})
 	if s.Attempts() != 1 {
-		t.Error("autorest: Client#Do failed to invoke the Sender")
+		t.Fatal("autorest: Client#Do failed to invoke the Sender")
 	}
 }
 
@@ -155,7 +155,7 @@ func TestClientDoSetsUserAgent(t *testing.T) {
 	c.Do(r)
 
 	if r.UserAgent() != ua {
-		t.Errorf("autorest: Client#Do failed to correctly set User-Agent header: %s=%s",
+		t.Fatalf("autorest: Client#Do failed to correctly set User-Agent header: %s=%s",
 			http.CanonicalHeaderKey(headerUserAgent), r.UserAgent())
 	}
 }
@@ -167,7 +167,7 @@ func TestClientDoSetsAuthorization(t *testing.T) {
 
 	c.Do(r)
 	if len(r.Header.Get(http.CanonicalHeaderKey(headerAuthorization))) <= 0 {
-		t.Errorf("autorest: Client#Send failed to set Authorization header -- %s=%s",
+		t.Fatalf("autorest: Client#Send failed to set Authorization header -- %s=%s",
 			http.CanonicalHeaderKey(headerAuthorization),
 			r.Header.Get(http.CanonicalHeaderKey(headerAuthorization)))
 	}
@@ -181,7 +181,7 @@ func TestClientDoInvokesRequestInspector(t *testing.T) {
 
 	c.Do(r)
 	if !i.wasInvoked {
-		t.Error("autorest: Client#Send failed to invoke the RequestInspector")
+		t.Fatal("autorest: Client#Send failed to invoke the RequestInspector")
 	}
 }
 
@@ -193,7 +193,7 @@ func TestClientDoInvokesResponseInspector(t *testing.T) {
 
 	c.Do(r)
 	if !i.wasInvoked {
-		t.Error("autorest: Client#Send failed to invoke the ResponseInspector")
+		t.Fatal("autorest: Client#Send failed to invoke the ResponseInspector")
 	}
 }
 
@@ -205,7 +205,7 @@ func TestClientDoReturnsErrorIfPrepareFails(t *testing.T) {
 
 	_, err := c.Do(&http.Request{})
 	if err == nil {
-		t.Errorf("autorest: Client#Do failed to return an error when Prepare failed")
+		t.Fatalf("autorest: Client#Do failed to return an error when Prepare failed")
 	}
 }
 
@@ -217,7 +217,7 @@ func TestClientDoDoesNotSendIfPrepareFails(t *testing.T) {
 
 	c.Do(&http.Request{})
 	if s.Attempts() > 0 {
-		t.Error("autorest: Client#Do failed to invoke the Sender")
+		t.Fatal("autorest: Client#Do failed to invoke the Sender")
 	}
 }
 
@@ -225,7 +225,7 @@ func TestClientAuthorizerReturnsNullAuthorizerByDefault(t *testing.T) {
 	c := Client{}
 
 	if fmt.Sprintf("%T", c.authorizer()) != "autorest.NullAuthorizer" {
-		t.Error("autorest: Client#authorizer failed to return the NullAuthorizer by default")
+		t.Fatal("autorest: Client#authorizer failed to return the NullAuthorizer by default")
 	}
 }
 
@@ -234,7 +234,7 @@ func TestClientAuthorizerReturnsSetAuthorizer(t *testing.T) {
 	c.Authorizer = mockAuthorizer{}
 
 	if fmt.Sprintf("%T", c.authorizer()) != "autorest.mockAuthorizer" {
-		t.Error("autorest: Client#authorizer failed to return the set Authorizer")
+		t.Fatal("autorest: Client#authorizer failed to return the set Authorizer")
 	}
 }
 
@@ -246,7 +246,7 @@ func TestClientWithAuthorizer(t *testing.T) {
 		c.WithAuthorization())
 
 	if req.Header.Get(headerAuthorization) == "" {
-		t.Error("autorest: Client#WithAuthorizer failed to return the WithAuthorizer from the active Authorizer")
+		t.Fatal("autorest: Client#WithAuthorizer failed to return the WithAuthorizer from the active Authorizer")
 	}
 }
 
@@ -259,7 +259,7 @@ func TestClientWithInspection(t *testing.T) {
 		c.WithInspection())
 
 	if !r.wasInvoked {
-		t.Error("autorest: Client#WithInspection failed to invoke RequestInspector")
+		t.Fatal("autorest: Client#WithInspection failed to invoke RequestInspector")
 	}
 }
 
@@ -271,7 +271,7 @@ func TestClientWithInspectionSetsDefault(t *testing.T) {
 		c.WithInspection())
 
 	if !reflect.DeepEqual(r1, r2) {
-		t.Error("autorest: Client#WithInspection failed to provide a default RequestInspector")
+		t.Fatal("autorest: Client#WithInspection failed to provide a default RequestInspector")
 	}
 }
 
@@ -284,7 +284,7 @@ func TestClientByInspecting(t *testing.T) {
 		c.ByInspecting())
 
 	if !r.wasInvoked {
-		t.Error("autorest: Client#ByInspecting failed to invoke ResponseInspector")
+		t.Fatal("autorest: Client#ByInspecting failed to invoke ResponseInspector")
 	}
 }
 
@@ -296,7 +296,7 @@ func TestClientByInspectingSetsDefault(t *testing.T) {
 		c.ByInspecting())
 
 	if !reflect.DeepEqual(r, &http.Response{}) {
-		t.Error("autorest: Client#ByInspecting failed to provide a default ResponseInspector")
+		t.Fatal("autorest: Client#ByInspecting failed to provide a default ResponseInspector")
 	}
 }
 

@@ -94,7 +94,7 @@ func TestUnmarshalTextforInvalidDate(t *testing.T) {
 	dt := "2001-02-03T04:05:06AAA"
 
 	if err := d.UnmarshalText([]byte(dt)); err == nil {
-		t.Errorf("date: Time#Unmarshal was expecting error for invalid date")
+		t.Fatalf("date: Time#Unmarshal was expecting error for invalid date")
 	}
 }
 
@@ -103,7 +103,7 @@ func TestUnmarshalJSONforInvalidDate(t *testing.T) {
 	dt := `"2001-02-03T04:05:06AAA"`
 
 	if err := d.UnmarshalJSON([]byte(dt)); err == nil {
-		t.Errorf("date: Time#Unmarshal was expecting error for invalid date")
+		t.Fatalf("date: Time#Unmarshal was expecting error for invalid date")
 	}
 }
 
@@ -114,35 +114,35 @@ func TestTimeString(t *testing.T) {
 	}
 	d := Time{ti}
 	if d.String() != "2001-02-03T04:05:06Z" {
-		t.Errorf("date: Time#String failed (%v)", d.String())
+		t.Fatalf("date: Time#String failed (%v)", d.String())
 	}
 }
 
 func TestTimeStringReturnsEmptyStringForError(t *testing.T) {
 	d := Time{Time: time.Date(20000, 01, 01, 01, 01, 01, 01, time.UTC)}
 	if d.String() != "" {
-		t.Errorf("date: Time#String failed empty string for an error")
+		t.Fatalf("date: Time#String failed empty string for an error")
 	}
 }
 
 func TestTimeBinaryRoundTrip(t *testing.T) {
 	ti, err := ParseTime(rfc3339, "2001-02-03T04:05:06Z")
 	if err != nil {
-		t.Errorf("date: Time#ParseTime failed (%v)", err)
+		t.Fatalf("date: Time#ParseTime failed (%v)", err)
 	}
 	d1 := Time{ti}
 	t1, err := d1.MarshalBinary()
 	if err != nil {
-		t.Errorf("date: Time#MarshalBinary failed (%v)", err)
+		t.Fatalf("date: Time#MarshalBinary failed (%v)", err)
 	}
 
 	d2 := Time{}
 	if err = d2.UnmarshalBinary(t1); err != nil {
-		t.Errorf("date: Time#UnmarshalBinary failed (%v)", err)
+		t.Fatalf("date: Time#UnmarshalBinary failed (%v)", err)
 	}
 
 	if !reflect.DeepEqual(d1, d2) {
-		t.Errorf("date:Round-trip Binary failed (%v, %v)", d1, d2)
+		t.Fatalf("date:Round-trip Binary failed (%v, %v)", d1, d2)
 	}
 }
 
@@ -153,43 +153,43 @@ func TestTimeJSONRoundTrip(t *testing.T) {
 
 	ti, err := ParseTime(rfc3339, "2001-02-03T04:05:06Z")
 	if err != nil {
-		t.Errorf("date: Time#ParseTime failed (%v)", err)
+		t.Fatalf("date: Time#ParseTime failed (%v)", err)
 	}
 
 	d1 := s{Time: Time{ti}}
 	j, err := json.Marshal(d1)
 	if err != nil {
-		t.Errorf("date: Time#MarshalJSON failed (%v)", err)
+		t.Fatalf("date: Time#MarshalJSON failed (%v)", err)
 	}
 
 	d2 := s{}
 	if err = json.Unmarshal(j, &d2); err != nil {
-		t.Errorf("date: Time#UnmarshalJSON failed (%v)", err)
+		t.Fatalf("date: Time#UnmarshalJSON failed (%v)", err)
 	}
 
 	if !reflect.DeepEqual(d1, d2) {
-		t.Errorf("date: Round-trip JSON failed (%v, %v)", d1, d2)
+		t.Fatalf("date: Round-trip JSON failed (%v, %v)", d1, d2)
 	}
 }
 
 func TestTimeTextRoundTrip(t *testing.T) {
 	ti, err := ParseTime(rfc3339, "2001-02-03T04:05:06Z")
 	if err != nil {
-		t.Errorf("date: Time#ParseTime failed (%v)", err)
+		t.Fatalf("date: Time#ParseTime failed (%v)", err)
 	}
 	d1 := Time{Time: ti}
 	t1, err := d1.MarshalText()
 	if err != nil {
-		t.Errorf("date: Time#MarshalText failed (%v)", err)
+		t.Fatalf("date: Time#MarshalText failed (%v)", err)
 	}
 
 	d2 := Time{}
 	if err = d2.UnmarshalText(t1); err != nil {
-		t.Errorf("date: Time#UnmarshalText failed (%v)", err)
+		t.Fatalf("date: Time#UnmarshalText failed (%v)", err)
 	}
 
 	if !reflect.DeepEqual(d1, d2) {
-		t.Errorf("date: Round-trip Text failed (%v, %v)", d1, d2)
+		t.Fatalf("date: Round-trip Text failed (%v, %v)", d1, d2)
 	}
 }
 
@@ -197,7 +197,7 @@ func TestTimeToTime(t *testing.T) {
 	ti, err := ParseTime(rfc3339, "2001-02-03T04:05:06Z")
 	d := Time{ti}
 	if err != nil {
-		t.Errorf("date: Time#ParseTime failed (%v)", err)
+		t.Fatalf("date: Time#ParseTime failed (%v)", err)
 	}
 	var _ time.Time = d.ToTime()
 }
