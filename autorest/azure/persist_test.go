@@ -130,7 +130,7 @@ func TestSaveTokenFailsNoPermission(t *testing.T) {
 
 func TestSaveTokenFailsCantCreate(t *testing.T) {
 	err := SaveToken("/thiswontwork", 0644, *token())
-	expectedSubstring := "failed to move temporary token to desired output location."
+	expectedSubstring := "failed to create the temp file to write the token"
 	if err == nil || !strings.Contains(err.Error(), expectedSubstring) {
 		t.Fatalf("azure: failed to get correct error expected(%s) actual(%s)", expectedSubstring, err.Error())
 	}
