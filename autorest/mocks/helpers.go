@@ -45,6 +45,17 @@ func NewRequestWithContent(c string) *http.Request {
 	return r
 }
 
+// NewRequestWithCloseBody instantiates a new request.
+func NewRequestWithCloseBody() *http.Request {
+	return NewRequestWithCloseBodyContent("request body")
+}
+
+// NewRequestWithCloseBodyContent instantiates a new request using the passed string for the body content.
+func NewRequestWithCloseBodyContent(c string) *http.Request {
+	r, _ := http.NewRequest("GET", "https://microsoft.com/a/b/c/", NewBodyClose(c))
+	return r
+}
+
 // NewRequestForURL instantiates a new request using the passed URL.
 func NewRequestForURL(u string) *http.Request {
 	r, err := http.NewRequest("GET", u, NewBody(""))

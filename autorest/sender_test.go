@@ -144,7 +144,7 @@ func TestSend(t *testing.T) {
 func TestAfterDelayWaits(t *testing.T) {
 	client := mocks.NewSender()
 
-	d := 5 * time.Millisecond
+	d := 2 * time.Second
 
 	tt := time.Now()
 	r, _ := SendWithSender(client, mocks.NewRequest(),
@@ -426,7 +426,7 @@ func TestDoRetryForDurationStopsWithinReason(t *testing.T) {
 	client := mocks.NewSender()
 	client.SetAndRepeatError(fmt.Errorf("Faux Error"), -1)
 
-	d := 5 * time.Millisecond
+	d := 5 * time.Second
 	start := time.Now()
 	r, err := SendWithSender(client, mocks.NewRequest(),
 		DoRetryForDuration(d, time.Duration(0)),
@@ -463,7 +463,7 @@ func TestDoRetryForDurationReturnsResponse(t *testing.T) {
 }
 
 func TestDelayForBackoff(t *testing.T) {
-	d := 5 * time.Millisecond
+	d := 2 * time.Second
 	start := time.Now()
 	DelayForBackoff(d, 1, nil)
 	if time.Since(start) < d {
@@ -491,7 +491,7 @@ func TestDelayForBackoff_Cancels(t *testing.T) {
 }
 
 func TestDelayForBackoffWithinReason(t *testing.T) {
-	d := 5 * time.Millisecond
+	d := 5 * time.Second
 	start := time.Now()
 	DelayForBackoff(d, 1, nil)
 	if time.Since(start) > (5 * d) {
@@ -656,6 +656,73 @@ func TestWithLogging_HandlesMissingResponse(t *testing.T) {
 
 	Respond(r,
 		ByClosing())
+}
+
+func TestDoRetryForStatusCodesWithSuccess(t *testing.T) {
+	client := mocks.NewSender()
+	client.AppendAndRepeatResponse(mocks.NewResponseWithStatus("408 Request Timeout", http.StatusRequestTimeout), 2)
+	client.AppendResponse(mocks.NewResponseWithStatus("200 OK", http.StatusOK))
+
+	r, _ := SendWithSender(client, mocks.NewRequest(),
+		DoRetryForStatusCodes(5, time.Duration(2*time.Second), http.StatusRequestTimeout),
+	)
+
+	Respond(r,
+		ByClosing())
+
+	if client.Attempts() != 3 {
+		t.Fatalf("autorest: Sender#DoRetryForStatusCodes -- Got: StatusCode %v in %v attempts; Want: StatusCode 200 OK in 2 attempts -- ",
+			r.Status, client.Attempts()-1)
+	}
+}
+
+func TestDoRetryForStatusCodesWithNoSuccess(t *testing.T) {
+	client := mocks.NewSender()
+	client.AppendAndRepeatResponse(mocks.NewResponseWithStatus("504 Gateway Timeout", http.StatusGatewayTimeout), 5)
+
+	r, _ := SendWithSender(client, mocks.NewRequest(),
+		DoRetryForStatusCodes(2, time.Duration(2*time.Second), http.StatusGatewayTimeout),
+	)
+	Respond(r,
+		ByClosing())
+
+	if client.Attempts() != 3 {
+		t.Fatalf("autorest: Sender#DoRetryForStatusCodes -- Got: failed stop after %v retry attempts; Want: Stop after 2 retry attempts",
+			client.Attempts()-1)
+	}
+}
+
+func TestDoRetryForStatusCodes_CodeNotInRetryList(t *testing.T) {
+	client := mocks.NewSender()
+	client.AppendAndRepeatResponse(mocks.NewResponseWithStatus("204 No Content", http.StatusNoContent), 1)
+
+	r, _ := SendWithSender(client, mocks.NewRequest(),
+		DoRetryForStatusCodes(6, time.Duration(2*time.Second), http.StatusGatewayTimeout),
+	)
+
+	Respond(r,
+		ByClosing())
+
+	if client.Attempts() != 1 || r.Status != "204 No Content" {
+		t.Fatalf("autorest: Sender#DoRetryForStatusCodes -- Got: Retry attempts %v for StatusCode %v; Want: 0 attempts for StatusCode 204",
+			client.Attempts(), r.Status)
+	}
+}
+
+func TestDoRetryForStatusCodes_RequestBodyReadError(t *testing.T) {
+	client := mocks.NewSender()
+	client.AppendAndRepeatResponse(mocks.NewResponseWithStatus("204 No Content", http.StatusNoContent), 2)
+
+	r, err := SendWithSender(client, mocks.NewRequestWithCloseBody(),
+		DoRetryForStatusCodes(6, time.Duration(2*time.Second), http.StatusGatewayTimeout),
+	)
+
+	Respond(r,
+		ByClosing())
+
+	if err == nil || client.Attempts() != 0 {
+		t.Fatalf("autorest: Sender#DoRetryForStatusCodes -- Got: Not failed for request body read error; Want: Failed for body read error - %v", err)
+	}
 }
 
 func newAcceptedResponse() *http.Response {

@@ -186,15 +186,56 @@ func TestEnsureStrings(t *testing.T) {
 		"string": "string",
 		"int":    42,
 		"nil":    nil,
+		"bytes":  []byte{255, 254, 253},
 	}
 	r := map[string]string{
 		"string": "string",
 		"int":    "42",
 		"nil":    "",
+		"bytes":  string([]byte{255, 254, 253}),
 	}
 	v := ensureValueStrings(m)
 	if !reflect.DeepEqual(v, r) {
 		t.Fatalf("autorest: ensureValueStrings returned %v\n", v)
+	}
+}
+
+func ExampleStringWithSeparator() {
+	m := []string{
+		"string1",
+		"string2",
+		"string3",
+	}
+
+	fmt.Println(String(m, ","))
+	// Output: string1,string2,string3
+}
+
+func TestStringWithValidString(t *testing.T) {
+	i := 123
+	if String(i) != "123" {
+		t.Fatal("autorest: String method failed to convert integer 123 to string")
+	}
+}
+
+func TestEncodeWithValidPath(t *testing.T) {
+	s := Encode("Path", "Hello Gopher")
+	if s != "Hello%20Gopher" {
+		t.Fatalf("autorest: Encode method failed for valid path encoding. Got: %v; Want: %v", s, "Hello%20Gopher")
+	}
+}
+
+func TestEncodeWithValidQuery(t *testing.T) {
+	s := Encode("Query", "Hello Gopher")
+	if s != "Hello+Gopher" {
+		t.Fatalf("autorest: Encode method failed for valid query encoding. Got: '%v'; Want: 'Hello+Gopher'", s)
+	}
+}
+
+func TestEncodeWithValidNotPathQuery(t *testing.T) {
+	s := Encode("Host", "Hello Gopher")
+	if s != "Hello Gopher" {
+		t.Fatalf("autorest: Encode method failed for parameter not query or path. Got: '%v'; Want: 'Hello Gopher'", s)
 	}
 }
 
