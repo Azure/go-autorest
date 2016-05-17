@@ -811,6 +811,31 @@ func TestDoPollForAsynchronous_ReturnsAnErrorForFailedOperations(t *testing.T) {
 		autorest.ByClosing())
 }
 
+func TestDoPollForAsynchronous_WithNilURI(t *testing.T) {
+	r1 := newAsynchronousResponse()
+	r1.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+	r1.Header.Del(http.CanonicalHeaderKey(autorest.HeaderLocation))
+
+	r2 := newOperationResourceResponse("busy")
+	r2.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+	r2.Header.Del(http.CanonicalHeaderKey(autorest.HeaderLocation))
+
+	client := mocks.NewSender()
+	client.AppendResponse(r1)
+	client.AppendResponse(r2)
+
+	req, _ := http.NewRequest("POST", "https://microsoft.com/a/b/c/", mocks.NewBody(""))
+	r, err := autorest.SendWithSender(client, req,
+		DoPollForAsynchronous(time.Millisecond))
+
+	if err == nil {
+		t.Fatalf("azure: DoPollForAsynchronous failed to return error for nil URI. got: nil; want: Azure Polling Error - Unable to obtain polling URI for POST")
+	}
+
+	autorest.Respond(r,
+		autorest.ByClosing())
+}
+
 func TestDoPollForAsynchronous_ReturnsAnUnknownErrorForFailedOperations(t *testing.T) {
 	// Return unknown error if error not present in last response
 	r1 := newAsynchronousResponse()
@@ -855,7 +880,7 @@ func TestDoPollForAsynchronous_ReturnsErrorForLastErrorResponse(t *testing.T) {
 	r, err := autorest.SendWithSender(client, mocks.NewRequest(),
 		DoPollForAsynchronous(time.Millisecond))
 
-	expected := makeLongRunningOperationErrorString("NetcfgInvalidSubnet", "Subnet is not valid in virtual network.")
+	expected := makeLongRunningOperationErrorString("InvalidParameter", "tom-service-DISCOVERY-server-base-v1.core.local' is not a valid captured VHD blob name prefix.")
 	if err.Error() != expected {
 		t.Fatalf("azure: DoPollForAsynchronous failed to return an appropriate error message for an unknown error. \n expected=%q \n got=%q",
 			expected, err.Error())
@@ -889,41 +914,42 @@ func TestDoPollForAsynchronous_ReturnsOperationResourceErrorForFailedOperations(
 		autorest.ByClosing())
 }
 
-func TestDoPollForAsynchronous_ReturnsErrorForFirstPutWithUnknownError(t *testing.T) {
-	// Return 400 bad response for unknown error in first put
-	r1 := newAsynchronousErrorResponseWithUnknownError()
-	client := mocks.NewSender()
-	client.AppendResponse(r1)
-
-	r, err := autorest.SendWithSender(client, mocks.NewRequest(),
-		DoPollForAsynchronous(time.Millisecond))
-
-	expected := makeLongRunningOperationErrorString("Unknown", "None")
-	if err.Error() != expected {
-		t.Fatalf("azure: DoPollForAsynchronous failed to return an appropriate error message for a failed Operations. \n expected=%q \n got=%q",
-			expected, err.Error())
-	}
-
-	autorest.Respond(r,
-		autorest.ByClosing())
-}
-
 func TestDoPollForAsynchronous_ReturnsErrorForFirstPutRequest(t *testing.T) {
 	// Return 400 bad response with error code and message in first put
 	r1 := newAsynchronousResponseWithError()
 	client := mocks.NewSender()
 	client.AppendResponse(r1)
 
-	r, err := autorest.SendWithSender(client, mocks.NewRequest(),
+	res, err := autorest.SendWithSender(client, mocks.NewRequest(),
 		DoPollForAsynchronous(time.Millisecond))
-
-	expected := makeLongRunningOperationErrorString("NetcfgInvalidSubnet", "Subnet is not valid in virtual network.")
-	if err.Error() != expected {
-		t.Fatalf("azure: DoPollForAsynchronous failed to return an appropriate error message for a failed Operations. \n expected=%q \n got=%q", expected, err.Error())
+	if err != nil {
+		t.Fatalf("azure: DoPollForAsynchronous failed to return an appropriate error message for a failed Operations. \n expected=%q \n got=%q",
+			errorResponse, err.Error())
 	}
 
-	autorest.Respond(r,
+	err = autorest.Respond(res,
+		WithErrorUnlessStatusCode(http.StatusAccepted, http.StatusCreated, http.StatusOK),
 		autorest.ByClosing())
+
+	reqError, ok := err.(*RequestError)
+	if !ok {
+		t.Fatalf("azure: returned error is not azure.RequestError: %T", err)
+	}
+
+	if expected := makeRequestErrorString("InvalidParameter",
+		"tom-service-DISCOVERY-server-base-v1.core.local' is not a valid captured VHD blob name prefix.", 400); reqError.Error() != expected {
+		t.Fatalf("azure: wrong error. expected=%q; got=%q", expected, reqError)
+	}
+
+	defer res.Body.Close()
+	b, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(b) != errorResponse {
+		t.Fatalf("azure: Response body is wrong. got=%q expected=%q", string(b), errorResponse)
+	}
+
 }
 
 func TestDoPollForAsynchronous_ReturnsNoErrorForSuccessfulOperations(t *testing.T) {
@@ -992,8 +1018,8 @@ const (
 	errorResponse = `
 	{
 		"error" : {
-			"code" : "NetcfgInvalidSubnet",
-			"message" : "Subnet is not valid in virtual network."
+			"code" : "InvalidParameter",
+			"message" : "tom-service-DISCOVERY-server-base-v1.core.local' is not a valid captured VHD blob name prefix."
 		}
 	}
 	`
@@ -1049,13 +1075,6 @@ func newAsynchronousResponse() *http.Response {
 	return r
 }
 
-func newAsynchronousErrorResponseWithUnknownError() *http.Response {
-	r := mocks.NewResponseWithStatus("400 Bad Request", http.StatusBadRequest)
-	mocks.SetRetryHeader(r, retryDelay)
-	r.Request = mocks.NewRequestForURL(mocks.TestURL)
-	return r
-}
-
 func newAsynchronousResponseWithError() *http.Response {
 	r := mocks.NewResponseWithStatus("400 Bad Request", http.StatusBadRequest)
 	mocks.SetRetryHeader(r, retryDelay)
@@ -1084,4 +1103,9 @@ func newProvisioningStatusResponse(status string) *http.Response {
 
 func makeLongRunningOperationErrorString(code string, message string) string {
 	return fmt.Sprintf("Long running operation terminated with status 'Failed': Code=%q Message=%q", code, message)
+}
+
+func makeRequestErrorString(code, message string, status int) string {
+	return fmt.Sprintf("azure: Service returned an error. Code=%q Message=%q Status=%d",
+		code, message, status)
 }
