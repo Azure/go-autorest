@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v7.0.5
+- Add check to start polling only when status is in [200,201,202].
+- Refactoring for unchecked errors.
+- azure/persist changes.
+
 ## v7.0.4
 - Better error messages for long running operation failures
 
