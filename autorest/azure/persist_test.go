@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -34,6 +35,7 @@ func writeTestTokenFile(t *testing.T, suffix string, contents string) *os.File {
 	if err != nil {
 		t.Fatalf("azure: unexpected error when creating temp file: %v", err)
 	}
+	defer f.Close()
 
 	_, err = f.Write([]byte(contents))
 	if err != nil {
@@ -55,6 +57,12 @@ func TestLoadToken(t *testing.T) {
 
 	if *actualToken != expectedToken {
 		t.Fatalf("azure: failed to decode properly expected(%v) actual(%v)", expectedToken, *actualToken)
+	}
+
+	// test that LoadToken closes the file properly
+	err = SaveToken(f.Name(), 0600, *actualToken)
+	if err != nil {
+		t.Fatalf("azure: could not save token after LoadToken: %v", err)
 	}
 }
 
@@ -90,6 +98,7 @@ func TestSaveToken(t *testing.T) {
 		t.Fatalf("azure: unexpected error when creating temp file: %v", err)
 	}
 	defer os.Remove(f.Name())
+	f.Close()
 
 	mode := os.ModePerm & 0642
 	err = SaveToken(f.Name(), mode, *token())
@@ -100,8 +109,10 @@ func TestSaveToken(t *testing.T) {
 	if err != nil {
 		t.Fatalf("azure: stat failed: %v", err)
 	}
-	if perm := fi.Mode().Perm(); perm != mode {
-		t.Fatalf("azure: wrong file perm. got:%s; expected:%s file :%s", perm, mode, f.Name())
+	if runtime.GOOS != "windows" { // permissions don't work on Windows
+		if perm := fi.Mode().Perm(); perm != mode {
+			t.Fatalf("azure: wrong file perm. got:%s; expected:%s file :%s", perm, mode, f.Name())
+		}
 	}
 
 	var actualToken Token
@@ -121,10 +132,14 @@ func TestSaveToken(t *testing.T) {
 }
 
 func TestSaveTokenFailsNoPermission(t *testing.T) {
-	err := SaveToken("/usr/thiswontwork/atall", 0644, *token())
+	pathWhereWeShouldntHavePermission := "/usr/thiswontwork/atall"
+	if runtime.GOOS == "windows" {
+		pathWhereWeShouldntHavePermission = "c:\\windows\\system32\\mytokendir\\mytoken"
+	}
+	err := SaveToken(pathWhereWeShouldntHavePermission, 0644, *token())
 	expectedSubstring := "failed to create directory"
 	if err == nil || !strings.Contains(err.Error(), expectedSubstring) {
-		t.Fatalf("azure: failed to get correct error expected(%s) actual(%s)", expectedSubstring, err.Error())
+		t.Fatalf("azure: failed to get correct error expected(%s) actual(%v)", expectedSubstring, err)
 	}
 }
 
@@ -132,6 +147,6 @@ func TestSaveTokenFailsCantCreate(t *testing.T) {
 	err := SaveToken("/thiswontwork", 0644, *token())
 	expectedSubstring := "failed to create the temp file to write the token"
 	if err == nil || !strings.Contains(err.Error(), expectedSubstring) {
-		t.Fatalf("azure: failed to get correct error expected(%s) actual(%s)", expectedSubstring, err.Error())
+		t.Fatalf("azure: failed to get correct error expected(%s) actual(%v)", expectedSubstring, err)
 	}
 }
