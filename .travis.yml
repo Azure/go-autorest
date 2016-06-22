@@ -2,13 +2,16 @@ sudo: false
 
 language: go
 
-before_script:
-  - go get -u github.com/golang/lint/golint
+go: 1.6
 
-go: 1.5
+install:
+  - go get -u github.com/golang/lint/golint
+  - go get -u github.com/Masterminds/glide
+  - glide install
+
 script:
   - test -z "$(gofmt -s -l -w ./autorest/. | tee /dev/stderr)"
-  - test -z "$(golint ./... |  tee /dev/stderr)"
-  - go vet ./...
-  - go build -v ./...
-  - go test -v ./...
+  - test -z "$(golint ./autorest/... |  tee /dev/stderr)"
+  - go vet ./autorest/...
+  - go build -v ./autorest/...
+  - go test -v ./autorest/...

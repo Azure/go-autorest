@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func ExampleParseTimeRFC1123() {
+func ExampleTimeRFC1123() {
 	d, err := ParseTime(rfc1123, "Mon, 02 Jan 2006 15:04:05 MST")
 	if err != nil {
 		fmt.Println(err)
