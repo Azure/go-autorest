@@ -1,14 +1,15 @@
-hash: e20d5cdd14a2862b34f3bc112d77c3c3ad85e0c267101e88d791ec5a0e3ea4cb
-updated: 2016-01-19T15:39:07.306284654-08:00
+hash: fe11759f8785c35a54b84dcce121eab8c8f220a2c05ebe3f36087ebe5bf38528
+updated: 2016-06-22T13:31:27.2502096-07:00
 imports:
 - name: github.com/dgrijalva/jwt-go
-  version: afef698c326bfd906b11659432544e5aae441d44
+  version: f0777076321ab64f6efc15a82d9d23b98539b943
   subpackages:
   - .
 - name: golang.org/x/crypto
-  version: 3760e016850398b85094c4c99e955b8c3dea5711
+  version: f3241ce8505855877cc8a9717bd61a0f7c4ea83c
   repo: https://github.com/golang/crypto.git
   vcs: git
   subpackages:
-  - /pkcs12
+  - pkcs12
+  - pkcs12/internal/rc2
 devImports: []
