@@ -497,6 +497,9 @@ func newServicePrincipalTokenCertificate() *ServicePrincipalToken {
 		panic(err)
 	}
 	certificate, err := x509.ParseCertificate(certificateBytes)
+	if err != nil {
+		panic(err)
+	}
 
 	spt, _ := NewServicePrincipalTokenFromCertificate(TestOAuthConfig, "id", certificate, privateKey, "resource")
 	return spt

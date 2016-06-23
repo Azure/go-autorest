@@ -117,7 +117,7 @@ func (c *Sender) AppendResponse(resp *http.Response) {
 }
 
 // AppendAndRepeatResponse adds the passed http.Response to the response stack along with a
-// repeat count. A negative repeat count will return the reponse for all remaining calls to Do.
+// repeat count. A negative repeat count will return the response for all remaining calls to Do.
 func (c *Sender) AppendAndRepeatResponse(resp *http.Response, repeat int) {
 	if c.responses == nil {
 		c.responses = []*http.Response{resp}
