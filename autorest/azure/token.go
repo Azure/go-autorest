@@ -147,7 +147,7 @@ func (secret *ServicePrincipalCertificateSecret) SignJwt(spt *ServicePrincipalTo
 	}
 
 	signedString, err := token.SignedString(secret.PrivateKey)
-	return signedString, nil
+	return signedString, err
 }
 
 // SetAuthenticationValues is a method of the interface ServicePrincipalSecret.
