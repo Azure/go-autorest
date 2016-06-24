@@ -213,7 +213,7 @@ func TestServicePrincipalTokenManualRefreshSetsBody(t *testing.T) {
 }
 
 func TestServicePrincipalTokenCertficateRefreshSetsBody(t *testing.T) {
-	sptCert := newServicePrincipalTokenCertificate()
+	sptCert := newServicePrincipalTokenCertificate(t)
 	testServicePrincipalTokenRefreshSetsBody(t, sptCert, func(t *testing.T, b []byte) {
 		body := string(b)
 
@@ -485,7 +485,7 @@ func newServicePrincipalTokenManual() *ServicePrincipalToken {
 	return spt
 }
 
-func newServicePrincipalTokenCertificate() *ServicePrincipalToken {
+func newServicePrincipalTokenCertificate(t *testing.T) *ServicePrincipalToken {
 	template := x509.Certificate{
 		SerialNumber:          big.NewInt(0),
 		Subject:               pkix.Name{CommonName: "test"},
@@ -494,11 +494,11 @@ func newServicePrincipalTokenCertificate() *ServicePrincipalToken {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	certificateBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	certificate, err := x509.ParseCertificate(certificateBytes)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	spt, _ := NewServicePrincipalTokenFromCertificate(TestOAuthConfig, "id", certificate, privateKey, "resource")
