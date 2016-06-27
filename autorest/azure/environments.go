@@ -11,20 +11,20 @@ const (
 
 // Environment represents a set of endpoints for each of Azure's Clouds.
 type Environment struct {
-	Name                      string
-	ManagementPortalURL       string
-	PublishSettingsURL        string
-	ServiceManagementEndpoint string
-	ResourceManagerEndpoint   string
-	ActiveDirectoryEndpoint   string
-	GalleryEndpoint           string
-	KeyVaultEndpoint          string
-	GraphEndpoint             string
-	StorageEndpointSuffix     string
-	SQLDatabaseDNSSuffix      string
-	TrafficManagerDNSSuffix   string
-	KeyVaultDNSSuffix         string
-	ServiceBusEndpointSuffix  string
+	Name                      string `json:"name"`
+	ManagementPortalURL       string `json:"managementPortalURL"`
+	PublishSettingsURL        string `json:"publishSettingsURL"`
+	ServiceManagementEndpoint string `json:"serviceManagementEndpoint"`
+	ResourceManagerEndpoint   string `json:"resourceManagerEndpoint"`
+	ActiveDirectoryEndpoint   string `json:"activeDirectoryEndpoint"`
+	GalleryEndpoint           string `json:"galleryEndpoint"`
+	KeyVaultEndpoint          string `json:"keyVaultEndpoint"`
+	GraphEndpoint             string `json:"graphEndpoint"`
+	StorageEndpointSuffix     string `json:"storageEndpointSuffix"`
+	SQLDatabaseDNSSuffix      string `json:"sqlDatabaseDNSSuffix"`
+	TrafficManagerDNSSuffix   string `json:"trafficManagerDNSSuffix"`
+	KeyVaultDNSSuffix         string `json:"keyVaultDNSSuffix"`
+	ServiceBusEndpointSuffix  string `json:"serviceBusEndpointSuffix"`
 }
 
 var (
