@@ -1,6 +1,7 @@
 package azure
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -168,7 +169,7 @@ func TestWithErrorUnlessStatusCode_NotAnAzureError(t *testing.T) {
 	}
 }
 
-func TestWithErrorUnlessStatusCode_FoundAzureError(t *testing.T) {
+func TestWithErrorUnlessStatusCode_FoundAzureErrorWithoutDetails(t *testing.T) {
 	j := `{
 		"error": {
 			"code": "InternalError",
@@ -193,12 +194,12 @@ func TestWithErrorUnlessStatusCode_FoundAzureError(t *testing.T) {
 	if !ok {
 		t.Fatalf("azure: returned error is not azure.RequestError: %T", err)
 	}
-	if expected := "InternalError"; azErr.ServiceError.Code != expected {
-		t.Fatalf("azure: wrong error code. expected=%q; got=%q", expected, azErr.ServiceError.Code)
+
+	expected := "autorest/azure: Service returned an error. Status=500 Code=\"InternalError\" Message=\"Azure is having trouble right now.\""
+	if !reflect.DeepEqual(expected, azErr.Error()) {
+		t.Fatalf("azure: service error is not unmarshaled properly.\nexpected=%v\ngot=%v", expected, azErr.Error())
 	}
-	if azErr.ServiceError.Message == "" {
-		t.Fatalf("azure: error message is not unmarshaled properly")
-	}
+
 	if expected := http.StatusInternalServerError; azErr.StatusCode != expected {
 		t.Fatalf("azure: got wrong StatusCode=%d Expected=%d", azErr.StatusCode, expected)
 	}
@@ -218,6 +219,147 @@ func TestWithErrorUnlessStatusCode_FoundAzureError(t *testing.T) {
 		t.Fatalf("response body is wrong. got=%q expected=%q", string(b), j)
 	}
 
+}
+
+func TestWithErrorUnlessStatusCode_FoundAzureErrorWithDetails(t *testing.T) {
+	j := `{
+		"error": {
+			"code": "InternalError",
+			"message": "Azure is having trouble right now.",
+			"details": [{"code": "conflict1", "message":"error message1"}, 
+						{"code": "conflict2", "message":"error message2"}]
+		}
+	}`
+	uuid := "71FDB9F4-5E49-4C12-B266-DE7B4FD999A6"
+	r := mocks.NewResponseWithContent(j)
+	mocks.SetResponseHeader(r, HeaderRequestID, uuid)
+	r.Request = mocks.NewRequest()
+	r.StatusCode = http.StatusInternalServerError
+	r.Status = http.StatusText(r.StatusCode)
+
+	err := autorest.Respond(r,
+		WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByClosing())
+
+	if err == nil {
+		t.Fatalf("azure: returned nil error for proper error response")
+	}
+	azErr, ok := err.(*RequestError)
+	if !ok {
+		t.Fatalf("azure: returned error is not azure.RequestError: %T", err)
+	}
+
+	if expected := "InternalError"; azErr.ServiceError.Code != expected {
+		t.Fatalf("azure: wrong error code. expected=%q; got=%q", expected, azErr.ServiceError.Code)
+	}
+	if azErr.ServiceError.Message == "" {
+		t.Fatalf("azure: error message is not unmarshaled properly")
+	}
+	b, _ := json.Marshal(*azErr.ServiceError.Details)
+	if string(b) != `[{"code":"conflict1","message":"error message1"},{"code":"conflict2","message":"error message2"}]` {
+		t.Fatalf("azure: error details is not unmarshaled properly")
+	}
+
+	if expected := http.StatusInternalServerError; azErr.StatusCode != expected {
+		t.Fatalf("azure: got wrong StatusCode=%v Expected=%d", azErr.StatusCode, expected)
+	}
+	if expected := uuid; azErr.RequestID != expected {
+		t.Fatalf("azure: wrong request ID in error. expected=%q; got=%q", expected, azErr.RequestID)
+	}
+
+	_ = azErr.Error()
+
+	// the error body should still be there
+	defer r.Body.Close()
+	b, err = ioutil.ReadAll(r.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(b) != j {
+		t.Fatalf("response body is wrong. got=%q expected=%q", string(b), j)
+	}
+
+}
+
+func TestWithErrorUnlessStatusCode_NoAzureError(t *testing.T) {
+	j := `{
+			"Status":"NotFound"
+		}`
+	uuid := "71FDB9F4-5E49-4C12-B266-DE7B4FD999A6"
+	r := mocks.NewResponseWithContent(j)
+	mocks.SetResponseHeader(r, HeaderRequestID, uuid)
+	r.Request = mocks.NewRequest()
+	r.StatusCode = http.StatusInternalServerError
+	r.Status = http.StatusText(r.StatusCode)
+
+	err := autorest.Respond(r,
+		WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByClosing())
+	if err == nil {
+		t.Fatalf("azure: returned nil error for proper error response")
+	}
+	azErr, ok := err.(*RequestError)
+	if !ok {
+		t.Fatalf("azure: returned error is not azure.RequestError: %T", err)
+	}
+
+	expected := &ServiceError{
+		Code:    "Unknown",
+		Message: "Unknown service error",
+	}
+
+	if !reflect.DeepEqual(expected, azErr.ServiceError) {
+		t.Fatalf("azure: service error is not unmarshaled properly. expected=%q\ngot=%q", expected, azErr.ServiceError)
+	}
+
+	if expected := http.StatusInternalServerError; azErr.StatusCode != expected {
+		t.Fatalf("azure: got wrong StatusCode=%v Expected=%d", azErr.StatusCode, expected)
+	}
+	if expected := uuid; azErr.RequestID != expected {
+		t.Fatalf("azure: wrong request ID in error. expected=%q; got=%q", expected, azErr.RequestID)
+	}
+
+	_ = azErr.Error()
+
+	// the error body should still be there
+	defer r.Body.Close()
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(b) != j {
+		t.Fatalf("response body is wrong. got=%q expected=%q", string(b), j)
+	}
+
+}
+
+func TestRequestErrorString_WithError(t *testing.T) {
+	j := `{
+		"error": {
+			"code": "InternalError",
+			"message": "Conflict",
+			"details": [{"code": "conflict1", "message":"error message1"}]
+		}
+	}`
+	uuid := "71FDB9F4-5E49-4C12-B266-DE7B4FD999A6"
+	r := mocks.NewResponseWithContent(j)
+	mocks.SetResponseHeader(r, HeaderRequestID, uuid)
+	r.Request = mocks.NewRequest()
+	r.StatusCode = http.StatusInternalServerError
+	r.Status = http.StatusText(r.StatusCode)
+
+	err := autorest.Respond(r,
+		WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByClosing())
+
+	if err == nil {
+		t.Fatalf("azure: returned nil error for proper error response")
+	}
+	azErr, _ := err.(*RequestError)
+	expected := "autorest/azure: Service returned an error. Status=500 Code=\"InternalError\" Message=\"Conflict\" Details=[{\"code\":\"conflict1\",\"message\":\"error message1\"}]"
+	if expected != azErr.Error() {
+		t.Fatalf("azure: send wrong RequestError.\nexpected=%v\ngot=%v", expected, azErr.Error())
+	}
 }
 
 func withErrorPrepareDecorator(e *error) autorest.PrepareDecorator {

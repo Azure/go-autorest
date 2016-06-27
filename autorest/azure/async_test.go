@@ -6,6 +6,7 @@ import (
 	"github.com/Azure/go-autorest/autorest/mocks"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -936,9 +937,17 @@ func TestDoPollForAsynchronous_ReturnsErrorForFirstPutRequest(t *testing.T) {
 		t.Fatalf("azure: returned error is not azure.RequestError: %T", err)
 	}
 
-	if expected := makeRequestErrorString("InvalidParameter",
-		"tom-service-DISCOVERY-server-base-v1.core.local' is not a valid captured VHD blob name prefix.", 400); reqError.Error() != expected {
-		t.Fatalf("azure: wrong error. expected=%q; got=%q", expected, reqError)
+	expected := &RequestError{
+		ServiceError: &ServiceError{
+			Code:    "InvalidParameter",
+			Message: "tom-service-DISCOVERY-server-base-v1.core.local' is not a valid captured VHD blob name prefix.",
+		},
+		DetailedError: autorest.DetailedError{
+			StatusCode: 400,
+		},
+	}
+	if !reflect.DeepEqual(reqError, expected) {
+		t.Fatalf("azure: wrong error. expected=%q\ngot=%q", expected, reqError)
 	}
 
 	defer res.Body.Close()
@@ -1103,9 +1112,4 @@ func newProvisioningStatusResponse(status string) *http.Response {
 
 func makeLongRunningOperationErrorString(code string, message string) string {
 	return fmt.Sprintf("Long running operation terminated with status 'Failed': Code=%q Message=%q", code, message)
-}
-
-func makeRequestErrorString(code, message string, status int) string {
-	return fmt.Sprintf("azure: Service returned an error. Code=%q Message=%q Status=%d",
-		code, message, status)
 }
