@@ -4,6 +4,9 @@
 - Add check to start polling only when status is in [200,201,202].
 - Refactoring for unchecked errors.
 - azure/persist changes.
+- Fix 'file in use' issue in renewing token in deviceflow.
+- Store header RetryAfter for subsequent requests in polling.
+- Add attribute details in service error.
 
 ## v7.0.4
 - Better error messages for long running operation failures
