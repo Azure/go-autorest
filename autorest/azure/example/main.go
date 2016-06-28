@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	resourceGroupURLTemplate = "https://management.azure.com/subscriptions/{subscription-id}/resourcegroups"
+	resourceGroupURLTemplate = "https://management.azure.com"
 	apiVersion               = "2015-01-01"
 	nativeAppClientID        = "a87032a7-203c-4bf7-913c-44c50d23409a"
 	resource                 = "https://management.core.windows.net/"
@@ -159,7 +159,7 @@ func printResourceGroups(client *autorest.Client) error {
 	req, _ := autorest.Prepare(&http.Request{},
 		autorest.AsGet(),
 		autorest.WithBaseURL(resourceGroupURLTemplate),
-		autorest.WithPathParameters(p),
+		autorest.WithPathParameters("/subscriptions/{subscription-id}/resourcegroups", p),
 		autorest.WithQueryParameters(q))
 
 	resp, err := autorest.SendWithSender(client, req)

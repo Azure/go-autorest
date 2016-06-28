@@ -80,8 +80,8 @@ func ExampleCreatePreparer_multiple() {
 		"param2": "c",
 	}
 
-	p1 := CreatePreparer(WithBaseURL("https://microsoft.com/"), WithPath("/{param1}/b/{param2}/"))
-	p2 := CreatePreparer(WithPathParameters(params))
+	p1 := CreatePreparer(WithBaseURL("https://microsoft.com/"))
+	p2 := CreatePreparer(WithPathParameters("/{param1}/b/{param2}/", params))
 
 	r, err := p1.Prepare(&http.Request{})
 	if err != nil {
@@ -104,8 +104,8 @@ func ExampleCreatePreparer_chain() {
 		"param2": "c",
 	}
 
-	p := CreatePreparer(WithBaseURL("https://microsoft.com/"), WithPath("/{param1}/b/{param2}/"))
-	p = DecoratePreparer(p, WithPathParameters(params))
+	p := CreatePreparer(WithBaseURL("https://microsoft.com/"))
+	p = DecoratePreparer(p, WithPathParameters("/{param1}/b/{param2}/", params))
 
 	r, err := p.Prepare(&http.Request{})
 	if err != nil {
@@ -203,8 +203,7 @@ func ExampleWithEscapedPathParameters() {
 	}
 	r, err := Prepare(&http.Request{},
 		WithBaseURL("https://microsoft.com/"),
-		WithPath("/{param1}/b/{param2}/"),
-		WithEscapedPathParameters(params))
+		WithEscapedPathParameters("/{param1}/b/{param2}/", params))
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
 	} else {
@@ -221,8 +220,7 @@ func ExampleWithPathParameters() {
 	}
 	r, err := Prepare(&http.Request{},
 		WithBaseURL("https://microsoft.com/"),
-		WithPath("/{param1}/b/{param2}/"),
-		WithPathParameters(params))
+		WithPathParameters("/{param1}/b/{param2}/", params))
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
 	} else {
@@ -249,6 +247,31 @@ func ExampleWithQueryParameters() {
 	// Output: https://microsoft.com/a/b/c/?q1=value1&q2=value2
 }
 
+func ExampleWithBaseURL_InvalidURL() {
+	_, err := Prepare(&http.Request{}, WithBaseURL(":"))
+	fmt.Println(err)
+	// Output: parse :: missing protocol scheme
+}
+
+func TestWithPathWithInvalidPath(t *testing.T) {
+	p := "path%2*end"
+	if _, err := Prepare(&http.Request{}, WithBaseURL("https://microsoft.com/"), WithPath(p)); err == nil {
+		t.Fatalf("autorest: WithPath should fail for invalid URL escape error for path '%v' ", p)
+	}
+
+}
+
+func TestWithPathParametersWithInvalidPath(t *testing.T) {
+	p := "path%2*end"
+	m := map[string]interface{}{
+		"path1": p,
+	}
+	if _, err := Prepare(&http.Request{}, WithBaseURL("https://microsoft.com/"), WithPathParameters("/{path1}/", m)); err == nil {
+		t.Fatalf("autorest: WithPath should fail for invalid URL escape for path '%v' ", p)
+	}
+
+}
+
 func TestCreatePreparerDoesNotModify(t *testing.T) {
 	r1 := &http.Request{}
 	p := CreatePreparer()
@@ -267,7 +290,7 @@ func TestCreatePreparerRunsDecoratorsInOrder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("autorest: CreatePreparer failed (%v)", err)
 	}
-	if r.URL.String() != "https://microsoft.com/1/2/3" {
+	if r.URL.String() != "https:/1/2/3" && r.URL.Host != "microsoft.com" {
 		t.Fatalf("autorest: CreatePreparer failed to run decorators in order")
 	}
 }
@@ -585,14 +608,14 @@ func TestWithPathCatchesNilURL(t *testing.T) {
 }
 
 func TestWithEscapedPathParametersCatchesNilURL(t *testing.T) {
-	_, err := Prepare(&http.Request{}, WithEscapedPathParameters(map[string]interface{}{"foo": "bar"}))
+	_, err := Prepare(&http.Request{}, WithEscapedPathParameters("", map[string]interface{}{"foo": "bar"}))
 	if err == nil {
 		t.Fatalf("autorest: WithEscapedPathParameters failed to catch a nil URL")
 	}
 }
 
 func TestWithPathParametersCatchesNilURL(t *testing.T) {
-	_, err := Prepare(&http.Request{}, WithPathParameters(map[string]interface{}{"foo": "bar"}))
+	_, err := Prepare(&http.Request{}, WithPathParameters("", map[string]interface{}{"foo": "bar"}))
 	if err == nil {
 		t.Fatalf("autorest: WithPathParameters failed to catch a nil URL")
 	}
@@ -610,7 +633,7 @@ func TestModifyingExistingRequest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("autorest: Preparing an existing request returned an error (%v)", err)
 	}
-	if r.URL.String() != "https://bing.com/search?q=golang" {
+	if r.URL.String() != "https:/search?q=golang" && r.URL.Host != "bing.com" {
 		t.Fatalf("autorest: Preparing an existing request failed (%s)", r.URL)
 	}
 }
