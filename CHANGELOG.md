@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v7.0.6
+- Add retry logic for 408, 500, 502, 503 and 504 status codes.
+- Change url path and query encoding logic.
+- Fix DelayForBackoff for proper exponential delay.
+- Add CookieJar in Client.
+
 ## v7.0.5
 - Add check to start polling only when status is in [200,201,202].
 - Refactoring for unchecked errors.
