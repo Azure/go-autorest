@@ -200,7 +200,7 @@ func TestEnsureStrings(t *testing.T) {
 	}
 }
 
-func ExampleStringWithSeparator() {
+func ExampleString() {
 	m := []string{
 		"string1",
 		"string2",

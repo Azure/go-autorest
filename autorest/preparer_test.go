@@ -142,6 +142,12 @@ func ExampleWithBaseURL() {
 	// Output: https://microsoft.com/a/b/c/
 }
 
+func ExampleWithBaseURL_second() {
+	_, err := Prepare(&http.Request{}, WithBaseURL(":"))
+	fmt.Println(err)
+	// Output: parse :: missing protocol scheme
+}
+
 // Create a request with a custom HTTP header
 func ExampleWithHeader() {
 	r, err := Prepare(&http.Request{},
@@ -245,12 +251,6 @@ func ExampleWithQueryParameters() {
 		fmt.Println(r.URL)
 	}
 	// Output: https://microsoft.com/a/b/c/?q1=value1&q2=value2
-}
-
-func ExampleWithBaseURL_InvalidURL() {
-	_, err := Prepare(&http.Request{}, WithBaseURL(":"))
-	fmt.Println(err)
-	// Output: parse :: missing protocol scheme
 }
 
 func TestWithPathWithInvalidPath(t *testing.T) {
