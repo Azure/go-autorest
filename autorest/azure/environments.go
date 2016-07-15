@@ -3,11 +3,19 @@ package azure
 import (
 	"fmt"
 	"net/url"
+	"strings"
 )
 
 const (
 	activeDirectoryAPIVersion = "1.0"
 )
+
+var environments = map[string]Environment{
+	"AZURECHINACLOUD":        ChinaCloud,
+	"AZUREGERMANCLOUD":       GermanCloud,
+	"AZUREPUBLICCLOUD":       PublicCloud,
+	"AZUREUSGOVERNMENTCLOUD": USGovernmentCloud,
+}
 
 // Environment represents a set of endpoints for each of Azure's Clouds.
 type Environment struct {
@@ -100,6 +108,16 @@ var (
 		ServiceBusEndpointSuffix:  "servicebus.cloudapi.de",
 	}
 )
+
+// EnvironmentFromName returns an Environment based on the common name specified
+func EnvironmentFromName(name string) (Environment, error) {
+	name = strings.ToUpper(name)
+	env, ok := environments[name]
+	if !ok {
+		return env, fmt.Errorf("autorest/azure: There is no cloud environment matching the name %q", name)
+	}
+	return env, nil
+}
 
 // OAuthConfigForTenant returns an OAuthConfig with tenant specific urls
 func (env Environment) OAuthConfigForTenant(tenantID string) (*OAuthConfig, error) {
