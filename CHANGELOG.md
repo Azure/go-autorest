@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v7.0.7
+- Add trailing / to endpoint
+- azure: add EnvironmentFromName
+
 ## v7.0.6
 - Add retry logic for 408, 500, 502, 503 and 504 status codes.
 - Change url path and query encoding logic.
