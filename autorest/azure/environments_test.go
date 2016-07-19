@@ -29,6 +29,53 @@ func TestOAuthConfigForTenant(t *testing.T) {
 	}
 }
 
+func TestEnvironmentFromName(t *testing.T) {
+	name := "azurechinacloud"
+	if env, _ := EnvironmentFromName(name); env != ChinaCloud {
+		t.Errorf("Expected to get ChinaCloud for %q", name)
+	}
+
+	name = "AzureChinaCloud"
+	if env, _ := EnvironmentFromName(name); env != ChinaCloud {
+		t.Errorf("Expected to get ChinaCloud for %q", name)
+	}
+
+	name = "azuregermancloud"
+	if env, _ := EnvironmentFromName(name); env != GermanCloud {
+		t.Errorf("Expected to get GermanCloud for %q", name)
+	}
+
+	name = "AzureGermanCloud"
+	if env, _ := EnvironmentFromName(name); env != GermanCloud {
+		t.Errorf("Expected to get GermanCloud for %q", name)
+	}
+
+	name = "azurepubliccloud"
+	if env, _ := EnvironmentFromName(name); env != PublicCloud {
+		t.Errorf("Expected to get PublicCloud for %q", name)
+	}
+
+	name = "AzurePublicCloud"
+	if env, _ := EnvironmentFromName(name); env != PublicCloud {
+		t.Errorf("Expected to get PublicCloud for %q", name)
+	}
+
+	name = "azureusgovernmentcloud"
+	if env, _ := EnvironmentFromName(name); env != USGovernmentCloud {
+		t.Errorf("Expected to get USGovernmentCloud for %q", name)
+	}
+
+	name = "AzureUSGovernmentCloud"
+	if env, _ := EnvironmentFromName(name); env != USGovernmentCloud {
+		t.Errorf("Expected to get USGovernmentCloud for %q", name)
+	}
+
+	name = "thisisnotarealcloudenv"
+	if _, err := EnvironmentFromName(name); err == nil {
+		t.Errorf("Expected to get an error for %q", name)
+	}
+}
+
 func TestDeserializeEnvironment(t *testing.T) {
 	env := `{
 		"name": "--name--",
