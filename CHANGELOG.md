@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v7.1.0
+- Add support for multipart formdata - WithMultiPartFormdata()
+- Add support for sending file in request body - WithFile
+
 ## v7.0.7
 - Add trailing / to endpoint
 - azure: add EnvironmentFromName

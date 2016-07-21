@@ -6,7 +6,9 @@ import (
 	"encoding/xml"
 	"fmt"
 	"net/http"
+	"net/url"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
@@ -237,6 +239,57 @@ func TestEncodeWithValidNotPathQuery(t *testing.T) {
 	if s != "Hello Gopher" {
 		t.Fatalf("autorest: Encode method failed for parameter not query or path. Got: '%v'; Want: 'Hello Gopher'", s)
 	}
+}
+
+func TestMapToValues(t *testing.T) {
+	m := map[string]interface{}{
+		"a": "a",
+		"b": 2,
+	}
+	v := url.Values{}
+	v.Add("a", "a")
+	v.Add("b", "2")
+	if !isEqual(v, MapToValues(m)) {
+		t.Fatalf("autorest: MapToValues method failed to return correct values - expected(%v) got(%v)", v, MapToValues(m))
+	}
+}
+
+func TestMapToValuesWithArrayValues(t *testing.T) {
+	m := map[string]interface{}{
+		"a": []string{"a", "b"},
+		"b": 2,
+		"c": []int{3, 4},
+	}
+	v := url.Values{}
+	v.Add("a", "a")
+	v.Add("a", "b")
+	v.Add("b", "2")
+	v.Add("c", "3")
+	v.Add("c", "4")
+
+	if !isEqual(v, MapToValues(m)) {
+		t.Fatalf("autorest: MapToValues method failed to return correct values - expected(%v) got(%v)", v, MapToValues(m))
+	}
+}
+
+func isEqual(v, u url.Values) bool {
+	for key, value := range v {
+		if len(u[key]) == 0 {
+			return false
+		}
+		sort.Strings(value)
+		sort.Strings(u[key])
+		for i := range value {
+			if value[i] != u[key][i] {
+				return false
+			}
+		}
+		u.Del(key)
+	}
+	if len(u) > 0 {
+		return false
+	}
+	return true
 }
 
 func doEnsureBodyClosed(t *testing.T) SendDecorator {
