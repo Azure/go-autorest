@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/Azure/go-autorest/autorest/mocks"
@@ -437,8 +438,73 @@ func TestWithFormDataSetsContentLength(t *testing.T) {
 		t.Fatalf("autorest: WithFormData failed with error (%v)", err)
 	}
 
+	expected := "name=Rob+Pike&age=42"
+	if !(string(b) == "name=Rob+Pike&age=42" || string(b) == "age=42&name=Rob+Pike") {
+		t.Fatalf("autorest:WithFormData failed to return correct string got (%v), expected (%v)", string(b), expected)
+	}
+
 	if r.ContentLength != int64(len(b)) {
 		t.Fatalf("autorest:WithFormData set Content-Length to %v, expected %v", r.ContentLength, len(b))
+	}
+}
+
+func TestWithMultiPartFormDataSetsContentLength(t *testing.T) {
+	v := map[string]interface{}{
+		"file": ioutil.NopCloser(strings.NewReader("Hello Gopher")),
+		"age":  "42",
+	}
+
+	r, err := Prepare(&http.Request{},
+		WithMultiPartFormData(v))
+	if err != nil {
+		t.Fatalf("autorest: WithMultiPartFormData failed with error (%v)", err)
+	}
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		t.Fatalf("autorest: WithMultiPartFormData failed with error (%v)", err)
+	}
+
+	if r.ContentLength != int64(len(b)) {
+		t.Fatalf("autorest:WithMultiPartFormData set Content-Length to %v, expected %v", r.ContentLength, len(b))
+	}
+}
+
+func TestWithMultiPartFormDataWithNoFile(t *testing.T) {
+	v := map[string]interface{}{
+		"file": "no file",
+		"age":  "42",
+	}
+
+	r, err := Prepare(&http.Request{},
+		WithMultiPartFormData(v))
+	if err != nil {
+		t.Fatalf("autorest: WithMultiPartFormData failed with error (%v)", err)
+	}
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		t.Fatalf("autorest: WithMultiPartFormData failed with error (%v)", err)
+	}
+
+	if r.ContentLength != int64(len(b)) {
+		t.Fatalf("autorest:WithMultiPartFormData set Content-Length to %v, expected %v", r.ContentLength, len(b))
+	}
+}
+
+func TestWithFile(t *testing.T) {
+	r, err := Prepare(&http.Request{},
+		WithFile(ioutil.NopCloser(strings.NewReader("Hello Gopher"))))
+	if err != nil {
+		t.Fatalf("autorest: WithFile failed with error (%v)", err)
+	}
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		t.Fatalf("autorest: WithFile failed with error (%v)", err)
+	}
+	if r.ContentLength != int64(len(b)) {
+		t.Fatalf("autorest:WithFile set Content-Length to %v, expected %v", r.ContentLength, len(b))
 	}
 }
 
