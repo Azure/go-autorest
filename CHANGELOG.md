@@ -1,8 +1,10 @@
 # CHANGELOG
 
 ## v7.1.0
-- Add support for multipart formdata - WithMultiPartFormdata()
-- Add support for sending file in request body - WithFile
+- preparer: Added support for multipart formdata - WithMultiPartFormdata()
+- preparer: Added support for sending file in request body - WithFile
+- client: Added RetryDuration parameter.
+- autorest/validation: new package for validation code for Azure Go SDK.
 
 ## v7.0.7
 - Add trailing / to endpoint
