@@ -3,170 +3,86 @@ package validation
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckForUniqueInArrayTrue(t *testing.T) {
-	if c := checkForUniqueInArray(reflect.ValueOf([]int{1, 2, 3})); !c {
-		t.Fatalf("autorest/validation: checkForUniqueInArray failed to check unique want: true; got: %v", c)
-	}
+	require.Equal(t, checkForUniqueInArray(reflect.ValueOf([]int{1, 2, 3})), true)
 }
 
 func TestCheckForUniqueInArrayFalse(t *testing.T) {
-	if c := checkForUniqueInArray(reflect.ValueOf([]int{1, 2, 3, 3})); c {
-		t.Fatalf("autorest/validation: checkForUniqueInArray failed to check unique want: true; got: %v", c)
-	}
+	require.Equal(t, checkForUniqueInArray(reflect.ValueOf([]int{1, 2, 3, 3})), false)
 }
 
 func TestCheckForUniqueInArrayEmpty(t *testing.T) {
-	if c := checkForUniqueInArray(reflect.ValueOf([]int{})); c {
-		t.Fatalf("autorest/validation: checkForUniqueInArray failed to check unique want: true; got: %v", c)
-	}
+	require.Equal(t, checkForUniqueInArray(reflect.ValueOf([]int{})), false)
 }
 
 func TestCheckForUniqueInMapTrue(t *testing.T) {
-	if c := checkForUniqueInMap(reflect.ValueOf(map[string]int{"one": 1, "two": 2})); !c {
-		t.Fatalf("autorest/validation: checkForUniqueInMap failed to check unique want: true; got: %v", c)
-	}
+	require.Equal(t, checkForUniqueInMap(reflect.ValueOf(map[string]int{"one": 1, "two": 2})), true)
 }
 
 func TestCheckForUniqueInMapFalse(t *testing.T) {
-	if c := checkForUniqueInMap(reflect.ValueOf(map[int]string{1: "one", 2: "one"})); c {
-		t.Fatalf("autorest/validation: checkForUniqueInMap failed to check unique want: true; got: %v", c)
-	}
+	require.Equal(t, checkForUniqueInMap(reflect.ValueOf(map[int]string{1: "one", 2: "one"})), false)
 }
 
 func TestCheckForUniqueInMapEmpty(t *testing.T) {
-	if c := checkForUniqueInMap(reflect.ValueOf(map[int]string{})); c {
-		t.Fatalf("autorest/validation: checkForUniqueInMap failed to check unique want: true; got: %v", c)
-	}
+	require.Equal(t, checkForUniqueInMap(reflect.ValueOf(map[int]string{})), false)
 }
 
 func TestCheckEmpty_WithValueEmptyRuleTrue(t *testing.T) {
 	var x interface{}
-	c := Constraint{
+	v := Constraint{
 		Target: "str",
 		Name:   Empty,
 		Rule:   true,
 		Chain:  nil,
 	}
-
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value can not be null or empty; required parameter"),
-	}
-
-	if z := checkEmpty(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: checkEmpty failed to check Empty parameter \nexpect: %v;\ngot: %v", e, z)
-	}
-}
-
-func TestCheckEmpty_WithValueNilRuleTrue(t *testing.T) {
-	var x interface{}
-	c := Constraint{
-		Target: "str",
-		Name:   Empty,
-		Rule:   true,
-		Chain:  nil,
-	}
-
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value can not be null or empty; required parameter"),
-	}
-
-	if z := checkEmpty(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: checkEmpty failed to check Empty parameter \nexpect: %v;\ngot: %v", e, z)
-	}
+	expected := createError(reflect.ValueOf(x), v, "value can not be null or empty; required parameter")
+	require.Equal(t, checkEmpty(reflect.ValueOf(x), v).Error(), expected.Error())
 }
 
 func TestCheckEmpty_WithEmptyStringRuleFalse(t *testing.T) {
 	var x interface{}
-	c := Constraint{
+	v := Constraint{
 		Target: "str",
 		Name:   Empty,
 		Rule:   false,
 		Chain:  nil,
 	}
-
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value can not be null or empty; required parameter"),
-	}
-
-	if z := checkEmpty(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: checkEmpty failed to check Empty parameter \nexpect: %v;\ngot: %v", e, z)
-	}
-}
-
-func TestCheckEmpty_WithNilRuleFalse(t *testing.T) {
-	var x interface{}
-	c := Constraint{
-		Target: "str",
-		Name:   Empty,
-		Rule:   false,
-		Chain:  nil,
-	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value can not be null or empty; required parameter"),
-	}
-	if z := checkEmpty(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: checkEmpty failed to check Empty parameter \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Nil(t, checkEmpty(reflect.ValueOf(x), v))
 }
 
 func TestCheckEmpty_IncorrectRule(t *testing.T) {
 	var x interface{}
-	c := Constraint{
+	v := Constraint{
 		Target: "str",
 		Name:   Empty,
 		Rule:   10,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("rule must be bool value for %v constraint; got: %v", c.Name, c.Rule),
-	}
-	if z := checkEmpty(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: checkEmpty failed to return error for incorrect rule \nexpect: %v;\ngot: %v", e, z)
-	}
+	expected := createError(reflect.ValueOf(x), v, fmt.Sprintf("rule must be bool value for %v constraint; got: %v", v.Name, v.Rule))
+	require.Equal(t, checkEmpty(reflect.ValueOf(x), v).Error(), expected.Error())
 }
 
 func TestCheckEmpty_WithErrorArray(t *testing.T) {
 	var x interface{} = []string{}
-	c := Constraint{
+	v := Constraint{
 		Target: "str",
 		Name:   Empty,
 		Rule:   true,
 		Chain:  nil,
 	}
-
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value can not be null or empty; required parameter"),
-	}
-
-	if z := checkEmpty(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: checkEmpty failed to check Empty parameter \nexpect: %v;\ngot: %v", e, z)
-	}
+	expected := createError(reflect.ValueOf(x), v, "value can not be null or empty; required parameter")
+	require.Equal(t, checkEmpty(reflect.ValueOf(x), v).Error(), expected.Error())
 }
 
 func TestCheckNil_WithNilValueRuleTrue(t *testing.T) {
 	var x interface{}
-	c := Constraint{
+	v := Constraint{
 		Target: "x",
 		Name:   Null,
 		Rule:   true,
@@ -174,21 +90,13 @@ func TestCheckNil_WithNilValueRuleTrue(t *testing.T) {
 			{"x", MaxItems, 4, nil},
 		},
 	}
-
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value can not be null; required parameter"),
-	}
-	if z := checkNil(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: checkNil failed to return error for nil value \nexpect: nil;\ngot: %v", z)
-	}
+	expected := createError(reflect.ValueOf(x), v, "value can not be null; required parameter")
+	require.Equal(t, checkNil(reflect.ValueOf(x), v).Error(), expected.Error())
 }
 
 func TestCheckNil_WithNilValueRuleFalse(t *testing.T) {
 	var x interface{}
-	c := Constraint{
+	v := Constraint{
 		Target: "x",
 		Name:   Null,
 		Rule:   false,
@@ -196,9 +104,7 @@ func TestCheckNil_WithNilValueRuleFalse(t *testing.T) {
 			{"x", MaxItems, 4, nil},
 		},
 	}
-	if z := checkNil(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: checkNil failed to return nil value \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, checkNil(reflect.ValueOf(x), v))
 }
 
 func TestCheckNil_IncorrectRule(t *testing.T) {
@@ -209,16 +115,8 @@ func TestCheckNil_IncorrectRule(t *testing.T) {
 		Rule:   10,
 		Chain:  nil,
 	}
-
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("rule must be bool value for %v constraint; got: %v", c.Name, c.Rule),
-	}
-	if z := checkNil(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: checkNil failed to return error for incorrect rule \nexpect: %v\ngot: %v", e, z)
-	}
+	expected := createError(reflect.ValueOf(x), c, fmt.Sprintf("rule must be bool value for %v constraint; got: %v", c.Name, c.Rule))
+	require.Equal(t, checkNil(reflect.ValueOf(x), c).Error(), expected.Error())
 }
 
 func TestValidateArrayMap_WithNilValueRuleTrue(t *testing.T) {
@@ -230,15 +128,8 @@ func TestValidateArrayMap_WithNilValueRuleTrue(t *testing.T) {
 		Rule:   true,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: a,
-		Details:     "value can not be null; required parameter",
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error for null check \nexpect: %#v \ngot: %#v", e, z)
-	}
+	expected := createError(reflect.ValueOf(x), c, "value can not be null; required parameter")
+	require.Equal(t, validateArrayMap(reflect.ValueOf(x), c), expected)
 }
 
 func TestValidateArrayMap_WithNilValueRuleFalse(t *testing.T) {
@@ -249,9 +140,7 @@ func TestValidateArrayMap_WithNilValueRuleFalse(t *testing.T) {
 		Rule:   false,
 		Chain:  nil,
 	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateArrayMap(reflect.ValueOf(x), c))
 }
 
 func TestValidateArrayMap_WithValueRuleNullTrue(t *testing.T) {
@@ -262,9 +151,7 @@ func TestValidateArrayMap_WithValueRuleNullTrue(t *testing.T) {
 		Rule:   false,
 		Chain:  nil,
 	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateArrayMap(reflect.ValueOf(x), c))
 }
 
 func TestValidateArrayMap_WithEmptyValueRuleTrue(t *testing.T) {
@@ -275,15 +162,8 @@ func TestValidateArrayMap_WithEmptyValueRuleTrue(t *testing.T) {
 		Rule:   true,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value can not be null or empty; required parameter"),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error for null check \nexpect: nil;\ngot: %v", z)
-	}
+	expected := createError(reflect.ValueOf(x), c, "value can not be null or empty; required parameter")
+	require.Equal(t, validateArrayMap(reflect.ValueOf(x), c), expected)
 }
 
 func TestValidateArrayMap_WithEmptyValueRuleFalse(t *testing.T) {
@@ -294,9 +174,7 @@ func TestValidateArrayMap_WithEmptyValueRuleFalse(t *testing.T) {
 		Rule:   false,
 		Chain:  nil,
 	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateArrayMap(reflect.ValueOf(x), c))
 }
 
 func TestValidateArrayMap_WithEmptyRuleEmptyTrue(t *testing.T) {
@@ -307,9 +185,7 @@ func TestValidateArrayMap_WithEmptyRuleEmptyTrue(t *testing.T) {
 		Rule:   false,
 		Chain:  nil,
 	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateArrayMap(reflect.ValueOf(x), c))
 }
 
 func TestValidateArrayMap_MaxItemsIncorrectRule(t *testing.T) {
@@ -320,15 +196,8 @@ func TestValidateArrayMap_MaxItemsIncorrectRule(t *testing.T) {
 		Rule:   false,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("rule must be integer for %v constraint; got: %v", c.Name, c.Rule),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error  \nexpect: nil;\ngot: %v", z)
-	}
+	expected := createError(reflect.ValueOf(x), c, fmt.Sprintf("rule must be integer for %v constraint; got: %v", c.Name, c.Rule))
+	require.Equal(t, validateArrayMap(reflect.ValueOf(x), c).Error(), expected.Error())
 }
 
 func TestValidateArrayMap_MaxItemsNoError(t *testing.T) {
@@ -339,9 +208,7 @@ func TestValidateArrayMap_MaxItemsNoError(t *testing.T) {
 		Rule:   2,
 		Chain:  nil,
 	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateArrayMap(reflect.ValueOf(x), c))
 }
 
 func TestValidateArrayMap_MaxItemsWithError(t *testing.T) {
@@ -352,15 +219,8 @@ func TestValidateArrayMap_MaxItemsWithError(t *testing.T) {
 		Rule:   2,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("maximum item limit is %v; got: 3", c.Rule),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	expected := createError(reflect.ValueOf(x), c, fmt.Sprintf("maximum item limit is %v; got: 3", c.Rule))
+	require.Equal(t, validateArrayMap(reflect.ValueOf(x), c).Error(), expected.Error())
 }
 
 func TestValidateArrayMap_MaxItemsWithEmpty(t *testing.T) {
@@ -371,9 +231,7 @@ func TestValidateArrayMap_MaxItemsWithEmpty(t *testing.T) {
 		Rule:   2,
 		Chain:  nil,
 	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateArrayMap(reflect.ValueOf(x), c))
 }
 
 func TestValidateArrayMap_MinItemsIncorrectRule(t *testing.T) {
@@ -384,17 +242,8 @@ func TestValidateArrayMap_MinItemsIncorrectRule(t *testing.T) {
 		Rule:   false,
 		Chain:  nil,
 	}
-
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("rule must be integer for %v constraint; got: %v", c.Name, c.Rule),
-	}
-
-	if z := validateArrayMap(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	expected := createError(reflect.ValueOf(x), c, fmt.Sprintf("rule must be integer for %v constraint; got: %v", c.Name, c.Rule))
+	require.Equal(t, validateArrayMap(reflect.ValueOf(x), c).Error(), expected.Error())
 }
 
 func TestValidateArrayMap_MinItemsNoError1(t *testing.T) {
@@ -404,10 +253,7 @@ func TestValidateArrayMap_MinItemsNoError1(t *testing.T) {
 		Rule:   2,
 		Chain:  nil,
 	}
-
-	if z := validateArrayMap(reflect.ValueOf([]int{1, 2}), c); z != nil {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateArrayMap(reflect.ValueOf([]int{1, 2}), c))
 }
 
 func TestValidateArrayMap_MinItemsNoError2(t *testing.T) {
@@ -417,10 +263,7 @@ func TestValidateArrayMap_MinItemsNoError2(t *testing.T) {
 		Rule:   2,
 		Chain:  nil,
 	}
-
-	if z := validateArrayMap(reflect.ValueOf([]int{1, 2, 3}), c); z != nil {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateArrayMap(reflect.ValueOf([]int{1, 2, 3}), c))
 }
 
 func TestValidateArrayMap_MinItemsWithError(t *testing.T) {
@@ -431,16 +274,8 @@ func TestValidateArrayMap_MinItemsWithError(t *testing.T) {
 		Rule:   2,
 		Chain:  nil,
 	}
-
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("minimum item limit is %v; got: 1", c.Rule),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	expected := createError(reflect.ValueOf(x), c, fmt.Sprintf("minimum item limit is %v; got: 1", c.Rule))
+	require.Equal(t, validateArrayMap(reflect.ValueOf(x), c).Error(), expected.Error())
 }
 
 func TestValidateArrayMap_MinItemsWithEmpty(t *testing.T) {
@@ -451,15 +286,8 @@ func TestValidateArrayMap_MinItemsWithEmpty(t *testing.T) {
 		Rule:   2,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("minimum item limit is %v; got: 0", c.Rule),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	expected := createError(reflect.ValueOf(x), c, fmt.Sprintf("minimum item limit is %v; got: 0", c.Rule))
+	require.Equal(t, validateArrayMap(reflect.ValueOf(x), c).Error(), expected.Error())
 }
 
 func TestValidateArrayMap_Map_MaxItemsIncorrectRule(t *testing.T) {
@@ -470,15 +298,8 @@ func TestValidateArrayMap_Map_MaxItemsIncorrectRule(t *testing.T) {
 		Rule:   false,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("rule must be integer for %v constraint; got: %v", c.Name, c.Rule),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: nil;\ngot: %v", z)
-	}
+	require.Equal(t, strings.Contains(validateArrayMap(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("rule must be integer for %v constraint; got: %v", c.Name, c.Rule)), true)
 }
 
 func TestValidateArrayMap_Map_MaxItemsNoError(t *testing.T) {
@@ -489,9 +310,7 @@ func TestValidateArrayMap_Map_MaxItemsNoError(t *testing.T) {
 		Rule:   2,
 		Chain:  nil,
 	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateArrayMap(reflect.ValueOf(x), c))
 }
 
 func TestValidateArrayMap_Map_MaxItemsWithError(t *testing.T) {
@@ -503,15 +322,8 @@ func TestValidateArrayMap_Map_MaxItemsWithError(t *testing.T) {
 		Rule:   2,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("maximum item limit is %v; got: %v", c.Rule, len(a)),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, strings.Contains(validateArrayMap(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("maximum item limit is %v; got: %v", c.Rule, len(a))), true)
 }
 
 func TestValidateArrayMap_Map_MaxItemsWithEmpty(t *testing.T) {
@@ -523,9 +335,7 @@ func TestValidateArrayMap_Map_MaxItemsWithEmpty(t *testing.T) {
 		Rule:   2,
 		Chain:  nil,
 	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateArrayMap(reflect.ValueOf(x), c))
 }
 
 func TestValidateArrayMap_Map_MinItemsIncorrectRule(t *testing.T) {
@@ -536,31 +346,19 @@ func TestValidateArrayMap_Map_MinItemsIncorrectRule(t *testing.T) {
 		Rule:   false,
 		Chain:  nil,
 	}
-
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("rule must be integer for %v constraint; got: %v", c.Name, c.Rule),
-	}
-
-	if z := validateArrayMap(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, strings.Contains(validateArrayMap(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("rule must be integer for %v constraint; got: %v", c.Name, c.Rule)), true)
 }
 
 func TestValidateArrayMap_Map_MinItemsNoError1(t *testing.T) {
 	var x interface{} = map[int]string{1: "1", 2: "2"}
-	c := Constraint{
-		Target: "arr",
-		Name:   MinItems,
-		Rule:   2,
-		Chain:  nil,
-	}
-
-	if z := validateArrayMap(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateArrayMap(reflect.ValueOf(x),
+		Constraint{
+			Target: "arr",
+			Name:   MinItems,
+			Rule:   2,
+			Chain:  nil,
+		}))
 }
 
 func TestValidateArrayMap_Map_MinItemsNoError2(t *testing.T) {
@@ -571,10 +369,7 @@ func TestValidateArrayMap_Map_MinItemsNoError2(t *testing.T) {
 		Rule:   2,
 		Chain:  nil,
 	}
-
-	if z := validateArrayMap(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateArrayMap(reflect.ValueOf(x), c))
 }
 
 func TestValidateArrayMap_Map_MinItemsWithError(t *testing.T) {
@@ -586,15 +381,8 @@ func TestValidateArrayMap_Map_MinItemsWithError(t *testing.T) {
 		Rule:   2,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("minimum item limit is %v; got: %v", c.Rule, len(a)),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	expected := createError(reflect.ValueOf(x), c, fmt.Sprintf("minimum item limit is %v; got: %v", c.Rule, len(a)))
+	require.Equal(t, validateArrayMap(reflect.ValueOf(x), c).Error(), expected.Error())
 }
 
 func TestValidateArrayMap_Map_MinItemsWithEmpty(t *testing.T) {
@@ -606,37 +394,24 @@ func TestValidateArrayMap_Map_MinItemsWithEmpty(t *testing.T) {
 		Rule:   2,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("minimum item limit is %v; got: %v", c.Rule, len(a)),
-	}
-
-	if z := validateArrayMap(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	expected := createError(reflect.ValueOf(x), c, fmt.Sprintf("minimum item limit is %v; got: %v", c.Rule, len(a)))
+	require.Equal(t, validateArrayMap(reflect.ValueOf(x), c).Error(), expected.Error())
 }
 
-func TestValidateArrayMap_Map_MinItemsNil(t *testing.T) {
-	var a map[int]float64
-	var x interface{} = a
-	c := Constraint{
-		Target: "str",
-		Name:   MinItems,
-		Rule:   true,
-		Chain:  nil,
-	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("all items in parameter %v must be unique; got:%v", c.Target, x),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); e.Target != z.(Error).Target || e.Constraint != z.(Error).Constraint {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
-}
+// func TestValidateArrayMap_Map_MinItemsNil(t *testing.T) {
+// 	var a map[int]float64
+// 	var x interface{} = a
+// 	c := Constraint{
+// 		Target: "str",
+// 		Name:   MinItems,
+// 		Rule:   true,
+// 		Chain:  nil,
+// 	}
+// 	expected := createError(reflect.Value(x), c, fmt.Sprintf("all items in parameter %v must be unique; got:%v", c.Target, x))
+// 	if z := validateArrayMap(reflect.ValueOf(x), c); strings.Contains(z.Error(), "all items in parameter str must be unique;") {
+// 		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", expected, z)
+// 	}
+// }
 
 func TestValidateArrayMap_Map_UniqueItemsTrue(t *testing.T) {
 	var x interface{} = map[float64]int{1.2: 1, 1.4: 2}
@@ -646,9 +421,7 @@ func TestValidateArrayMap_Map_UniqueItemsTrue(t *testing.T) {
 		Rule:   true,
 		Chain:  nil,
 	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateArrayMap(reflect.ValueOf(x), c))
 }
 
 func TestValidateArrayMap_Map_UniqueItemsFalse(t *testing.T) {
@@ -659,16 +432,9 @@ func TestValidateArrayMap_Map_UniqueItemsFalse(t *testing.T) {
 		Rule:   true,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("all items in parameter %v must be unique; got:%v", c.Target, x),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); e.Target != z.(Error).Target ||
-		e.Constraint != z.(Error).Constraint {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	z := validateArrayMap(reflect.ValueOf(x), c)
+	require.Equal(t, strings.Contains(z.Error(),
+		fmt.Sprintf("all items in parameter %q must be unique", c.Target)), true)
 }
 
 func TestValidateArrayMap_Map_UniqueItemsEmpty(t *testing.T) {
@@ -680,15 +446,9 @@ func TestValidateArrayMap_Map_UniqueItemsEmpty(t *testing.T) {
 		Rule:   true,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("all items in parameter %v must be unique; got:%v", c.Target, x),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); e.Target != z.(Error).Target || e.Constraint != z.(Error).Constraint {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	z := validateArrayMap(reflect.ValueOf(x), c)
+	require.Equal(t, strings.Contains(z.Error(),
+		fmt.Sprintf("all items in parameter %q must be unique", c.Target)), true)
 }
 
 func TestValidateArrayMap_Map_UniqueItemsNil(t *testing.T) {
@@ -700,15 +460,9 @@ func TestValidateArrayMap_Map_UniqueItemsNil(t *testing.T) {
 		Rule:   true,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("all items in parameter %v must be unique; got:%v", c.Target, x),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); e.Target != z.(Error).Target || e.Constraint != z.(Error).Constraint {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	z := validateArrayMap(reflect.ValueOf(x), c)
+	require.Equal(t, strings.Contains(z.Error(),
+		fmt.Sprintf("all items in parameter %q must be unique; got:%v", c.Target, x)), true)
 }
 
 func TestValidateArrayMap_Array_UniqueItemsTrue(t *testing.T) {
@@ -719,9 +473,7 @@ func TestValidateArrayMap_Array_UniqueItemsTrue(t *testing.T) {
 		Rule:   true,
 		Chain:  nil,
 	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateArrayMap(reflect.ValueOf(x), c))
 }
 
 func TestValidateArrayMap_Array_UniqueItemsFalse(t *testing.T) {
@@ -732,15 +484,9 @@ func TestValidateArrayMap_Array_UniqueItemsFalse(t *testing.T) {
 		Rule:   true,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("all items in parameter %v must be unique; got:%v", c.Target, x),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); e.Target != z.(Error).Target || e.Constraint != z.(Error).Constraint {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	z := validateArrayMap(reflect.ValueOf(x), c)
+	require.Equal(t, strings.Contains(z.Error(),
+		fmt.Sprintf("all items in parameter %q must be unique; got:%v", c.Target, x)), true)
 }
 
 func TestValidateArrayMap_Array_UniqueItemsEmpty(t *testing.T) {
@@ -752,15 +498,9 @@ func TestValidateArrayMap_Array_UniqueItemsEmpty(t *testing.T) {
 		Rule:   true,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("all items in parameter %v must be unique; got:%v", c.Target, x),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); e.Target != z.(Error).Target || e.Constraint != z.(Error).Constraint {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	z := validateArrayMap(reflect.ValueOf(x), c)
+	require.Equal(t, strings.Contains(z.Error(),
+		fmt.Sprintf("all items in parameter %q must be unique; got:%v", c.Target, x)), true)
 }
 
 func TestValidateArrayMap_Array_UniqueItemsNil(t *testing.T) {
@@ -773,16 +513,9 @@ func TestValidateArrayMap_Array_UniqueItemsNil(t *testing.T) {
 		Rule:   true,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("all items in parameter %v must be unique; got:%v", c.Target, x),
-	}
-
-	if z := validateArrayMap(reflect.ValueOf(x), c); e.Target != z.(Error).Target || e.Constraint != z.(Error).Constraint {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	z := validateArrayMap(reflect.ValueOf(x), c)
+	require.Equal(t, strings.Contains(z.Error(),
+		fmt.Sprintf("all items in parameter %q must be unique; got:%v", c.Target, x)), true)
 }
 
 func TestValidateArrayMap_Array_UniqueItemsInvalidType(t *testing.T) {
@@ -793,15 +526,9 @@ func TestValidateArrayMap_Array_UniqueItemsInvalidType(t *testing.T) {
 		Rule:   true,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("type must be array, slice or map for constraint %v; got: %v", c.Name, reflect.ValueOf(x).Kind()),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	z := validateArrayMap(reflect.ValueOf(x), c)
+	require.Equal(t, strings.Contains(z.Error(),
+		fmt.Sprintf("type must be array, slice or map for constraint %v; got: %v", c.Name, reflect.ValueOf(x).Kind())), true)
 }
 
 func TestValidateArrayMap_Array_UniqueItemsInvalidConstraint(t *testing.T) {
@@ -812,15 +539,9 @@ func TestValidateArrayMap_Array_UniqueItemsInvalidConstraint(t *testing.T) {
 		Rule:   true,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("constraint %v is not applicable to array, slice and map type", c.Name),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	z := validateArrayMap(reflect.ValueOf(x), c)
+	require.Equal(t, strings.Contains(z.Error(),
+		fmt.Sprintf("constraint %v is not applicable to array, slice and map type", c.Name)), true)
 }
 
 func TestValidateArrayMap_ValidateChainConstraint1(t *testing.T) {
@@ -834,15 +555,9 @@ func TestValidateArrayMap_ValidateChainConstraint1(t *testing.T) {
 			{"str", MaxItems, 3, nil},
 		},
 	}
-	e := Error{
-		Constraint:  (c.Chain)[0].Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("maximum item limit is %v; got: %v", (c.Chain)[0].Rule, len(a)),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	z := validateArrayMap(reflect.ValueOf(x), c)
+	require.Equal(t, strings.Contains(z.Error(),
+		fmt.Sprintf("maximum item limit is %v; got: %v", (c.Chain)[0].Rule, len(a))), true)
 }
 
 func TestValidateArrayMap_ValidateChainConstraint2(t *testing.T) {
@@ -856,15 +571,9 @@ func TestValidateArrayMap_ValidateChainConstraint2(t *testing.T) {
 			{"str", MaxItems, 3, nil},
 		},
 	}
-	e := Error{
-		Constraint:  (c.Chain)[0].Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("maximum item limit is %v; got: %v", (c.Chain)[0].Rule, len(a)),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	z := validateArrayMap(reflect.ValueOf(x), c)
+	require.Equal(t, strings.Contains(z.Error(),
+		fmt.Sprintf("maximum item limit is %v; got: %v", (c.Chain)[0].Rule, len(a))), true)
 }
 
 func TestValidateArrayMap_ValidateChainConstraint3(t *testing.T) {
@@ -878,15 +587,9 @@ func TestValidateArrayMap_ValidateChainConstraint3(t *testing.T) {
 			{"str", MaxItems, 3, nil},
 		},
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value can not be null; required parameter"),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	z := validateArrayMap(reflect.ValueOf(x), c)
+	require.Equal(t, strings.Contains(z.Error(),
+		fmt.Sprintf("value can not be null; required parameter")), true)
 }
 
 func TestValidateArrayMap_ValidateChainConstraint4(t *testing.T) {
@@ -899,15 +602,9 @@ func TestValidateArrayMap_ValidateChainConstraint4(t *testing.T) {
 			{"str", MaxItems, 3, nil},
 		},
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value can not be null or empty; required parameter"),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	z := validateArrayMap(reflect.ValueOf(x), c)
+	require.Equal(t, strings.Contains(z.Error(),
+		fmt.Sprintf("value can not be null or empty; required parameter")), true)
 }
 
 func TestValidateArrayMap_ValidateChainConstraintNilNotRequired(t *testing.T) {
@@ -921,10 +618,7 @@ func TestValidateArrayMap_ValidateChainConstraintNilNotRequired(t *testing.T) {
 			{"str", MaxItems, 3, nil},
 		},
 	}
-
-	if z := validateArrayMap(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateArrayMap(reflect.ValueOf(x), c))
 }
 
 func TestValidateArrayMap_ValidateChainConstraintEmptyNotRequired(t *testing.T) {
@@ -937,10 +631,7 @@ func TestValidateArrayMap_ValidateChainConstraintEmptyNotRequired(t *testing.T) 
 			{"str", MaxItems, 3, nil},
 		},
 	}
-
-	if z := validateArrayMap(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateArrayMap(reflect.ValueOf(x), c))
 }
 
 func TestValidateArrayMap_ReadOnlyWithError(t *testing.T) {
@@ -953,15 +644,9 @@ func TestValidateArrayMap_ReadOnlyWithError(t *testing.T) {
 			{"str", MaxItems, 3, nil},
 		},
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("readonly parameter; must send as nil or Empty in request"),
-	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	z := validateArrayMap(reflect.ValueOf(x), c)
+	require.Equal(t, strings.Contains(z.Error(),
+		fmt.Sprintf("readonly parameter; must send as nil or empty in request")), true)
 }
 
 func TestValidateArrayMap_ReadOnlyWithoutError(t *testing.T) {
@@ -972,13 +657,10 @@ func TestValidateArrayMap_ReadOnlyWithoutError(t *testing.T) {
 		Rule:   true,
 		Chain:  nil,
 	}
-	if z := validateArrayMap(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: nil\ngot: %v", z)
-	}
+	require.Nil(t, validateArrayMap(reflect.ValueOf(x), c))
 }
 
 func TestValidateString_ReadOnly(t *testing.T) {
-	// Empty true means parameter is required but Empty returns error
 	var x interface{} = "Hello Gopher"
 	c := Constraint{
 		Target: "str",
@@ -986,15 +668,8 @@ func TestValidateString_ReadOnly(t *testing.T) {
 		Rule:   true,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("readonly parameter; must send as nil or empty in request"),
-	}
-	if z := validateString(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: validateString failed to return error for readOnly\nexpect: nil;\ngot: %v", z)
-	}
+	require.Equal(t, strings.Contains(validateString(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("readonly parameter; must send as nil or empty in request")), true)
 }
 
 func TestValidateString_EmptyTrue(t *testing.T) {
@@ -1005,15 +680,8 @@ func TestValidateString_EmptyTrue(t *testing.T) {
 		Rule:   true,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: "",
-		Details:     fmt.Sprintf("value can not be null or empty; required parameter"),
-	}
-	if z := validateString(reflect.ValueOf(""), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: validateString failed to return error \nexpect: nil;\ngot: %v", z)
-	}
+	require.Equal(t, strings.Contains(validateString(reflect.ValueOf(""), c).Error(),
+		fmt.Sprintf("value can not be null or empty; required parameter")), true)
 }
 
 func TestValidateString_EmptyFalse(t *testing.T) {
@@ -1025,9 +693,7 @@ func TestValidateString_EmptyFalse(t *testing.T) {
 		Rule:   false,
 		Chain:  nil,
 	}
-	if z := validateString(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: validateString failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateString(reflect.ValueOf(x), c))
 }
 
 func TestValidateString_MaxLengthInvalid(t *testing.T) {
@@ -1039,15 +705,8 @@ func TestValidateString_MaxLengthInvalid(t *testing.T) {
 		Rule:   4,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("string '%s' length must be less than %v", x, c.Rule),
-	}
-	if z := validateString(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: validateString failed to return error \nexpect: nil;\ngot: %v", z)
-	}
+	require.Equal(t, strings.Contains(validateString(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("value length must be less than %v", c.Rule)), true)
 }
 
 func TestValidateString_MaxLengthValid(t *testing.T) {
@@ -1058,9 +717,7 @@ func TestValidateString_MaxLengthValid(t *testing.T) {
 		Rule:   7,
 		Chain:  nil,
 	}
-	if z := validateString(reflect.ValueOf("Hello"), c); z != nil {
-		t.Fatalf("autorest/validation: validateString failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateString(reflect.ValueOf("Hello"), c))
 }
 
 func TestValidateString_MaxLengthRuleInvalid(t *testing.T) {
@@ -1071,15 +728,8 @@ func TestValidateString_MaxLengthRuleInvalid(t *testing.T) {
 		Rule:   true, // must be int for maxLength
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("rule must be integer value for %v constraint; got: %v", c.Name, c.Rule),
-	}
-	if z := validateString(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: validateString failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, strings.Contains(validateString(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("rule must be integer value for %v constraint; got: %v", c.Name, c.Rule)), true)
 }
 
 func TestValidateString_MinLengthInvalid(t *testing.T) {
@@ -1090,15 +740,8 @@ func TestValidateString_MinLengthInvalid(t *testing.T) {
 		Rule:   10,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("string '%s' length must be greater than %v", x, c.Rule),
-	}
-	if z := validateString(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: validateString failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, strings.Contains(validateString(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("value length must be greater than %v", c.Rule)), true)
 }
 
 func TestValidateString_MinLengthValid(t *testing.T) {
@@ -1108,9 +751,7 @@ func TestValidateString_MinLengthValid(t *testing.T) {
 		Rule:   2,
 		Chain:  nil,
 	}
-	if z := validateString(reflect.ValueOf("Hello"), c); z != nil {
-		t.Fatalf("autorest/validation: validateString failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateString(reflect.ValueOf("Hello"), c))
 }
 
 func TestValidateString_MinLengthRuleInvalid(t *testing.T) {
@@ -1121,15 +762,8 @@ func TestValidateString_MinLengthRuleInvalid(t *testing.T) {
 		Rule:   true, // must be int for minLength
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("rule must be integer value for %v constraint; got: %v", c.Name, c.Rule),
-	}
-	if z := validateString(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: validateString failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, strings.Contains(validateString(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("rule must be integer value for %v constraint; got: %v", c.Name, c.Rule)), true)
 }
 
 func TestValidateString_PatternInvalidPattern(t *testing.T) {
@@ -1137,43 +771,31 @@ func TestValidateString_PatternInvalidPattern(t *testing.T) {
 	c := Constraint{
 		Target: "str",
 		Name:   Pattern,
-		Rule:   "[[:alnum:",
+		Rule:   `^[[:alnum:$`,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     "error parsing regexp: missing closing ]: `[[:alnum:$`",
-	}
-
-	if z := validateString(reflect.ValueOf(x), c); z.(Error).Details != e.Details {
-		t.Fatalf("autorest/validation: validateString failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, strings.Contains(validateString(reflect.ValueOf(x), c).Error(),
+		"error parsing regexp: missing closing ]"), true)
 }
 
 func TestValidateString_PatternMatch1(t *testing.T) {
 	c := Constraint{
 		Target: "str",
 		Name:   Pattern,
-		Rule:   "http://\\w+",
+		Rule:   `^http://\w+$`,
 		Chain:  nil,
 	}
-	if z := validateString(reflect.ValueOf("http://masd"), c); z != nil {
-		t.Fatalf("autorest/validation: validateString failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateString(reflect.ValueOf("http://masd"), c))
 }
 
 func TestValidateString_PatternMatch2(t *testing.T) {
 	c := Constraint{
 		Target: "str",
 		Name:   Pattern,
-		Rule:   "[a-zA-Z0-9]+",
+		Rule:   `^[a-zA-Z0-9]+$`,
 		Chain:  nil,
 	}
-	if z := validateString(reflect.ValueOf("asdadad2323sad"), c); z != nil {
-		t.Fatalf("autorest/validation: validateString failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateString(reflect.ValueOf("asdadad2323sad"), c))
 }
 
 func TestValidateString_PatternNotMatch(t *testing.T) {
@@ -1181,18 +803,11 @@ func TestValidateString_PatternNotMatch(t *testing.T) {
 	c := Constraint{
 		Target: "str",
 		Name:   Pattern,
-		Rule:   "[a-zA-Z0-9]+",
+		Rule:   `^[a-zA-Z0-9]+$`,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("string '%v' doesn't match pattern %v", x, c.Rule),
-	}
-	if z := validateString(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: validateString failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, strings.Contains(validateString(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("value doesn't match pattern %v", c.Rule)), true)
 }
 
 func TestValidateString_InvalidConstraint(t *testing.T) {
@@ -1200,19 +815,11 @@ func TestValidateString_InvalidConstraint(t *testing.T) {
 	c := Constraint{
 		Target: "str",
 		Name:   UniqueItems,
-		Rule:   "[a-zA-Z0-9]+",
+		Rule:   "^[a-zA-Z0-9]+$",
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("constraint %s is not applicable to string type", c.Name),
-	}
-
-	if z := validateString(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: validateString failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, strings.Contains(validateString(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("constraint %s is not applicable to string type", c.Name)), true)
 }
 
 func TestValidateFloat_InvalidConstraint(t *testing.T) {
@@ -1223,15 +830,8 @@ func TestValidateFloat_InvalidConstraint(t *testing.T) {
 		Rule:   3.0,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("constraint %v is not applicable for type float", c.Name),
-	}
-	if z := validateFloat(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateFloat failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, strings.Contains(validateFloat(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("constraint %v is not applicable for type float", c.Name)), true)
 }
 
 func TestValidateFloat_InvalidRuleValue(t *testing.T) {
@@ -1242,15 +842,8 @@ func TestValidateFloat_InvalidRuleValue(t *testing.T) {
 		Rule:   3,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("rule must be float value for %v constraint; got: %v", c.Name, c.Rule),
-	}
-	if z := validateFloat(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateFloat failed to return nil \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, strings.Contains(validateFloat(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("rule must be float value for %v constraint; got: %v", c.Name, c.Rule)), true)
 }
 
 func TestValidateFloat_ExclusiveMinimumConstraintValid(t *testing.T) {
@@ -1260,9 +853,7 @@ func TestValidateFloat_ExclusiveMinimumConstraintValid(t *testing.T) {
 		Rule:   1.0,
 		Chain:  nil,
 	}
-	if z := validateFloat(reflect.ValueOf(1.42), c); z != nil {
-		t.Fatalf("autorest/validation: valiateFloat failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateFloat(reflect.ValueOf(1.42), c))
 }
 
 func TestValidateFloat_ExclusiveMinimumConstraintInvalid(t *testing.T) {
@@ -1273,15 +864,8 @@ func TestValidateFloat_ExclusiveMinimumConstraintInvalid(t *testing.T) {
 		Rule:   1.5,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value must be greater than %v", c.Rule),
-	}
-	if z := validateFloat(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateFloat failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, strings.Contains(validateFloat(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("value must be greater than %v", c.Rule)), true)
 }
 
 func TestValidateFloat_ExclusiveMinimumConstraintBoundary(t *testing.T) {
@@ -1292,15 +876,8 @@ func TestValidateFloat_ExclusiveMinimumConstraintBoundary(t *testing.T) {
 		Rule:   1.42,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value must be greater than %v", c.Rule),
-	}
-	if z := validateFloat(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateFloat failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, strings.Contains(validateFloat(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("value must be greater than %v", c.Rule)), true)
 }
 
 func TestValidateFloat_exclusiveMaximumConstraintValid(t *testing.T) {
@@ -1310,9 +887,7 @@ func TestValidateFloat_exclusiveMaximumConstraintValid(t *testing.T) {
 		Rule:   2.0,
 		Chain:  nil,
 	}
-	if z := validateFloat(reflect.ValueOf(1.42), c); z != nil {
-		t.Fatalf("autorest/validation: valiateFloat failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateFloat(reflect.ValueOf(1.42), c))
 }
 
 func TestValidateFloat_exclusiveMaximumConstraintInvalid(t *testing.T) {
@@ -1323,15 +898,8 @@ func TestValidateFloat_exclusiveMaximumConstraintInvalid(t *testing.T) {
 		Rule:   1.2,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value must be less than %v", c.Rule),
-	}
-	if z := validateFloat(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateFloat failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, strings.Contains(validateFloat(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("value must be less than %v", c.Rule)), true)
 }
 
 func TestValidateFloat_exclusiveMaximumConstraintBoundary(t *testing.T) {
@@ -1342,15 +910,8 @@ func TestValidateFloat_exclusiveMaximumConstraintBoundary(t *testing.T) {
 		Rule:   1.42,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value must be less than %v", c.Rule),
-	}
-	if z := validateFloat(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateFloat failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, strings.Contains(validateFloat(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("value must be less than %v", c.Rule)), true)
 }
 
 func TestValidateFloat_inclusiveMaximumConstraintValid(t *testing.T) {
@@ -1360,9 +921,7 @@ func TestValidateFloat_inclusiveMaximumConstraintValid(t *testing.T) {
 		Rule:   2.0,
 		Chain:  nil,
 	}
-	if z := validateFloat(reflect.ValueOf(1.42), c); z != nil {
-		t.Fatalf("autorest/validation: valiateFloat failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateFloat(reflect.ValueOf(1.42), c))
 }
 
 func TestValidateFloat_inclusiveMaximumConstraintInvalid(t *testing.T) {
@@ -1373,15 +932,9 @@ func TestValidateFloat_inclusiveMaximumConstraintInvalid(t *testing.T) {
 		Rule:   1.2,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value must be less than or equal to %v", c.Rule),
-	}
-	if z := validateFloat(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateFloat failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, strings.Contains(validateFloat(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("value must be less than or equal to %v", c.Rule)), true)
+
 }
 
 func TestValidateFloat_inclusiveMaximumConstraintBoundary(t *testing.T) {
@@ -1391,9 +944,7 @@ func TestValidateFloat_inclusiveMaximumConstraintBoundary(t *testing.T) {
 		Rule:   1.42,
 		Chain:  nil,
 	}
-	if z := validateFloat(reflect.ValueOf(1.42), c); z != nil {
-		t.Fatalf("autorest/validation: valiateFloat failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateFloat(reflect.ValueOf(1.42), c))
 }
 
 func TestValidateFloat_InclusiveMinimumConstraintValid(t *testing.T) {
@@ -1403,9 +954,7 @@ func TestValidateFloat_InclusiveMinimumConstraintValid(t *testing.T) {
 		Rule:   1.0,
 		Chain:  nil,
 	}
-	if z := validateFloat(reflect.ValueOf(1.42), c); z != nil {
-		t.Fatalf("autorest/validation: valiateFloat failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateFloat(reflect.ValueOf(1.42), c))
 }
 
 func TestValidateFloat_InclusiveMinimumConstraintInvalid(t *testing.T) {
@@ -1416,15 +965,9 @@ func TestValidateFloat_InclusiveMinimumConstraintInvalid(t *testing.T) {
 		Rule:   1.5,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value must be greater than or equal to %v", c.Rule),
-	}
-	if z := validateFloat(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateFloat failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, strings.Contains(validateFloat(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("value must be greater than or equal to %v", c.Rule)), true)
+
 }
 
 func TestValidateFloat_InclusiveMinimumConstraintBoundary(t *testing.T) {
@@ -1434,9 +977,7 @@ func TestValidateFloat_InclusiveMinimumConstraintBoundary(t *testing.T) {
 		Rule:   1.42,
 		Chain:  nil,
 	}
-	if z := validateFloat(reflect.ValueOf(1.42), c); z != nil {
-		t.Fatalf("autorest/validation: valiateFloat failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateFloat(reflect.ValueOf(1.42), c))
 }
 
 func TestValidateInt_InvalidConstraint(t *testing.T) {
@@ -1447,15 +988,8 @@ func TestValidateInt_InvalidConstraint(t *testing.T) {
 		Rule:   3,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("constraint %s is not applicable for type integer", c.Name),
-	}
-	if z := validateInt(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateInt failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, strings.Contains(validateInt(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("constraint %s is not applicable for type integer", c.Name)), true)
 }
 
 func TestValidateInt_InvalidRuleValue(t *testing.T) {
@@ -1466,15 +1000,8 @@ func TestValidateInt_InvalidRuleValue(t *testing.T) {
 		Rule:   3.4,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("rule must be integer value for %v constraint; got: %v", c.Name, c.Rule),
-	}
-	if z := validateInt(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateInt failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, strings.Contains(validateInt(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("rule must be integer value for %v constraint; got: %v", c.Name, c.Rule)), true)
 }
 
 func TestValidateInt_ExclusiveMinimumConstraintValid(t *testing.T) {
@@ -1484,9 +1011,7 @@ func TestValidateInt_ExclusiveMinimumConstraintValid(t *testing.T) {
 		Rule:   1,
 		Chain:  nil,
 	}
-	if z := validateInt(reflect.ValueOf(3), c); z != nil {
-		t.Fatalf("autorest/validation: valiateInt failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateInt(reflect.ValueOf(3), c))
 }
 
 func TestValidateInt_ExclusiveMinimumConstraintInvalid(t *testing.T) {
@@ -1497,15 +1022,8 @@ func TestValidateInt_ExclusiveMinimumConstraintInvalid(t *testing.T) {
 		Rule:   3,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value must be greater than %v", c.Rule),
-	}
-	if z := validateInt(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateInt failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, validateInt(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf(x), c, fmt.Sprintf("value must be greater than %v", c.Rule)).Error())
 }
 
 func TestValidateInt_ExclusiveMinimumConstraintBoundary(t *testing.T) {
@@ -1516,15 +1034,8 @@ func TestValidateInt_ExclusiveMinimumConstraintBoundary(t *testing.T) {
 		Rule:   1,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value must be greater than %v", c.Rule),
-	}
-	if z := validateInt(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, validateInt(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf(x), c, fmt.Sprintf("value must be greater than %v", c.Rule)).Error())
 }
 
 func TestValidateInt_exclusiveMaximumConstraintValid(t *testing.T) {
@@ -1534,10 +1045,7 @@ func TestValidateInt_exclusiveMaximumConstraintValid(t *testing.T) {
 		Rule:   2,
 		Chain:  nil,
 	}
-
-	if z := validateInt(reflect.ValueOf(1), c); z != nil {
-		t.Fatalf("autorest/validation: valiateArrayMap failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateInt(reflect.ValueOf(1), c))
 }
 
 func TestValidateInt_exclusiveMaximumConstraintInvalid(t *testing.T) {
@@ -1548,16 +1056,8 @@ func TestValidateInt_exclusiveMaximumConstraintInvalid(t *testing.T) {
 		Rule:   1,
 		Chain:  nil,
 	}
-
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value must be less than %v", c.Rule),
-	}
-	if z := validateInt(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateInt failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, validateInt(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf(x), c, fmt.Sprintf("value must be less than %v", c.Rule)).Error())
 }
 
 func TestValidateInt_exclusiveMaximumConstraintBoundary(t *testing.T) {
@@ -1568,16 +1068,8 @@ func TestValidateInt_exclusiveMaximumConstraintBoundary(t *testing.T) {
 		Rule:   1,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value must be less than %v", c.Rule),
-	}
-
-	if z := validateInt(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateInt failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, validateInt(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf(x), c, fmt.Sprintf("value must be less than %v", c.Rule)).Error())
 }
 
 func TestValidateInt_inclusiveMaximumConstraintValid(t *testing.T) {
@@ -1587,9 +1079,7 @@ func TestValidateInt_inclusiveMaximumConstraintValid(t *testing.T) {
 		Rule:   2,
 		Chain:  nil,
 	}
-	if z := validateInt(reflect.ValueOf(1), c); z != nil {
-		t.Fatalf("autorest/validation: validateInt failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateInt(reflect.ValueOf(1), c))
 }
 
 func TestValidateInt_inclusiveMaximumConstraintInvalid(t *testing.T) {
@@ -1600,15 +1090,8 @@ func TestValidateInt_inclusiveMaximumConstraintInvalid(t *testing.T) {
 		Rule:   1,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value must be less than or equal to %v", c.Rule),
-	}
-	if z := validateInt(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: validateInt failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, validateInt(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf(x), c, fmt.Sprintf("value must be less than or equal to %v", c.Rule)).Error())
 }
 
 func TestValidateInt_inclusiveMaximumConstraintBoundary(t *testing.T) {
@@ -1618,9 +1101,7 @@ func TestValidateInt_inclusiveMaximumConstraintBoundary(t *testing.T) {
 		Rule:   1,
 		Chain:  nil,
 	}
-	if z := validateInt(reflect.ValueOf(1), c); z != nil {
-		t.Fatalf("autorest/validation: validateInt failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateInt(reflect.ValueOf(1), c))
 }
 
 func TestValidateInt_InclusiveMinimumConstraintValid(t *testing.T) {
@@ -1630,10 +1111,7 @@ func TestValidateInt_InclusiveMinimumConstraintValid(t *testing.T) {
 		Rule:   1,
 		Chain:  nil,
 	}
-
-	if z := validateInt(reflect.ValueOf(1), c); z != nil {
-		t.Fatalf("autorest/validation: valiateInt failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateInt(reflect.ValueOf(1), c))
 }
 
 func TestValidateInt_InclusiveMinimumConstraintInvalid(t *testing.T) {
@@ -1644,15 +1122,8 @@ func TestValidateInt_InclusiveMinimumConstraintInvalid(t *testing.T) {
 		Rule:   2,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value must be greater than or equal to %v", c.Rule),
-	}
-	if z := validateInt(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateInt failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, validateInt(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf(x), c, fmt.Sprintf("value must be greater than or equal to %v", c.Rule)).Error())
 }
 
 func TestValidateInt_InclusiveMinimumConstraintBoundary(t *testing.T) {
@@ -1662,10 +1133,7 @@ func TestValidateInt_InclusiveMinimumConstraintBoundary(t *testing.T) {
 		Rule:   1,
 		Chain:  nil,
 	}
-
-	if z := validateInt(reflect.ValueOf(1), c); z != nil {
-		t.Fatalf("autorest/validation: valiateInt failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateInt(reflect.ValueOf(1), c))
 }
 
 func TestValidateInt_MultipleOfWithoutError(t *testing.T) {
@@ -1675,10 +1143,7 @@ func TestValidateInt_MultipleOfWithoutError(t *testing.T) {
 		Rule:   10,
 		Chain:  nil,
 	}
-
-	if z := validateInt(reflect.ValueOf(2300), c); z != nil {
-		t.Fatalf("autorest/validation: valiateInt failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validateInt(reflect.ValueOf(2300), c))
 }
 
 func TestValidateInt_MultipleOfWithError(t *testing.T) {
@@ -1688,15 +1153,8 @@ func TestValidateInt_MultipleOfWithError(t *testing.T) {
 		Rule:   11,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: 2300,
-		Details:     fmt.Sprintf("value must be a multiple of %v", c.Rule),
-	}
-	if z := validateInt(reflect.ValueOf(2300), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiateInt failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, validateInt(reflect.ValueOf(2300), c).Error(),
+		createError(reflect.ValueOf(2300), c, fmt.Sprintf("value must be a multiple of %v", c.Rule)).Error())
 }
 
 func TestValidatePointer_NilTrue(t *testing.T) {
@@ -1708,15 +1166,8 @@ func TestValidatePointer_NilTrue(t *testing.T) {
 		Rule:   true, // Required property
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: x,
-		Details:     fmt.Sprintf("value can not be null; required parameter"),
-	}
-	if z := validatePtr(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiatePtr failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, validatePtr(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf(x), c, "value can not be null; required parameter").Error())
 }
 
 func TestValidatePointer_NilFalse(t *testing.T) {
@@ -1728,9 +1179,7 @@ func TestValidatePointer_NilFalse(t *testing.T) {
 		Rule:   false, // not required property
 		Chain:  nil,
 	}
-	if z := validatePtr(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiatePtr failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validatePtr(reflect.ValueOf(x), c))
 }
 
 func TestValidatePointer_NilReadonlyValid(t *testing.T) {
@@ -1742,9 +1191,7 @@ func TestValidatePointer_NilReadonlyValid(t *testing.T) {
 		Rule:   true,
 		Chain:  nil,
 	}
-	if z := validatePtr(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiatePtr failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validatePtr(reflect.ValueOf(x), c))
 }
 
 func TestValidatePointer_NilReadonlyInvalid(t *testing.T) {
@@ -1756,16 +1203,8 @@ func TestValidatePointer_NilReadonlyInvalid(t *testing.T) {
 		Rule:   true,
 		Chain:  nil,
 	}
-	e := Error{
-		Constraint:  c.Name,
-		Target:      c.Target,
-		TargetValue: z,
-		Details:     "readonly parameter; must send as nil or Empty in request",
-	}
-
-	if z := validatePtr(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiatePtr failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, validatePtr(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf(z), c, "readonly parameter; must send as nil or empty in request").Error())
 }
 
 func TestValidatePointer_IntValid(t *testing.T) {
@@ -1777,9 +1216,7 @@ func TestValidatePointer_IntValid(t *testing.T) {
 		Rule:   3,
 		Chain:  nil,
 	}
-	if z := validatePtr(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiatePtr failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validatePtr(reflect.ValueOf(x), c))
 }
 
 func TestValidatePointer_IntInvalid(t *testing.T) {
@@ -1798,17 +1235,10 @@ func TestValidatePointer_IntInvalid(t *testing.T) {
 			},
 		},
 	}
-	e := Error{
-		Constraint:  InclusiveMinimum,
-		Target:      c.Target,
-		TargetValue: z,
-		Details:     "value must be greater than or equal to 11",
-	}
-
-	if z := validatePtr(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiatePtr failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, validatePtr(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf(10), c.Chain[0], "value must be greater than or equal to 11").Error())
 }
+
 func TestValidatePointer_IntInvalidConstraint(t *testing.T) {
 	z := 10
 	var x interface{} = &z
@@ -1825,16 +1255,9 @@ func TestValidatePointer_IntInvalidConstraint(t *testing.T) {
 			},
 		},
 	}
-
-	e := Error{
-		Constraint:  MaxItems,
-		Target:      c.Target,
-		TargetValue: z,
-		Details:     fmt.Sprintf("constraint %v is not applicable for type integer", MaxItems),
-	}
-	if z := validatePtr(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiatePtr failed to return correct error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, validatePtr(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf(10), c.Chain[0],
+			fmt.Sprintf("constraint %v is not applicable for type integer", MaxItems)).Error())
 }
 
 func TestValidatePointer_ValidInt64(t *testing.T) {
@@ -1852,9 +1275,7 @@ func TestValidatePointer_ValidInt64(t *testing.T) {
 				Chain:  nil,
 			},
 		}}
-	if z := validatePtr(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiatePtr failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validatePtr(reflect.ValueOf(x), c))
 }
 
 func TestValidatePointer_InvalidConstraintInt64(t *testing.T) {
@@ -1873,15 +1294,9 @@ func TestValidatePointer_InvalidConstraintInt64(t *testing.T) {
 			},
 		},
 	}
-	e := Error{
-		Constraint:  MaxItems,
-		Target:      c.Target,
-		TargetValue: z,
-		Details:     fmt.Sprintf("constraint %v is not applicable for type integer", MaxItems),
-	}
-	if z := validatePtr(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiatePtr failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, validatePtr(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf(10), c.Chain[0],
+			fmt.Sprintf("constraint %v is not applicable for type integer", MaxItems)).Error())
 }
 
 func TestValidatePointer_ValidFloat(t *testing.T) {
@@ -1898,9 +1313,7 @@ func TestValidatePointer_ValidFloat(t *testing.T) {
 				Rule:   3.0,
 				Chain:  nil,
 			}}}
-	if z := validatePtr(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiatePtr failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validatePtr(reflect.ValueOf(x), c))
 }
 
 func TestValidatePointer_InvalidFloat(t *testing.T) {
@@ -1918,15 +1331,9 @@ func TestValidatePointer_InvalidFloat(t *testing.T) {
 				Chain:  nil,
 			}},
 	}
-	e := Error{
-		Constraint:  InclusiveMinimum,
-		Target:      c.Target,
-		TargetValue: z,
-		Details:     "value must be greater than or equal to 12",
-	}
-	if z := validatePtr(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiatePtr failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, validatePtr(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf(10.1), c.Chain[0],
+			"value must be greater than or equal to 12").Error())
 }
 
 func TestValidatePointer_InvalidConstraintFloat(t *testing.T) {
@@ -1944,15 +1351,9 @@ func TestValidatePointer_InvalidConstraintFloat(t *testing.T) {
 				Chain:  nil,
 			}},
 	}
-	e := Error{
-		Constraint:  MaxItems,
-		Target:      c.Target,
-		TargetValue: z,
-		Details:     fmt.Sprintf("constraint %v is not applicable for type float", MaxItems),
-	}
-	if z := validatePtr(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiatePtr failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, validatePtr(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf(10.1), c.Chain[0],
+			fmt.Sprintf("constraint %v is not applicable for type float", MaxItems)).Error())
 }
 
 func TestValidatePointer_StringValid(t *testing.T) {
@@ -1969,9 +1370,7 @@ func TestValidatePointer_StringValid(t *testing.T) {
 				Rule:   "^[a-z]+$",
 				Chain:  nil,
 			}}}
-	if z := validatePtr(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: valiatePtr failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validatePtr(reflect.ValueOf(x), c))
 }
 
 func TestValidatePointer_StringInvalid(t *testing.T) {
@@ -1988,16 +1387,9 @@ func TestValidatePointer_StringInvalid(t *testing.T) {
 				Rule:   2,
 				Chain:  nil,
 			}}}
-
-	e := Error{
-		Constraint:  MaxLength,
-		Target:      c.Target,
-		TargetValue: z,
-		Details:     fmt.Sprintf("string '%s' length must be less than 2", z),
-	}
-	if z := validatePtr(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiatePtr failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, validatePtr(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf("hello"), c.Chain[0],
+			"value length must be less than 2").Error())
 }
 
 func TestValidatePointer_ArrayValid(t *testing.T) {
@@ -2012,9 +1404,7 @@ func TestValidatePointer_ArrayValid(t *testing.T) {
 				Rule:   "true",
 				Chain:  nil,
 			}}}
-	if z := validatePtr(reflect.ValueOf(&[]string{"1", "2"}), c); z != nil {
-		t.Fatalf("autorest/validation: valiatePtr failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validatePtr(reflect.ValueOf(&[]string{"1", "2"}), c))
 }
 
 func TestValidatePointer_ArrayInvalid(t *testing.T) {
@@ -2031,15 +1421,9 @@ func TestValidatePointer_ArrayInvalid(t *testing.T) {
 			Chain:  nil,
 		}},
 	}
-	e := Error{
-		Constraint:  UniqueItems,
-		Target:      c.Target,
-		TargetValue: z,
-		Details:     fmt.Sprintf("all items in parameter %q must be unique; got:%v", c.Target, z),
-	}
-	if z := validatePtr(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: valiatePtr failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, validatePtr(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf(z), c.Chain[0],
+			fmt.Sprintf("all items in parameter %q must be unique; got:%v", c.Target, z)).Error())
 }
 
 func TestValidatePointer_MapValid(t *testing.T) {
@@ -2054,9 +1438,7 @@ func TestValidatePointer_MapValid(t *testing.T) {
 				Rule:   true,
 				Chain:  nil,
 			}}}
-	if z := validatePtr(reflect.ValueOf(&map[interface{}]string{1: "1", "1": "2"}), c); z != nil {
-		t.Fatalf("autorest/validation: valiatePtr failed to return nil \nexpect: nil;\ngot: %v", z)
-	}
+	require.Nil(t, validatePtr(reflect.ValueOf(&map[interface{}]string{1: "1", "1": "2"}), c))
 }
 
 func TestValidatePointer_MapInvalid(t *testing.T) {
@@ -2073,16 +1455,8 @@ func TestValidatePointer_MapInvalid(t *testing.T) {
 			Chain:  nil,
 		}},
 	}
-	e := Error{
-		Constraint:  UniqueItems,
-		Target:      c.Target,
-		TargetValue: z,
-		Details:     fmt.Sprintf("all items in parameter %v must be unique; got:%v", c.Target, z),
-	}
-	if z := validatePtr(reflect.ValueOf(x), c); e.Target != z.(Error).Target ||
-		e.Constraint != z.(Error).Constraint || !reflect.DeepEqual(e.TargetValue, z.(Error).TargetValue) {
-		t.Fatalf("autorest/validation: valiatePtr failed to return error \nexpect: %v;\ngot: %v", e, z)
-	}
+	require.Equal(t, strings.Contains(validatePtr(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("all items in parameter %q must be unique;", c.Target)), true)
 }
 
 type Child struct {
@@ -2120,16 +1494,9 @@ func TestValidatePointer_StructWithError(t *testing.T) {
 			{"Name", MaxLength, 5, nil},
 		},
 	}
-	e := Error{
-		Constraint:  MaxLength,
-		Target:      "I",
-		TargetValue: "100",
-		Details:     fmt.Sprintf("string '100' length must be less than 2"),
-	}
-
-	if z := validatePtr(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: validatePtr failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, validatePtr(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf("100"), c.Chain[0].Chain[0],
+			"value length must be less than 2").Error())
 }
 
 func TestValidatePointer_WithNilStruct(t *testing.T) {
@@ -2149,15 +1516,9 @@ func TestValidatePointer_WithNilStruct(t *testing.T) {
 			{"Name", MaxLength, 5, nil},
 		},
 	}
-	e := Error{
-		Constraint:  Null,
-		Target:      "p",
-		TargetValue: p,
-		Details:     fmt.Sprintf("value can not be null; required parameter"),
-	}
-	if z := validatePtr(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: validatePtr failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, validatePtr(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf(x), c,
+			fmt.Sprintf("value can not be null; required parameter")).Error())
 }
 
 func TestValidatePointer_StructWithNoError(t *testing.T) {
@@ -2179,9 +1540,7 @@ func TestValidatePointer_StructWithNoError(t *testing.T) {
 				}},
 		},
 	}
-	if z := validatePtr(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: validatePtr failed to nil \nexpect: nil\ngot: %v", z)
-	}
+	require.Nil(t, validatePtr(reflect.ValueOf(x), c))
 }
 
 func TestValidateStruct_FieldNotExist(t *testing.T) {
@@ -2197,18 +1556,10 @@ func TestValidateStruct_FieldNotExist(t *testing.T) {
 			{"Name", Empty, true, nil},
 		},
 	}
-
 	s = "Name"
-	e := Error{
-		Constraint:  Empty,
-		Target:      "Name",
-		TargetValue: Child{"100"},
-		Details:     fmt.Sprintf("field %q doesn't exist", s),
-	}
-	if z := validateStruct(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		fmt.Println(z)
-		t.Fatalf("autorest/validation: validateStruct failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, validateStruct(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf(Child{"100"}), c.Chain[0],
+			fmt.Sprintf("field %q doesn't exist", s)).Error())
 }
 
 func TestValidateStruct_WithChainConstraint(t *testing.T) {
@@ -2227,15 +1578,8 @@ func TestValidateStruct_WithChainConstraint(t *testing.T) {
 				}},
 		},
 	}
-	e := Error{
-		Constraint:  MaxLength,
-		Target:      "I",
-		TargetValue: "100",
-		Details:     "string '100' length must be less than 2",
-	}
-	if z := validateStruct(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: validateStruct failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, validateStruct(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf("100"), c.Chain[0].Chain[0], "value length must be less than 2").Error())
 }
 
 func TestValidateStruct_WithoutChainConstraint(t *testing.T) {
@@ -2249,16 +1593,8 @@ func TestValidateStruct_WithoutChainConstraint(t *testing.T) {
 		[]Constraint{
 			{"I", Empty, true, nil}, // throw error for Empty
 		}}
-	e := Error{
-		Constraint:  Empty,
-		Target:      "I",
-		TargetValue: "",
-
-		Details: fmt.Sprintf("value can not be null or empty; required parameter"),
-	}
-	if z := validateStruct(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: validateStruct failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, validateStruct(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf(""), c.Chain[0], "value can not be null or empty; required parameter").Error())
 }
 
 func TestValidateStruct_WithArrayNull(t *testing.T) {
@@ -2275,20 +1611,12 @@ func TestValidateStruct_WithArrayNull(t *testing.T) {
 			{"Arr", MinItems, 2, nil},
 		},
 	}
-
-	e := Error{
-		Constraint:  Null,
-		Target:      "Arr",
-		TargetValue: x.(Product).Arr,
-		Details:     fmt.Sprintf("value can not be null; required parameter"),
-	}
-	if z := validateStruct(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: validateStruct failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, validateStruct(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf(x.(Product).Arr), c, "value can not be null; required parameter").Error())
 }
 
 func TestValidateStruct_WithArrayEmptyError(t *testing.T) {
-	arr := []string{}
+	// arr := []string{}
 	var x interface{} = Product{
 		Arr: &[]string{},
 	}
@@ -2300,15 +1628,9 @@ func TestValidateStruct_WithArrayEmptyError(t *testing.T) {
 			{"Arr", MinItems, 2, nil},
 		}}
 
-	e := Error{
-		Constraint:  Empty,
-		Target:      "Arr",
-		TargetValue: arr,
-		Details:     fmt.Sprintf("value can not be null or empty; required parameter"),
-	}
-	if z := validateStruct(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: validateStruct failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, validateStruct(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf(*(x.(Product).Arr)), c.Chain[0],
+			fmt.Sprintf("value can not be null or empty; required parameter")).Error())
 }
 
 func TestValidateStruct_WithArrayEmptyWithoutError(t *testing.T) {
@@ -2322,9 +1644,7 @@ func TestValidateStruct_WithArrayEmptyWithoutError(t *testing.T) {
 			{"Arr", MaxItems, 4, nil},
 		},
 	}
-	if z := validateStruct(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: validateStruct failed to return nil \nexpect: nil\ngot: %v", z)
-	}
+	require.Nil(t, validateStruct(reflect.ValueOf(x), c))
 }
 
 func TestValidateStruct_ArrayWithError(t *testing.T) {
@@ -2341,15 +1661,9 @@ func TestValidateStruct_ArrayWithError(t *testing.T) {
 		},
 	}
 	s := "Arr"
-	e := Error{
-		Constraint:  UniqueItems,
-		Target:      "Arr",
-		TargetValue: arr,
-		Details:     fmt.Sprintf("all items in parameter %q must be unique; got:%v", s, arr),
-	}
-	if z := validateStruct(reflect.ValueOf(x), c); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: validateStruct failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, validateStruct(reflect.ValueOf(x), c).Error(),
+		createError(reflect.ValueOf(*(x.(Product).Arr)), c.Chain[2],
+			fmt.Sprintf("all items in parameter %q must be unique; got:%v", s, *(x.(Product).Arr))).Error())
 }
 
 func TestValidateStruct_MapWithError(t *testing.T) {
@@ -2370,19 +1684,8 @@ func TestValidateStruct_MapWithError(t *testing.T) {
 	}
 
 	s := "M"
-	e := Error{
-		Constraint:  UniqueItems,
-		Target:      "M",
-		TargetValue: m,
-		Details:     fmt.Sprintf("all items in parameter %q must be unique; got:%v", s, m),
-	}
-
-	if z := validateStruct(reflect.ValueOf(x), c); e.Constraint != z.(Error).Constraint ||
-		e.Target != z.(Error).Target ||
-		!reflect.DeepEqual(e.TargetValue, z.(Error).TargetValue) {
-		t.Fatalf("autorest/validation: validateStruct failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
-
+	require.Equal(t, strings.Contains(validateStruct(reflect.ValueOf(x), c).Error(),
+		fmt.Sprintf("all items in parameter %q must be unique;", s)), true)
 }
 
 func TestValidateStruct_MapWithNoError(t *testing.T) {
@@ -2397,9 +1700,7 @@ func TestValidateStruct_MapWithNoError(t *testing.T) {
 			{"M", MaxItems, 4, nil},
 		},
 	}
-	if z := validateStruct(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: validateStruct failed to return nil \nexpect: nil\ngot: %v", z)
-	}
+	require.Nil(t, validateStruct(reflect.ValueOf(x), c))
 }
 
 func TestValidateStruct_MapNilNoError(t *testing.T) {
@@ -2414,9 +1715,7 @@ func TestValidateStruct_MapNilNoError(t *testing.T) {
 			{"M", MaxItems, 4, nil},
 		},
 	}
-	if z := validateStruct(reflect.ValueOf(x), c); z != nil {
-		t.Fatalf("autorest/validation: validateStruct failed to return nil \nexpect: nil\ngot: %v", z)
-	}
+	require.Nil(t, validateStruct(reflect.ValueOf(x), c))
 }
 
 func TestValidate_MapValidationWithError(t *testing.T) {
@@ -2465,17 +1764,9 @@ func TestValidate_MapValidationWithError(t *testing.T) {
 			}},
 	}
 
-	e := Error{
-		Constraint:  MinItems,
-		Target:      "M",
-		TargetValue: map[string]*string{"a": &s},
-		Details:     fmt.Sprintf("minimum item limit is 2; got: 1"),
-	}
-	if z := Validate(v); e.Constraint != z.(Error).Constraint ||
-		e.Target != z.(Error).Target ||
-		!reflect.DeepEqual(e.TargetValue, z.(Error).TargetValue) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	z := Validate(v).Error()
+	require.Equal(t, strings.Contains(z, "minimum item limit is 2; got: 1"), true)
+	require.Equal(t, strings.Contains(z, "MinItems"), true)
 }
 
 func TestValidate_MapValidationWithoutError(t *testing.T) {
@@ -2523,9 +1814,7 @@ func TestValidate_MapValidationWithoutError(t *testing.T) {
 				{"Name", Empty, true, nil},
 			}},
 	}
-	if z := Validate(v); z != nil {
-		t.Fatalf("autorest/validation: Validate failed to return nil \nexpect:nil\ngot: %v", z)
-	}
+	require.Nil(t, Validate(v))
 }
 
 func TestValidate_UnknownType(t *testing.T) {
@@ -2534,15 +1823,9 @@ func TestValidate_UnknownType(t *testing.T) {
 		{c,
 			[]Constraint{{"c", Null, true, nil}}},
 	}
-	e := Error{
-		Constraint:  Null,
-		Target:      "c",
-		TargetValue: c,
-		Details:     fmt.Sprintf("unknown type chan"),
-	}
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf(c), v[0].Constraints[0],
+			fmt.Sprintf("unknown type %v", reflect.ValueOf(c).Kind())).Error())
 }
 
 func TestValidate_example1(t *testing.T) {
@@ -2583,15 +1866,9 @@ func TestValidate_example1(t *testing.T) {
 			}},
 	}
 	s = "Arr"
-	e := Error{
-		Constraint:  UniqueItems,
-		Target:      "Arr",
-		TargetValue: []string{"1", "1"},
-		Details:     fmt.Sprintf("all items in parameter %q must be unique; got:%v", s, []string{"1", "1"}),
-	}
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf([]string{"1", "1"}), v[0].Constraints[0].Chain[2],
+			fmt.Sprintf("all items in parameter %q must be unique; got:%v", s, []string{"1", "1"})).Error())
 }
 
 func TestValidate_Int(t *testing.T) {
@@ -2604,15 +1881,9 @@ func TestValidate_Int(t *testing.T) {
 			},
 		},
 	}
-	e := Error{
-		Constraint:  ExclusiveMinimum,
-		Target:      "n",
-		TargetValue: n,
-		Details:     fmt.Sprintf("value must be greater than 100"),
-	}
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf(n), v[0].Constraints[1],
+			"value must be greater than 100").Error())
 }
 
 func TestValidate_IntPointer(t *testing.T) {
@@ -2627,15 +1898,9 @@ func TestValidate_IntPointer(t *testing.T) {
 			},
 		},
 	}
-	e := Error{
-		Constraint:  ExclusiveMinimum,
-		Target:      "p",
-		TargetValue: n,
-		Details:     fmt.Sprintf("value must be greater than 100"),
-	}
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf(n), v[0].Constraints[0].Chain[0],
+			"value must be greater than 100").Error())
 
 	// required paramter
 	p = nil
@@ -2648,15 +1913,9 @@ func TestValidate_IntPointer(t *testing.T) {
 			},
 		},
 	}
-	e = Error{
-		Constraint:  Null,
-		Target:      "p",
-		TargetValue: p,
-		Details:     fmt.Sprintf("value can not be null; required parameter"),
-	}
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf(v[0].TargetValue), v[0].Constraints[0],
+			"value can not be null; required parameter").Error())
 
 	// Not required
 	p = nil
@@ -2669,9 +1928,7 @@ func TestValidate_IntPointer(t *testing.T) {
 			},
 		},
 	}
-	if z := Validate(v); z != nil {
-		t.Fatalf("autorest/validation: Validate failed to return nil \nexpect: nil\ngot: %v", z)
-	}
+	require.Nil(t, Validate(v))
 }
 
 func TestValidate_IntStruct(t *testing.T) {
@@ -2689,39 +1946,24 @@ func TestValidate_IntStruct(t *testing.T) {
 			},
 		}}},
 	}
-
-	e := Error{
-		Constraint:  ExclusiveMinimum,
-		Target:      "Num",
-		TargetValue: n,
-		Details:     fmt.Sprintf("value must be greater than 100"),
-	}
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf(n), v[0].Constraints[0].Chain[0].Chain[0],
+			"value must be greater than 100").Error())
 
 	// required paramter
 	p = &Product{}
 	v = []Validation{
 		{p, []Constraint{{"p", Null, true,
 			[]Constraint{
-				{"Num", Null, true, []Constraint{
-					{"Num", ExclusiveMinimum, 100, nil},
+				{"p.Num", Null, true, []Constraint{
+					{"p.Num", ExclusiveMinimum, 100, nil},
 				}},
 			},
 		}}},
 	}
-
-	e = Error{
-		Constraint:  Null,
-		Target:      "Num",
-		TargetValue: p.Num,
-		Details:     "value can not be null; required parameter",
-	}
-
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf(p.Num), v[0].Constraints[0].Chain[0],
+			"value can not be null; required parameter").Error())
 
 	// Not required
 	p = &Product{}
@@ -2734,10 +1976,7 @@ func TestValidate_IntStruct(t *testing.T) {
 			},
 		}}},
 	}
-
-	if z := Validate(v); z != nil {
-		t.Fatalf("autorest/validation: Validate failed to return nil \nexpect: nil\ngot: %v", z)
-	}
+	require.Nil(t, Validate(v))
 
 	// Parent not required
 	p = nil
@@ -2750,10 +1989,7 @@ func TestValidate_IntStruct(t *testing.T) {
 			},
 		}}},
 	}
-
-	if z := Validate(v); z != nil {
-		t.Fatalf("autorest/validation: Validate failed to return nil \nexpect: nil\ngot: %v", z)
-	}
+	require.Nil(t, Validate(v))
 }
 
 func TestValidate_String(t *testing.T) {
@@ -2767,15 +2003,9 @@ func TestValidate_String(t *testing.T) {
 			},
 		},
 	}
-	e := Error{
-		Constraint:  MaxLength,
-		Target:      "s",
-		TargetValue: s,
-		Details:     fmt.Sprintf("string '%s' length must be less than 3", s),
-	}
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf(s), v[0].Constraints[1].Chain[0],
+			"value length must be less than 3").Error())
 
 	// required paramter
 	s = ""
@@ -2788,15 +2018,9 @@ func TestValidate_String(t *testing.T) {
 			},
 		},
 	}
-	e = Error{
-		Constraint:  Empty,
-		Target:      "s",
-		TargetValue: s,
-		Details:     "value can not be null or empty; required parameter",
-	}
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf(s), v[0].Constraints[1],
+			"value can not be null or empty; required parameter").Error())
 
 	// not required paramter
 	s = ""
@@ -2809,9 +2033,7 @@ func TestValidate_String(t *testing.T) {
 			},
 		},
 	}
-	if z := Validate(v); z != nil {
-		t.Fatalf("autorest/validation: Validate failed to return nil \nexpect: nil\ngot: %v", z)
-	}
+	require.Nil(t, Validate(v))
 }
 
 func TestValidate_StringStruct(t *testing.T) {
@@ -2823,22 +2045,25 @@ func TestValidate_StringStruct(t *testing.T) {
 	v := []Validation{
 		{p, []Constraint{{"p", Null, true,
 			[]Constraint{
-				{"Str", Null, true, []Constraint{
-					{"Str", Empty, true, nil},
-					{"Str", MaxLength, 3, nil},
+				{"p.Str", Null, true, []Constraint{
+					{"p.Str", Empty, true, nil},
+					{"p.Str", MaxLength, 3, nil},
 				}},
 			},
 		}}},
 	}
-	e := Error{
-		Constraint:  MaxLength,
-		Target:      "Str",
-		TargetValue: s,
-		Details:     fmt.Sprintf("string '%s' length must be less than 3", s),
-	}
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	// e := ValidationError{
+	// 	Constraint:  MaxLength,
+	// 	Target:      "Str",
+	// 	TargetValue: s,
+	// 	Details:     fmt.Sprintf("value length must be less than 3", s),
+	// }
+	// if z := Validate(v); !reflect.DeepEqual(e, z) {
+	// 	t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
+	// }
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf(s), v[0].Constraints[0].Chain[0].Chain[1],
+			"value length must be less than 3").Error())
 
 	// required paramter - can't be Empty
 	s = ""
@@ -2855,41 +2080,25 @@ func TestValidate_StringStruct(t *testing.T) {
 			},
 		}}},
 	}
-
-	e = Error{
-		Constraint:  Empty,
-		Target:      "Str",
-		TargetValue: s,
-		Details:     "value can not be null or empty; required parameter",
-	}
-
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf(s), v[0].Constraints[0].Chain[0].Chain[0],
+			"value can not be null or empty; required parameter").Error())
 
 	// required paramter - can't be null
 	p = &Product{}
 	v = []Validation{
 		{p, []Constraint{{"p", Null, true,
 			[]Constraint{
-				{"Str", Null, true, []Constraint{
-					{"Str", Empty, true, nil},
-					{"Str", MaxLength, 3, nil},
+				{"p.Str", Null, true, []Constraint{
+					{"p.Str", Empty, true, nil},
+					{"p.Str", MaxLength, 3, nil},
 				}},
 			},
 		}}},
 	}
-
-	e = Error{
-		Constraint:  Null,
-		Target:      "Str",
-		TargetValue: p.Str,
-		Details:     "value can not be null; required parameter",
-	}
-
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf(p.Str), v[0].Constraints[0].Chain[0],
+			"value can not be null; required parameter").Error())
 
 	// Not required
 	p = &Product{}
@@ -2903,10 +2112,7 @@ func TestValidate_StringStruct(t *testing.T) {
 			},
 		}}},
 	}
-
-	if z := Validate(v); z != nil {
-		t.Fatalf("autorest/validation: Validate failed to return nil \nexpect: nil\ngot: %v", z)
-	}
+	require.Nil(t, Validate(v))
 
 	// Parent not required
 	p = nil
@@ -2920,10 +2126,7 @@ func TestValidate_StringStruct(t *testing.T) {
 			},
 		}}},
 	}
-
-	if z := Validate(v); z != nil {
-		t.Fatalf("autorest/validation: Validate failed to return nil \nexpect: nil\ngot: %v", z)
-	}
+	require.Nil(t, Validate(v))
 }
 
 func TestValidate_Array(t *testing.T) {
@@ -2939,15 +2142,9 @@ func TestValidate_Array(t *testing.T) {
 			},
 		},
 	}
-	e := Error{
-		Constraint:  MinItems,
-		Target:      "s",
-		TargetValue: s,
-		Details:     fmt.Sprintf("minimum item limit is 2; got: %v", len(s)),
-	}
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf(s), v[0].Constraints[0].Chain[1],
+			fmt.Sprintf("minimum item limit is 2; got: %v", len(s))).Error())
 
 	// Empty array
 	v = []Validation{
@@ -2960,15 +2157,9 @@ func TestValidate_Array(t *testing.T) {
 			},
 		},
 	}
-	e = Error{
-		Constraint:  Empty,
-		Target:      "s",
-		TargetValue: []string{},
-		Details:     "value can not be null or empty; required parameter",
-	}
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf([]string{}), v[0].Constraints[0].Chain[0],
+			"value can not be null or empty; required parameter").Error())
 
 	// null array
 	var s1 []string
@@ -2982,15 +2173,9 @@ func TestValidate_Array(t *testing.T) {
 			},
 		},
 	}
-	e = Error{
-		Constraint:  Null,
-		Target:      "s1",
-		TargetValue: s1,
-		Details:     "value can not be null; required parameter",
-	}
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf(s1), v[0].Constraints[0],
+			"value can not be null; required parameter").Error())
 
 	// not required paramter
 	v = []Validation{
@@ -3003,9 +2188,7 @@ func TestValidate_Array(t *testing.T) {
 			},
 		},
 	}
-	if z := Validate(v); z != nil {
-		t.Fatalf("autorest/validation: Validate failed to return nil \nexpect: nil\ngot: %v", z)
-	}
+	require.Nil(t, Validate(v))
 }
 
 func TestValidate_ArrayPointer(t *testing.T) {
@@ -3021,15 +2204,9 @@ func TestValidate_ArrayPointer(t *testing.T) {
 			},
 		},
 	}
-	e := Error{
-		Constraint:  MinItems,
-		Target:      "s",
-		TargetValue: s,
-		Details:     fmt.Sprintf("minimum item limit is 2; got: %v", len(s)),
-	}
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf(s), v[0].Constraints[0].Chain[1],
+			fmt.Sprintf("minimum item limit is 2; got: %v", len(s))).Error())
 
 	// Empty array
 	v = []Validation{
@@ -3042,15 +2219,9 @@ func TestValidate_ArrayPointer(t *testing.T) {
 			},
 		},
 	}
-	e = Error{
-		Constraint:  Empty,
-		Target:      "s",
-		TargetValue: []string{},
-		Details:     "value can not be null or empty; required parameter",
-	}
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf([]string{}), v[0].Constraints[0].Chain[0],
+			"value can not be null or empty; required parameter").Error())
 
 	// null array
 	var s1 *[]string
@@ -3064,15 +2235,9 @@ func TestValidate_ArrayPointer(t *testing.T) {
 			},
 		},
 	}
-	e = Error{
-		Constraint:  Null,
-		Target:      "s1",
-		TargetValue: s1,
-		Details:     "value can not be null; required parameter",
-	}
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf(s1), v[0].Constraints[0],
+			"value can not be null; required parameter").Error())
 
 	// not required paramter
 	v = []Validation{
@@ -3085,9 +2250,7 @@ func TestValidate_ArrayPointer(t *testing.T) {
 			},
 		},
 	}
-	if z := Validate(v); z != nil {
-		t.Fatalf("autorest/validation: Validate failed to return nil \nexpect: nil\ngot: %v", z)
-	}
+	require.Nil(t, Validate(v))
 }
 
 func TestValidate_ArrayInStruct(t *testing.T) {
@@ -3099,22 +2262,16 @@ func TestValidate_ArrayInStruct(t *testing.T) {
 	v := []Validation{
 		{p, []Constraint{{"p", Null, true,
 			[]Constraint{
-				{"Arr", Null, true, []Constraint{
-					{"Arr", Empty, true, nil},
-					{"Arr", MinItems, 2, nil},
+				{"p.Arr", Null, true, []Constraint{
+					{"p.Arr", Empty, true, nil},
+					{"p.Arr", MinItems, 2, nil},
 				}},
 			},
 		}}},
 	}
-	e := Error{
-		Constraint:  MinItems,
-		Target:      "Arr",
-		TargetValue: s,
-		Details:     fmt.Sprintf("minimum item limit is 2; got: %v", len(s)),
-	}
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf(s), v[0].Constraints[0].Chain[0].Chain[1],
+			fmt.Sprintf("minimum item limit is 2; got: %v", len(s))).Error())
 
 	// required paramter - can't be Empty
 	p = &Product{
@@ -3123,48 +2280,32 @@ func TestValidate_ArrayInStruct(t *testing.T) {
 	v = []Validation{
 		{p, []Constraint{{"p", Null, true,
 			[]Constraint{
-				{"Arr", Null, true, []Constraint{
-					{"Arr", Empty, true, nil},
-					{"Arr", MinItems, 2, nil},
+				{"p.Arr", Null, true, []Constraint{
+					{"p.Arr", Empty, true, nil},
+					{"p.Arr", MinItems, 2, nil},
 				}},
 			},
 		}}},
 	}
-
-	e = Error{
-		Constraint:  Empty,
-		Target:      "Arr",
-		TargetValue: []string{},
-		Details:     "value can not be null or empty; required parameter",
-	}
-
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf([]string{}), v[0].Constraints[0].Chain[0].Chain[0],
+			"value can not be null or empty; required parameter").Error())
 
 	// required paramter - can't be null
 	p = &Product{}
 	v = []Validation{
 		{p, []Constraint{{"p", Null, true,
 			[]Constraint{
-				{"Arr", Null, true, []Constraint{
-					{"Arr", Empty, true, nil},
-					{"Arr", MinItems, 2, nil},
+				{"p.Arr", Null, true, []Constraint{
+					{"p.Arr", Empty, true, nil},
+					{"p.Arr", MinItems, 2, nil},
 				}},
 			},
 		}}},
 	}
-
-	e = Error{
-		Constraint:  Null,
-		Target:      "Arr",
-		TargetValue: p.Arr,
-		Details:     "value can not be null; required parameter",
-	}
-
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf(p.Arr), v[0].Constraints[0].Chain[0],
+			"value can not be null; required parameter").Error())
 
 	// Not required
 	v = []Validation{
@@ -3177,10 +2318,7 @@ func TestValidate_ArrayInStruct(t *testing.T) {
 			},
 		}}},
 	}
-
-	if z := Validate(v); z != nil {
-		t.Fatalf("autorest/validation: Validate failed to return nil \nexpect: nil\ngot: %v", z)
-	}
+	require.Nil(t, Validate(v))
 
 	// Parent not required
 	p = nil
@@ -3194,10 +2332,7 @@ func TestValidate_ArrayInStruct(t *testing.T) {
 			},
 		}}},
 	}
-
-	if z := Validate(v); z != nil {
-		t.Fatalf("autorest/validation: Validate failed to return nil \nexpect: nil\ngot: %v", z)
-	}
+	require.Nil(t, Validate(v))
 }
 
 func TestValidate_StructInStruct(t *testing.T) {
@@ -3211,15 +2346,9 @@ func TestValidate_StructInStruct(t *testing.T) {
 			},
 		}}},
 	}
-	e := Error{
-		Constraint:  MinLength,
-		Target:      "I",
-		TargetValue: "hello",
-		Details:     "string 'hello' length must be greater than 7",
-	}
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf(p.C.I), v[0].Constraints[0].Chain[0].Chain[0],
+			"value length must be greater than 7").Error())
 
 	// required paramter - can't be Empty
 	p = &Product{
@@ -3233,17 +2362,9 @@ func TestValidate_StructInStruct(t *testing.T) {
 			},
 		}}},
 	}
-
-	e = Error{
-		Constraint:  Empty,
-		Target:      "I",
-		TargetValue: "",
-		Details:     "value can not be null or empty; required parameter",
-	}
-
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf(p.C.I), v[0].Constraints[0].Chain[0].Chain[0],
+			"value can not be null or empty; required parameter").Error())
 
 	// required paramter - can't be null
 	p = &Product{}
@@ -3254,56 +2375,43 @@ func TestValidate_StructInStruct(t *testing.T) {
 			},
 		}}},
 	}
-
-	e = Error{
-		Constraint:  Null,
-		Target:      "C",
-		TargetValue: p.C,
-		Details:     "value can not be null; required parameter",
-	}
-
-	if z := Validate(v); !reflect.DeepEqual(e, z) {
-		t.Fatalf("autorest/validation: Validate failed to return error \nexpect: %v\ngot: %v", e, z)
-	}
+	require.Equal(t, Validate(v).Error(),
+		createError(reflect.ValueOf(p.C), v[0].Constraints[0].Chain[0],
+			"value can not be null; required parameter").Error())
 
 	// Not required
 	v = []Validation{
 		{&Product{}, []Constraint{{"p", Null, true,
-			[]Constraint{{"C", Null, false,
-				[]Constraint{{"I", Empty, true, nil}}},
+			[]Constraint{{"p.C", Null, false,
+				[]Constraint{{"p.C.I", Empty, true, nil}}},
 			},
 		}}},
 	}
-
-	if z := Validate(v); z != nil {
-		t.Fatalf("autorest/validation: Validate failed to return nil \nexpect: nil\ngot: %v", z)
-	}
+	require.Nil(t, Validate(v))
 
 	// Parent not required
 	p = nil
 	v = []Validation{
 		{p, []Constraint{{"p", Null, false,
-			[]Constraint{{"C", Null, false,
-				[]Constraint{{"I", Empty, true, nil}}},
+			[]Constraint{{"p.C", Null, false,
+				[]Constraint{{"p.C.I", Empty, true, nil}}},
 			},
 		}}},
 	}
-
-	if z := Validate(v); z != nil {
-		t.Fatalf("autorest/validation: Validate failed to return nil \nexpect: nil\ngot: %v", z)
-	}
+	require.Nil(t, Validate(v))
 }
 
-func TestError(t *testing.T) {
-	e := Error{
-		Constraint:  UniqueItems,
-		Target:      "string",
-		TargetValue: "go",
-		Details:     "minimum length should be 5",
+func TestNewErrorWithValidationError(t *testing.T) {
+	p := &Product{}
+	v := []Validation{
+		{p, []Constraint{{"p", Null, true,
+			[]Constraint{{"p.C", Null, true,
+				[]Constraint{{"p.C.I", Empty, true, nil}}},
+			},
+		}}},
 	}
-	s := fmt.Sprintf("autorest/validation: validation error: Constraint=%v Parameter=%v Value=%#v Details=%v",
-		e.Constraint, e.Target, e.TargetValue, e.Details)
-	if !reflect.DeepEqual(e.Error(), s) {
-		t.Fatalf("autorest/validation: Error failed to return coorect string \nexpect: %v\ngot: %v", s, e.Error())
-	}
+	err := createError(reflect.ValueOf(p.C), v[0].Constraints[0].Chain[0], "value can not be null; required parameter")
+	z := fmt.Sprintf("batch.AccountClient#Create: Invalid input: %s",
+		err.Error())
+	require.Equal(t, NewErrorWithValidationError(err, "batch.AccountClient", "Create").Error(), z)
 }

@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v7.2.0
+- autorest/validation: Reformat validation error for better error message.
+
 ## v7.1.0
 - preparer: Added support for multipart formdata - WithMultiPartFormdata()
 - preparer: Added support for sending file in request body - WithFile

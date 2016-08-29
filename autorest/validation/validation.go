@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strings"
 )
 
 // Constraint stores constraint name, target field name
@@ -82,11 +83,14 @@ func Validate(m []Validation) error {
 	return nil
 }
 
-func validateStruct(x reflect.Value, v Constraint) error {
-	f := x.FieldByName(v.Target)
+func validateStruct(x reflect.Value, v Constraint, name ...string) error {
+	//Get field name from target name which is in format a.b.c
+	s := strings.Split(v.Target, ".")
+	f := x.FieldByName(s[len(s)-1])
 	if isZero(f) {
 		return createError(x, v, fmt.Sprintf("field %q doesn't exist", v.Target))
 	}
+
 	if err := Validate([]Validation{
 		{
 			TargetValue: getInterfaceValue(f),
@@ -101,7 +105,7 @@ func validateStruct(x reflect.Value, v Constraint) error {
 func validatePtr(x reflect.Value, v Constraint) error {
 	if v.Name == ReadOnly {
 		if !x.IsNil() {
-			return createError(x.Elem(), v, "readonly parameter; must send as nil or Empty in request")
+			return createError(x.Elem(), v, "readonly parameter; must send as nil or empty in request")
 		}
 		return nil
 	}
@@ -109,7 +113,6 @@ func validatePtr(x reflect.Value, v Constraint) error {
 		return checkNil(x, v)
 	}
 	if v.Chain != nil {
-
 		return Validate([]Validation{
 			{
 				TargetValue: getInterfaceValue(x.Elem()),
@@ -190,26 +193,26 @@ func validateString(x reflect.Value, v Constraint) error {
 			return checkEmpty(x, v)
 		}
 	case Pattern:
-		reg, err := regexp.Compile("^" + v.Rule.(string) + "$")
+		reg, err := regexp.Compile(v.Rule.(string))
 		if err != nil {
 			return createError(x, v, err.Error())
 		}
 		if !reg.MatchString(s) {
-			return createError(x, v, fmt.Sprintf("string '%s' doesn't match pattern %v", s, v.Rule))
+			return createError(x, v, fmt.Sprintf("value doesn't match pattern %v", v.Rule))
 		}
 	case MaxLength:
 		if _, ok := v.Rule.(int); !ok {
 			return createError(x, v, fmt.Sprintf("rule must be integer value for %v constraint; got: %v", v.Name, v.Rule))
 		}
 		if len(s) > v.Rule.(int) {
-			return createError(x, v, fmt.Sprintf("string '%s' length must be less than %v", s, v.Rule))
+			return createError(x, v, fmt.Sprintf("value length must be less than %v", v.Rule))
 		}
 	case MinLength:
 		if _, ok := v.Rule.(int); !ok {
 			return createError(x, v, fmt.Sprintf("rule must be integer value for %v constraint; got: %v", v.Name, v.Rule))
 		}
 		if len(s) < v.Rule.(int) {
-			return createError(x, v, fmt.Sprintf("string '%s' length must be greater than %v", s, v.Rule))
+			return createError(x, v, fmt.Sprintf("value length must be greater than %v", v.Rule))
 		}
 	case ReadOnly:
 		if len(s) > 0 {
@@ -268,7 +271,7 @@ func validateArrayMap(x reflect.Value, v Constraint) error {
 		}
 	case ReadOnly:
 		if x.Len() != 0 {
-			return createError(x, v, "readonly parameter; must send as nil or Empty in request")
+			return createError(x, v, "readonly parameter; must send as nil or empty in request")
 		}
 	default:
 		return createError(x, v, fmt.Sprintf("constraint %v is not applicable to array, slice and map type", v.Name))
@@ -358,24 +361,13 @@ func isZero(x interface{}) bool {
 	return x == reflect.Zero(reflect.TypeOf(x)).Interface()
 }
 
-// Error stores detailed validation error
-type Error struct {
-	Constraint  string
-	Target      string
-	TargetValue interface{}
-	Details     string
+func createError(x reflect.Value, v Constraint, err string) error {
+	return fmt.Errorf("autorest/validation: validation failed: parameter=%s constraint=%s value=%#v details: %s",
+		v.Target, v.Name, getInterfaceValue(x), err)
 }
 
-func (e Error) Error() string {
-	return fmt.Sprintf("autorest/validation: validation error: Constraint=%v Parameter=%v Value=%#v Details=%v",
-		e.Constraint, e.Target, e.TargetValue, e.Details)
-}
-
-func createError(x reflect.Value, v Constraint, err string) Error {
-	return Error{
-		Constraint:  v.Name,
-		Target:      v.Target,
-		TargetValue: getInterfaceValue(x),
-		Details:     err,
-	}
+// NewErrorWithValidationError appends package type and method name in
+// validation error.
+func NewErrorWithValidationError(err error, packageType, method string) error {
+	return fmt.Errorf("%s#%s: Invalid input: %v", packageType, method, err)
 }
