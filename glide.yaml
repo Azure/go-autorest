@@ -8,3 +8,9 @@ import:
   repo: https://github.com/golang/crypto.git
   subpackages:
   - /pkcs12
+testImports:
+- package: github.com/stretchr/testify
+  vcs: git
+  repo: https://github.com/stretchr/testify.git
+  subpackages:
+  - /require
