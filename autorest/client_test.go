@@ -153,6 +153,8 @@ func TestClientDoSetsUserAgent(t *testing.T) {
 	ua := "UserAgent"
 	c := Client{UserAgent: ua}
 	r := mocks.NewRequest()
+	s := mocks.NewSender()
+	c.Sender = s
 
 	c.Do(r)
 
