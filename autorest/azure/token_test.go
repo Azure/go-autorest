@@ -363,8 +363,11 @@ func TestServicePrincipalTokenEnsureFreshSkipsIfFresh(t *testing.T) {
 func TestServicePrincipalTokenWithAuthorization(t *testing.T) {
 	spt := newServicePrincipalToken()
 	setTokenToExpireIn(&spt.Token, 1000*time.Second)
+	r := mocks.NewRequest()
+	s := mocks.NewSender()
+	spt.SetSender(s)
 
-	req, err := autorest.Prepare(&http.Request{}, spt.WithAuthorization())
+	req, err := autorest.Prepare(r, spt.WithAuthorization())
 	if err != nil {
 		t.Fatalf("azure: ServicePrincipalToken#WithAuthorization returned an error (%v)", err)
 	} else if req.Header.Get(http.CanonicalHeaderKey("Authorization")) != fmt.Sprintf("Bearer %s", spt.AccessToken) {
