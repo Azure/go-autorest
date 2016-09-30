@@ -201,3 +201,63 @@ func TestTimeToTime(t *testing.T) {
 	}
 	var _ time.Time = d.ToTime()
 }
+
+func TestUnmarshalJSONNoOffset(t *testing.T) {
+	var d struct {
+		Time Time `json:"datetime"`
+	}
+	j := `{"datetime" : "2001-02-03T04:05:06.789"}`
+
+	if err := json.Unmarshal([]byte(j), &d); err != nil {
+		t.Fatalf("date: Time#Unmarshal failed (%v)", err)
+	}
+}
+
+func TestUnmarshalJSONPosOffset(t *testing.T) {
+	var d struct {
+		Time Time `json:"datetime"`
+	}
+	j := `{"datetime" : "1980-01-02T00:11:35.01+01:00"}`
+
+	if err := json.Unmarshal([]byte(j), &d); err != nil {
+		t.Fatalf("date: Time#Unmarshal failed (%v)", err)
+	}
+}
+
+func TestUnmarshalJSONNegOffset(t *testing.T) {
+	var d struct {
+		Time Time `json:"datetime"`
+	}
+	j := `{"datetime" : "1492-10-12T10:15:01.789-08:00"}`
+
+	if err := json.Unmarshal([]byte(j), &d); err != nil {
+		t.Fatalf("date: Time#Unmarshal failed (%v)", err)
+	}
+}
+
+func TestUnmarshalTextNoOffset(t *testing.T) {
+	d := Time{}
+	t1 := "2001-02-03T04:05:06"
+
+	if err := d.UnmarshalText([]byte(t1)); err != nil {
+		t.Fatalf("date: Time#UnmarshalText failed (%v)", err)
+	}
+}
+
+func TestUnmarshalTextPosOffset(t *testing.T) {
+	d := Time{}
+	t1 := "2001-02-03T04:05:06+00:30"
+
+	if err := d.UnmarshalText([]byte(t1)); err != nil {
+		t.Fatalf("date: Time#UnmarshalText failed (%v)", err)
+	}
+}
+
+func TestUnmarshalTextNegOffset(t *testing.T) {
+	d := Time{}
+	t1 := "2001-02-03T04:05:06-11:00"
+
+	if err := d.UnmarshalText([]byte(t1)); err != nil {
+		t.Fatalf("date: Time#UnmarshalText failed (%v)", err)
+	}
+}
