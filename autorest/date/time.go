@@ -42,7 +42,10 @@ func (t Time) MarshalJSON() (json []byte, err error) {
 // (i.e., 2006-01-02T15:04:05Z).
 func (t *Time) UnmarshalJSON(data []byte) (err error) {
 	timeFormat := azureUtcFormatJSON
-	if m, _ := regexp.Match(tzOffsetRegex, data); m {
+	match, err := regexp.Match(tzOffsetRegex, data)
+	if err != nil {
+		return err
+	} else if match {
 		timeFormat = rfc3339JSON
 	}
 	t.Time, err = ParseTime(timeFormat, string(data))
@@ -59,7 +62,10 @@ func (t Time) MarshalText() (text []byte, err error) {
 // (i.e., 2006-01-02T15:04:05Z).
 func (t *Time) UnmarshalText(data []byte) (err error) {
 	timeFormat := azureUtcFormat
-	if m, _ := regexp.Match(tzOffsetRegex, data); m {
+	match, err := regexp.Match(tzOffsetRegex, data)
+	if err != nil {
+		return err
+	} else if match {
 		timeFormat = rfc3339
 	}
 	t.Time, err = ParseTime(timeFormat, string(data))
