@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v7.2.1
+- fixed parsing of UTC times that are not RFC3339 conformant.
+
 ## v7.2.0
 - autorest/validation: Reformat validation error for better error message.
 
