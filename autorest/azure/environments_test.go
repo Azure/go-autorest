@@ -91,7 +91,8 @@ func TestDeserializeEnvironment(t *testing.T) {
 		"serviceManagementEndpoint": "--service-management-endpoint--",
 		"sqlDatabaseDNSSuffix": "--sql-database-dns-suffix--",
 		"storageEndpointSuffix": "--storage-endpoint-suffix--",
-		"trafficManagerDNSSuffix": "--traffic-manager-dns-suffix--"
+		"trafficManagerDNSSuffix": "--traffic-manager-dns-suffix--",
+		"vmDNSSuffix": "--vm-dns-suffix--"
 	}`
 
 	testSubject := Environment{}
@@ -139,6 +140,9 @@ func TestDeserializeEnvironment(t *testing.T) {
 	if "--service-bus-endpoint-suffix--" != testSubject.ServiceBusEndpointSuffix {
 		t.Errorf("Expected StorageEndpointSuffix to be \"--service-bus-endpoint-suffix--\", but got %q", testSubject.ServiceBusEndpointSuffix)
 	}
+	if "--vm-dns-suffix--" != testSubject.VMDNSSuffix {
+		t.Errorf("Expected DNSSuffix to be \"--vm-dns-suffix--\", but got %q", testSubject.VMDNSSuffix)
+	}
 }
 
 func TestRoundTripSerialization(t *testing.T) {
@@ -157,6 +161,7 @@ func TestRoundTripSerialization(t *testing.T) {
 		TrafficManagerDNSSuffix:   "--traffic-manager-dns-suffix--",
 		KeyVaultDNSSuffix:         "--key-vault-dns-suffix--",
 		ServiceBusEndpointSuffix:  "--service-bus-endpoint-suffix--",
+		VMDNSSuffix:               "--vm-dns-suffix--",
 	}
 
 	bytes, err := json.Marshal(env)
@@ -211,5 +216,8 @@ func TestRoundTripSerialization(t *testing.T) {
 	}
 	if env.ServiceBusEndpointSuffix != testSubject.ServiceBusEndpointSuffix {
 		t.Errorf("Expected ServiceBusEndpointSuffix to be %q, but got %q", env.ServiceBusEndpointSuffix, testSubject.ServiceBusEndpointSuffix)
+	}
+	if env.VMDNSSuffix != testSubject.VMDNSSuffix {
+		t.Errorf("Expected VMDNSSuffix to be %q, but got %q", env.VMDNSSuffix, testSubject.VMDNSSuffix)
 	}
 }

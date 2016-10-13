@@ -33,6 +33,7 @@ type Environment struct {
 	TrafficManagerDNSSuffix   string `json:"trafficManagerDNSSuffix"`
 	KeyVaultDNSSuffix         string `json:"keyVaultDNSSuffix"`
 	ServiceBusEndpointSuffix  string `json:"serviceBusEndpointSuffix"`
+	VMDNSSuffix               string `json:"vmDNSSuffix"`
 }
 
 var (
@@ -52,6 +53,7 @@ var (
 		TrafficManagerDNSSuffix:   "trafficmanager.net",
 		KeyVaultDNSSuffix:         "vault.azure.net",
 		ServiceBusEndpointSuffix:  "servicebus.azure.com",
+		VMDNSSuffix:               "cloudapp.net",
 	}
 
 	// USGovernmentCloud is the cloud environment for the US Government
@@ -70,6 +72,7 @@ var (
 		TrafficManagerDNSSuffix:   "usgovtrafficmanager.net",
 		KeyVaultDNSSuffix:         "vault.usgovcloudapi.net",
 		ServiceBusEndpointSuffix:  "servicebus.usgovcloudapi.net",
+		VMDNSSuffix:               "usgovcloudapp.net",
 	}
 
 	// ChinaCloud is the cloud environment operated in China
@@ -88,6 +91,7 @@ var (
 		TrafficManagerDNSSuffix:   "trafficmanager.cn",
 		KeyVaultDNSSuffix:         "vault.azure.cn",
 		ServiceBusEndpointSuffix:  "servicebus.chinacloudapi.net",
+		VMDNSSuffix:               "chinacloudapp.cn",
 	}
 
 	// GermanCloud is the cloud environment operated in Germany
@@ -106,6 +110,7 @@ var (
 		TrafficManagerDNSSuffix:   "azuretrafficmanager.de",
 		KeyVaultDNSSuffix:         "vault.microsoftazure.de",
 		ServiceBusEndpointSuffix:  "servicebus.cloudapi.de",
+		VMDNSSuffix:               "azurecloudapp.de",
 	}
 )
 
