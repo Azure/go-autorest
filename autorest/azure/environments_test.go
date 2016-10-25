@@ -16,17 +16,17 @@ func TestOAuthConfigForTenant(t *testing.T) {
 
 	expected := "https://login.microsoftonline.com/tenant-id-test/oauth2/authorize?api-version=1.0"
 	if config.AuthorizeEndpoint.String() != expected {
-		t.Fatalf("autorest/azure: Incorrect authorize url for Tenant from Environment. expected(%s). actual(%s).", expected, config.AuthorizeEndpoint)
+		t.Fatalf("autorest/azure: Incorrect authorize url for Tenant from Environment. expected(%s). actual(%v).", expected, config.AuthorizeEndpoint)
 	}
 
 	expected = "https://login.microsoftonline.com/tenant-id-test/oauth2/token?api-version=1.0"
 	if config.TokenEndpoint.String() != expected {
-		t.Fatalf("autorest/azure: Incorrect authorize url for Tenant from Environment. expected(%s). actual(%s).", expected, config.TokenEndpoint)
+		t.Fatalf("autorest/azure: Incorrect authorize url for Tenant from Environment. expected(%s). actual(%v).", expected, config.TokenEndpoint)
 	}
 
 	expected = "https://login.microsoftonline.com/tenant-id-test/oauth2/devicecode?api-version=1.0"
 	if config.DeviceCodeEndpoint.String() != expected {
-		t.Fatalf("autorest/azure: Incorrect devicecode url for Tenant from Environment. expected(%s). actual(%s).", expected, config.DeviceCodeEndpoint)
+		t.Fatalf("autorest/azure: Incorrect devicecode url for Tenant from Environment. expected(%s). actual(%v).", expected, config.DeviceCodeEndpoint)
 	}
 }
 

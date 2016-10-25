@@ -1,32 +1,32 @@
 hash: 51202aefdfe9c4a992f96ab58f6cacf21cdbd1b66efe955c9030bca736ac816d
-updated: 2016-09-29T13:30:42.5916675-07:00
+updated: 2016-10-25T10:45:46.536665-07:00
 imports:
 - name: github.com/dgrijalva/jwt-go
   version: 24c63f56522a87ec5339cc3567883f1039378fdb
   subpackages:
   - .
 - name: golang.org/x/crypto
-  version: a20de3fa94e069ec699987416679230d72e030a3
+  version: d3c1194e7ce73913451befd89c26ca6d222f641e
   repo: https://github.com/golang/crypto.git
   vcs: git
   subpackages:
   - pkcs12
   - pkcs12/internal/rc2
 - name: golang.org/x/net
-  version: 8058fc7b18f8794d9fc57eee98d64fe2c750e3f1
+  version: 65dfc08770ce66f74becfdff5f8ab01caef4e946
   repo: https://github.com/golang/net.git
   vcs: git
   subpackages:
   - .
 - name: golang.org/x/text
-  version: a7c023693a94aedd6b6df43ae7526bfe9d2b7d22
+  version: 16e1d1f27f7aba51c74c0aeb7a7ee31a75c5c63c
   repo: https://github.com/golang/text.git
   vcs: git
   subpackages:
   - .
 testImports:
 - name: github.com/davecgh/go-spew
-  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
+  version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
   subpackages:
   - spew
 - name: github.com/pmezard/go-difflib
@@ -34,7 +34,7 @@ testImports:
   subpackages:
   - difflib
 - name: github.com/stretchr/testify
-  version: 976c720a22c8eb4eb6a0b4348ad85ad12491a506
+  version: d77da356e56a7428ad25149ca77381849a6a5232
   subpackages:
   - require
   - assert
