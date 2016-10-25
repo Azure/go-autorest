@@ -1,3 +1,4 @@
+// test
 package azure
 
 import (
@@ -92,7 +93,8 @@ func TestDeserializeEnvironment(t *testing.T) {
 		"sqlDatabaseDNSSuffix": "--sql-database-dns-suffix--",
 		"storageEndpointSuffix": "--storage-endpoint-suffix--",
 		"trafficManagerDNSSuffix": "--traffic-manager-dns-suffix--",
-		"vmDNSSuffix": "--vm-dns-suffix--"
+		"serviceManagementVMDNSSuffix": "--asm-vm-dns-suffix--",
+		"resourceManagerVMDNSSuffix": "--arm-vm-dns-suffix--"
 	}`
 
 	testSubject := Environment{}
@@ -140,28 +142,32 @@ func TestDeserializeEnvironment(t *testing.T) {
 	if "--service-bus-endpoint-suffix--" != testSubject.ServiceBusEndpointSuffix {
 		t.Errorf("Expected StorageEndpointSuffix to be \"--service-bus-endpoint-suffix--\", but got %q", testSubject.ServiceBusEndpointSuffix)
 	}
-	if "--vm-dns-suffix--" != testSubject.VMDNSSuffix {
-		t.Errorf("Expected DNSSuffix to be \"--vm-dns-suffix--\", but got %q", testSubject.VMDNSSuffix)
+	if "--asm-vm-dns-suffix--" != testSubject.ServiceManagementVMDNSSuffix {
+		t.Errorf("Expected ServiceManagementVMDNSSuffix to be \"--asm-vm-dns-suffix--\", but got %q", testSubject.ServiceManagementVMDNSSuffix)
+	}
+	if "--arm-vm-dns-suffix--" != testSubject.ResourceManagerVMDNSSuffix {
+		t.Errorf("Expected ResourceManagerVMDNSSuffix to be \"--arm-vm-dns-suffix--\", but got %q", testSubject.ResourceManagerVMDNSSuffix)
 	}
 }
 
 func TestRoundTripSerialization(t *testing.T) {
 	env := Environment{
-		Name:                      "--unit-test--",
-		ManagementPortalURL:       "--management-portal-url",
-		PublishSettingsURL:        "--publish-settings-url--",
-		ServiceManagementEndpoint: "--service-management-endpoint--",
-		ResourceManagerEndpoint:   "--resource-management-endpoint--",
-		ActiveDirectoryEndpoint:   "--active-directory-endpoint--",
-		GalleryEndpoint:           "--gallery-endpoint--",
-		KeyVaultEndpoint:          "--key-vault--endpoint--",
-		GraphEndpoint:             "--graph-endpoint--",
-		StorageEndpointSuffix:     "--storage-endpoint-suffix--",
-		SQLDatabaseDNSSuffix:      "--sql-database-dns-suffix--",
-		TrafficManagerDNSSuffix:   "--traffic-manager-dns-suffix--",
-		KeyVaultDNSSuffix:         "--key-vault-dns-suffix--",
-		ServiceBusEndpointSuffix:  "--service-bus-endpoint-suffix--",
-		VMDNSSuffix:               "--vm-dns-suffix--",
+		Name:                         "--unit-test--",
+		ManagementPortalURL:          "--management-portal-url",
+		PublishSettingsURL:           "--publish-settings-url--",
+		ServiceManagementEndpoint:    "--service-management-endpoint--",
+		ResourceManagerEndpoint:      "--resource-management-endpoint--",
+		ActiveDirectoryEndpoint:      "--active-directory-endpoint--",
+		GalleryEndpoint:              "--gallery-endpoint--",
+		KeyVaultEndpoint:             "--key-vault--endpoint--",
+		GraphEndpoint:                "--graph-endpoint--",
+		StorageEndpointSuffix:        "--storage-endpoint-suffix--",
+		SQLDatabaseDNSSuffix:         "--sql-database-dns-suffix--",
+		TrafficManagerDNSSuffix:      "--traffic-manager-dns-suffix--",
+		KeyVaultDNSSuffix:            "--key-vault-dns-suffix--",
+		ServiceBusEndpointSuffix:     "--service-bus-endpoint-suffix--",
+		ServiceManagementVMDNSSuffix: "--asm-vm-dns-suffix--",
+		ResourceManagerVMDNSSuffix:   "--arm-vm-dns-suffix--",
 	}
 
 	bytes, err := json.Marshal(env)
@@ -217,7 +223,10 @@ func TestRoundTripSerialization(t *testing.T) {
 	if env.ServiceBusEndpointSuffix != testSubject.ServiceBusEndpointSuffix {
 		t.Errorf("Expected ServiceBusEndpointSuffix to be %q, but got %q", env.ServiceBusEndpointSuffix, testSubject.ServiceBusEndpointSuffix)
 	}
-	if env.VMDNSSuffix != testSubject.VMDNSSuffix {
-		t.Errorf("Expected VMDNSSuffix to be %q, but got %q", env.VMDNSSuffix, testSubject.VMDNSSuffix)
+	if env.ServiceManagementVMDNSSuffix != testSubject.ServiceManagementVMDNSSuffix {
+		t.Errorf("Expected ServiceManagementVMDNSSuffix to be %q, but got %q", env.ServiceManagementVMDNSSuffix, testSubject.ServiceManagementVMDNSSuffix)
+	}
+	if env.ResourceManagerVMDNSSuffix != testSubject.ResourceManagerVMDNSSuffix {
+		t.Errorf("Expected ResourceManagerVMDNSSuffix to be %q, but got %q", env.ResourceManagerVMDNSSuffix, testSubject.ResourceManagerVMDNSSuffix)
 	}
 }
