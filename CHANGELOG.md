@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v7.2.2
+- autorest/azure: added ASM and ARM VM DNS suffixes.
+
 ## v7.2.1
 - fixed parsing of UTC times that are not RFC3339 conformant.
 
