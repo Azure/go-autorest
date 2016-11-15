@@ -28,6 +28,17 @@ const (
 	HeaderRequestID = "x-ms-request-id"
 )
 
+// AADServiceError encapsulates the error response from Azure Token Service.
+type AADServiceError struct {
+    ErrorTitle       string  `json:"error"`
+    ErrorDescription string  `json:"error_description"`
+    ErrorCodes       []int   `json:"error_codes"`
+    TraceID          string  `json:"trace_id"`
+    CorrelationID    string  `json:"correlation_id"`
+}
+func (aade *AADServiceError) Error() string {
+    return fmt.Sprintf("Error=%q Message=%q", aade.ErrorTitle, aade.ErrorDescription)
+}
 // ServiceError encapsulates the error response from an Azure service.
 type ServiceError struct {
 	Code    string         `json:"code"`

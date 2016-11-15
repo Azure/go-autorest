@@ -142,6 +142,29 @@ func ByUnmarshallingJSON(v interface{}) RespondDecorator {
 	}
 }
 
+// ByUnmarshallingSuccessandErrorJSON returns a RespondDecorator that decodes a JSON document returned in the
+// response Body into the value pointed by success schema v or error schema e
+func ByUnmarshallingSuccessandErrorJSON(v interface{}, e interface{}) RespondDecorator {
+	return func(r Responder) Responder {
+		return ResponderFunc(func(resp *http.Response) error {
+			err := r.Respond(resp)
+			b, errInner := ioutil.ReadAll(resp.Body)
+			if errInner != nil {
+				err = fmt.Errorf("Error occurred reading http.Response#Body - Error = '%v'", errInner)
+			} else if len(strings.Trim(string(b), " ")) > 0 {
+				if err == nil {
+					errInner = json.Unmarshal(b, v)
+				} else {
+					errInner = json.Unmarshal(b, e)
+				}
+				if errInner != nil {
+					err = fmt.Errorf("Error occurred unmarshalling JSON - Error = '%v' JSON = '%s'", errInner, string(b))
+				}
+			}
+			return err
+		})
+	}
+}
 // ByUnmarshallingXML returns a RespondDecorator that decodes a XML document returned in the
 // response Body into the value pointed to by v.
 func ByUnmarshallingXML(v interface{}) RespondDecorator {
