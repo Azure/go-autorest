@@ -301,14 +301,17 @@ func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
 	}
 
 	var newToken Token
+	var aadError AADServiceError
 	err = autorest.Respond(resp,
 		autorest.WithErrorUnlessOK(),
-		autorest.ByUnmarshallingJSON(&newToken),
+		autorest.ByUnmarshallingSuccessandErrorJSON(&newToken, &aadError),
 		autorest.ByClosing())
 	if err != nil {
-		return autorest.NewErrorWithError(err,
+		newerr := autorest.NewErrorWithError(err,
 			"azure.ServicePrincipalToken", "Refresh", resp, "Failure handling response to Service Principal %s request",
 			spt.clientID)
+		newerr.ServiceError = aadError
+		return newerr
 	}
 
 	spt.Token = newToken
