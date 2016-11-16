@@ -131,8 +131,13 @@ func EnvironmentFromName(name string) (Environment, error) {
 
 // OAuthConfigForTenant returns an OAuthConfig with tenant specific urls
 func (env Environment) OAuthConfigForTenant(tenantID string) (*OAuthConfig, error) {
+	return OAuthConfigForTenant(env.ActiveDirectoryEndpoint, tenantID)
+}
+
+// OAuthConfigForTenant returns an OAuthConfig with tenant specific urls for target cloud auth endpoint
+func OAuthConfigForTenant(activeDirectoryEndpoint, tenantID string) (*OAuthConfig, error) {
 	template := "%s/oauth2/%s?api-version=%s"
-	u, err := url.Parse(env.ActiveDirectoryEndpoint)
+	u, err := url.Parse(activeDirectoryEndpoint)
 	if err != nil {
 		return nil, err
 	}
