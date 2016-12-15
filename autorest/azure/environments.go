@@ -35,6 +35,7 @@ type Environment struct {
 	ServiceBusEndpointSuffix     string `json:"serviceBusEndpointSuffix"`
 	ServiceManagementVMDNSSuffix string `json:"serviceManagementVMDNSSuffix"`
 	ResourceManagerVMDNSSuffix   string `json:"resourceManagerVMDNSSuffix"`
+	ContainerRegistryDNSSuffix   string `json:"containerRegistryDNSSuffix"`
 }
 
 var (
@@ -56,6 +57,7 @@ var (
 		ServiceBusEndpointSuffix:     "servicebus.azure.com",
 		ServiceManagementVMDNSSuffix: "cloudapp.net",
 		ResourceManagerVMDNSSuffix:   "cloudapp.azure.com",
+		ContainerRegistryDNSSuffix:   "azurecr.io",
 	}
 
 	// USGovernmentCloud is the cloud environment for the US Government
