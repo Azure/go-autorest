@@ -1,4 +1,6 @@
 # CHANGELOG
+## v7.2.3
+- Fixing bug in calls to `DelayForBackoff` that caused doubling of delay duration.
 
 ## v7.2.2
 - autorest/azure: added ASM and ARM VM DNS suffixes.
