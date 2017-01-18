@@ -152,6 +152,8 @@ func NewClientWithUserAgent(ua string) Client {
 	return c
 }
 
+// getDefaultUserAgent builds a string containing the Go version, system archityecture and OS,
+// and the go-autorest version.
 func getDefaultUserAgent() string {
 	return fmt.Sprintf("Go/%s (%s-%s) go-autorest/%s",
 		runtime.Version(),
