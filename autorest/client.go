@@ -23,13 +23,24 @@ const (
 	DefaultRetryAttempts = 3
 )
 
-var statusCodesForRetry = []int{
-	http.StatusRequestTimeout,      // 408
-	http.StatusInternalServerError, // 500
-	http.StatusBadGateway,          // 502
-	http.StatusServiceUnavailable,  // 503
-	http.StatusGatewayTimeout,      // 504
-}
+var (
+	// defaultUserAgent builds a string containing the Go version, system archityecture and OS,
+	// and the go-autorest version.
+	defaultUserAgent = fmt.Sprintf("Go/%s (%s-%s) go-autorest/%s",
+		runtime.Version(),
+		runtime.GOARCH,
+		runtime.GOOS,
+		Version(),
+	)
+
+	statusCodesForRetry = []int{
+		http.StatusRequestTimeout,      // 408
+		http.StatusInternalServerError, // 500
+		http.StatusBadGateway,          // 502
+		http.StatusServiceUnavailable,  // 503
+		http.StatusGatewayTimeout,      // 504
+	}
+)
 
 const (
 	requestFormat = `HTTP Request Begin ===================================================
@@ -146,28 +157,19 @@ func NewClientWithUserAgent(ua string) Client {
 		PollingDuration: DefaultPollingDuration,
 		RetryAttempts:   DefaultRetryAttempts,
 		RetryDuration:   30 * time.Second,
-		UserAgent:       getDefaultUserAgent(),
+		UserAgent:       defaultUserAgent,
 	}
 	c.AddToUserAgent(ua)
 	return c
 }
 
-// getDefaultUserAgent builds a string containing the Go version, system archityecture and OS,
-// and the go-autorest version.
-func getDefaultUserAgent() string {
-	return fmt.Sprintf("Go/%s (%s-%s) go-autorest/%s",
-		runtime.Version(),
-		runtime.GOARCH,
-		runtime.GOOS,
-		Version(),
-	)
-}
-
 // AddToUserAgent adds an extension to the current user agent
-func (c *Client) AddToUserAgent(extension string) {
+func (c *Client) AddToUserAgent(extension string) error {
 	if extension != "" {
 		c.UserAgent = fmt.Sprintf("%s %s", c.UserAgent, extension)
+		return nil
 	}
+	return fmt.Errorf("Extension was empty, User Agent stayed as %s", c.UserAgent)
 }
 
 // Do implements the Sender interface by invoking the active Sender after applying authorization.
