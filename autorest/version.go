@@ -7,7 +7,7 @@ import (
 const (
 	major        = "7"
 	minor        = "2"
-	patch        = "2"
+	patch        = "3"
 	tag          = ""
 	semVerFormat = "%s.%s.%s%s"
 )
