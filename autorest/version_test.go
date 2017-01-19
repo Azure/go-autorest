@@ -47,16 +47,27 @@ func getMaxReleasedVersion() (*semver.Version, error) {
 		var currentTag string
 		var emptyVersion semver.Version
 		reader, writer := io.Pipe()
-		tagLister := exec.Command("git", "tag")
-		tagLister.Stdout = writer
 
-		if err := tagLister.Start(); nil != err {
-			return nil, err
-		}
+		wg.Add(2)
 
-		wg.Add(1)
+		var tagFetchErr error
+
 		go func() {
 			defer wg.Done()
+			defer writer.Close()
+
+			tagLister := exec.Command("git", "tag")
+			tagLister.Stdout = writer
+
+			if err := tagLister.Run(); err != nil {
+				tagFetchErr = err
+			}
+		}()
+
+		go func() {
+			defer wg.Done()
+			defer reader.Close()
+
 			maxReleasedVersion = &emptyVersion
 			for {
 				if parity, err := fmt.Fscanln(reader, &currentTag); err != nil || parity != 1 {
@@ -69,11 +80,11 @@ func getMaxReleasedVersion() (*semver.Version, error) {
 			}
 		}()
 
-		if err := tagLister.Wait(); nil != err {
-			return nil, err
-		}
-		writer.Close()
 		wg.Wait()
+
+		if nil != tagFetchErr {
+			return nil, tagFetchErr
+		}
 	}
 	return maxReleasedVersion, nil
 }

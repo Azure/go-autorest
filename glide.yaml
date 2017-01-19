@@ -25,3 +25,4 @@ testImports:
   subpackages:
   - /require
 - package: github.com/Masterminds/semver
+  version: ~1.2.2
