@@ -9,6 +9,8 @@ import (
 
 	"sync"
 
+	"errors"
+
 	"github.com/Masterminds/semver"
 )
 
@@ -19,6 +21,7 @@ func TestVersion(t *testing.T) {
 		t.Logf("Declared Version: %s", declaredVersion.String())
 	} else {
 		t.Error(err)
+		t.FailNow()
 	}
 
 	var currentVersion *semver.Version
@@ -27,6 +30,7 @@ func TestVersion(t *testing.T) {
 		t.Logf("Current Release Version: %s", currentVersion.String())
 	} else {
 		t.Error(err)
+		t.FailNow()
 	}
 
 	if !declaredVersion.GreaterThan(currentVersion) {
@@ -42,7 +46,7 @@ var (
 )
 
 func getMaxReleasedVersion() (*semver.Version, error) {
-	if nil == maxReleasedVersion {
+	if maxReleasedVersion == nil {
 		var wg sync.WaitGroup
 		var currentTag string
 		var emptyVersion semver.Version
@@ -51,7 +55,6 @@ func getMaxReleasedVersion() (*semver.Version, error) {
 		wg.Add(2)
 
 		var tagFetchErr error
-
 		go func() {
 			defer wg.Done()
 			defer writer.Close()
@@ -64,14 +67,21 @@ func getMaxReleasedVersion() (*semver.Version, error) {
 			}
 		}()
 
+		var tagReadErr error
 		go func() {
 			defer wg.Done()
 			defer reader.Close()
 
 			maxReleasedVersion = &emptyVersion
 			for {
-				if parity, err := fmt.Fscanln(reader, &currentTag); err != nil || parity != 1 {
+				if parity, err := fmt.Fscanln(reader, &currentTag); err == io.EOF {
 					break
+				} else if err != nil {
+					tagReadErr = err
+					return
+				} else if parity != 1 {
+					tagReadErr = errors.New("unexpected format")
+					return
 				}
 
 				if currentVersion, err := semver.NewVersion(currentTag); err == nil && currentVersion.GreaterThan(maxReleasedVersion) {
@@ -82,8 +92,14 @@ func getMaxReleasedVersion() (*semver.Version, error) {
 
 		wg.Wait()
 
-		if nil != tagFetchErr {
+		if tagFetchErr != nil {
+			maxReleasedVersion = nil
 			return nil, tagFetchErr
+		}
+
+		if tagReadErr != nil {
+			maxReleasedVersion = nil
+			return nil, tagReadErr
 		}
 	}
 	return maxReleasedVersion, nil

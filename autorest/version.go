@@ -16,7 +16,7 @@ var version string
 
 // Version returns the semantic version (see http://semver.org).
 func Version() string {
-	if "" == version {
+	if version == "" {
 		version = fmt.Sprintf(semVerFormat, major, minor, patch, tag)
 	}
 	return version
