@@ -1,15 +1,12 @@
 package autorest
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"os/exec"
-	"testing"
-
-	"fmt"
-
 	"sync"
-
-	"errors"
+	"testing"
 
 	"github.com/Masterminds/semver"
 )
@@ -18,20 +15,20 @@ func TestVersion(t *testing.T) {
 	var declaredVersion *semver.Version
 	if temp, err := semver.NewVersion(Version()); nil == err {
 		declaredVersion = temp
-		t.Logf("Declared Version: %s", declaredVersion.String())
 	} else {
 		t.Error(err)
 		t.FailNow()
 	}
+	t.Logf("Declared Version: %s", declaredVersion.String())
 
 	var currentVersion *semver.Version
 	if temp, err := getMaxReleasedVersion(); nil == err {
 		currentVersion = temp
-		t.Logf("Current Release Version: %s", currentVersion.String())
 	} else {
 		t.Error(err)
 		t.FailNow()
 	}
+	t.Logf("Current Release Version: %s", currentVersion.String())
 
 	if !declaredVersion.GreaterThan(currentVersion) {
 		t.Log("autorest: Assertion that the Declared version is greater than Current Release Version failed", currentVersion.String(), declaredVersion.String())
