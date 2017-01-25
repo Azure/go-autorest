@@ -12,7 +12,12 @@ const (
 	semVerFormat = "%s.%s.%s%s"
 )
 
+var version string
+
 // Version returns the semantic version (see http://semver.org).
 func Version() string {
-	return fmt.Sprintf(semVerFormat, major, minor, patch, tag)
+	if version == "" {
+		version = fmt.Sprintf(semVerFormat, major, minor, patch, tag)
+	}
+	return version
 }
