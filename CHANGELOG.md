@@ -1,4 +1,9 @@
 # CHANGELOG
+
+## v7.2.4
+- Fixed the Active Directory endpoint for the China cloud.
+- Added telemetry.
+
 ## v7.2.3
 - Fixing bug in calls to `DelayForBackoff` that caused doubling of delay duration.
 
