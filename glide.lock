@@ -1,32 +1,32 @@
 hash: 51202aefdfe9c4a992f96ab58f6cacf21cdbd1b66efe955c9030bca736ac816d
-updated: 2017-01-19T10:37:32.4976575-08:00
+updated: 2017-02-03T13:22:36.5716905-08:00
 imports:
 - name: github.com/dgrijalva/jwt-go
-  version: a601269ab70c205d26370c16f7c81e9017c14e04
+  version: 24c63f56522a87ec5339cc3567883f1039378fdb
   subpackages:
   - .
 - name: golang.org/x/crypto
-  version: b8a2a83acfe6e6770b75de42d5ff4c67596675c0
+  version: d3c1194e7ce73913451befd89c26ca6d222f641e
   repo: https://github.com/golang/crypto.git
   vcs: git
   subpackages:
   - pkcs12
   - pkcs12/internal/rc2
 - name: golang.org/x/net
-  version: f2499483f923065a842d38eb4c7f1927e6fc6e6d
+  version: 007e530097ad7f954752df63046b4036f98ba6a6
   repo: https://github.com/golang/net.git
   vcs: git
   subpackages:
   - .
 - name: golang.org/x/text
-  version: 11dbc599981ccdf4fb18802a28392a8bcf7a9395
+  version: 506f9d5c962f284575e88337e7d9296d27e729d3
   repo: https://github.com/golang/text.git
   vcs: git
   subpackages:
   - .
 testImports:
 - name: github.com/davecgh/go-spew
-  version: 04cdfd42973bb9c8589fd6a731800cf222fde1a9
+  version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
   subpackages:
   - spew
 - name: github.com/Masterminds/semver
@@ -36,7 +36,7 @@ testImports:
   subpackages:
   - difflib
 - name: github.com/stretchr/testify
-  version: 2402e8e7a02fc811447d11f881aa9746cdc57983
+  version: d77da356e56a7428ad25149ca77381849a6a5232
   subpackages:
   - require
   - assert
