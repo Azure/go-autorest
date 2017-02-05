@@ -1,4 +1,4 @@
-package azure
+package adal
 
 import (
 	"crypto/rand"

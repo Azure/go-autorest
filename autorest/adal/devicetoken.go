@@ -1,4 +1,4 @@
-package azure
+package adal
 
 /*
   This file is largely based on rjw57/oauth2device's code, with the follow differences:

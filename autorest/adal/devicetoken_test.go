@@ -1,4 +1,4 @@
-package azure
+package adal
 
 import (
 	"encoding/json"
@@ -12,13 +12,14 @@ import (
 )
 
 const (
-	TestResource = "SomeResource"
-	TestClientID = "SomeClientID"
-	TestTenantID = "SomeTenantID"
+	TestResource                = "SomeResource"
+	TestClientID                = "SomeClientID"
+	TestTenantID                = "SomeTenantID"
+	TestActiveDirectoryEndpoint = "https://login.test.com/"
 )
 
 var (
-	testOAuthConfig, _ = PublicCloud.OAuthConfigForTenant(TestTenantID)
+	testOAuthConfig, _ = NewOAuthConfig(TestActiveDirectoryEndpoint, TestTenantID)
 	TestOAuthConfig    = *testOAuthConfig
 )
 
