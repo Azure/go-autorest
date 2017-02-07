@@ -2,6 +2,7 @@
 
 ## v7.2.4
 - Fixed the Active Directory endpoint for the China cloud.
+- Removes UTF-8 BOM if present in response payload.
 - Added telemetry.
 
 ## v7.2.3
