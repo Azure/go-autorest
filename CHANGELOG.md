@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## v7.2.4
+## v7.2.5
 - Fixed the Active Directory endpoint for the China cloud.
 - Removes UTF-8 BOM if present in response payload.
 - Added telemetry.
