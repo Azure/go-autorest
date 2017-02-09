@@ -30,8 +30,8 @@ func TestVersion(t *testing.T) {
 	}
 	t.Logf("Current Release Version: %s", currentVersion.String())
 
-	if declaredVersion.LessThan(currentVersion) {
-		t.Log("autorest: Assertion that the Declared version is not less than the Current Release Version failed", currentVersion.String(), declaredVersion.String())
+	if !declaredVersion.GreaterThan(currentVersion) {
+		t.Log("autorest: Assertion that the Declared version is greater than Current Release Version failed", currentVersion.String(), declaredVersion.String())
 		t.Fail()
 	}
 }
