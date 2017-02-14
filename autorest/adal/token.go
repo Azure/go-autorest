@@ -12,8 +12,11 @@ import (
 	"strconv"
 	"time"
 
+	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/dgrijalva/jwt-go"
+	"io/ioutil"
+	"strings"
 )
 
 const (
@@ -28,6 +31,9 @@ const (
 
 	// OAuthGrantTypeRefreshToken is the "grant_type" identifier used in refresh token flows
 	OAuthGrantTypeRefreshToken = "refresh_token"
+
+	contentType      = "Content-Type"
+	mimeTypeFormPost = "application/x-www-form-urlencoded"
 )
 
 var expirationBase time.Time
@@ -173,7 +179,7 @@ type ServicePrincipalToken struct {
 	resource      string
 	autoRefresh   bool
 	refreshWithin time.Duration
-	sender        autorest.Sender
+	sender        Sender
 
 	refreshCallbacks []TokenRefreshCallback
 }
@@ -253,8 +259,7 @@ func (spt *ServicePrincipalToken) InvokeRefreshCallbacks(token Token) error {
 		for _, callback := range spt.refreshCallbacks {
 			err := callback(spt.Token)
 			if err != nil {
-				return autorest.NewErrorWithError(err,
-					"azure.ServicePrincipalToken", "InvokeRefreshCallbacks", nil, "A TokenRefreshCallback handler returned an error")
+				return fmt.Errorf("adal: TokenRefreshCallback handler failed. Error = '%v'", err)
 			}
 		}
 	}
@@ -287,39 +292,38 @@ func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
 		}
 	}
 
-	req, _ := autorest.Prepare(&http.Request{},
-		autorest.AsPost(),
-		autorest.AsFormURLEncoded(),
-		autorest.WithBaseURL(spt.oauthConfig.TokenEndpoint.String()),
-		autorest.WithFormData(v))
-
-	resp, err := autorest.SendWithSender(spt.sender, req)
+	body := ioutil.NopCloser(strings.NewReader(v.Encode()))
+	req, err := http.NewRequest(http.MethodPost, spt.oauthConfig.TokenEndpoint.String(), body)
 	if err != nil {
-		return autorest.NewErrorWithError(err,
-			"azure.ServicePrincipalToken", "Refresh", resp, "Failure sending request for Service Principal %s",
-			spt.clientID)
+		return fmt.Errorf("adal: Failed to build the refresh request. Error = '%v'", err)
 	}
 
-	var newToken Token
-	err = autorest.Respond(resp,
-		autorest.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&newToken),
-		autorest.ByClosing())
+	req.Header.Set(contentType, mimeTypeFormPost)
+	resp, err := spt.sender.Do(req)
 	if err != nil {
-		return autorest.NewErrorWithError(err,
-			"azure.ServicePrincipalToken", "Refresh", resp, "Failure handling response to Service Principal %s request",
-			spt.clientID)
+		return fmt.Errorf("adal: Failed to execute the refresh request. Error = '%v'", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("adal: Refresh request failed. Status Code = '%d'", resp.StatusCode)
 	}
 
-	spt.Token = newToken
-
-	err = spt.InvokeRefreshCallbacks(newToken)
+	rb, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		// its already wrapped inside InvokeRefreshCallbacks
-		return err
+		return fmt.Errorf("adal: Failed to read a new service principal token during refresh. Error = '%v'", err)
+	}
+	var token Token
+	if len(strings.Trim(string(rb), " ")) == 0 {
+		return fmt.Errorf("adal: Empty service principal token received during refresh")
+	}
+	err = json.Unmarshal(rb, &token)
+	if err != nil {
+		return fmt.Errorf("adal: Failed to unmarshal the service principal token during refresh. Error = '%v' JSON = '%s'", err, string(rb))
 	}
 
-	return nil
+	spt.Token = token
+
+	return spt.InvokeRefreshCallbacks(token)
 }
 
 // SetAutoRefresh enables or disables automatic refreshing of stale tokens.
@@ -334,11 +338,9 @@ func (spt *ServicePrincipalToken) SetRefreshWithin(d time.Duration) {
 	return
 }
 
-// SetSender sets the autorest.Sender used when obtaining the Service Principal token. An
+// SetSender sets the http.Client used when obtaining the Service Principal token. An
 // undecorated http.Client is used by default.
-func (spt *ServicePrincipalToken) SetSender(s autorest.Sender) {
-	spt.sender = s
-}
+func (spt *ServicePrincipalToken) SetSender(s Sender) { spt.sender = s }
 
 // WithAuthorization returns a PrepareDecorator that adds an HTTP Authorization header whose
 // value is "Bearer " followed by the AccessToken of the ServicePrincipalToken.
