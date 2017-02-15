@@ -5,6 +5,9 @@
   to acknowledge that they do not need either the entire or a trailing portion
   of accepts response body. In doing so, Go's http library can reuse HTTP
   connections more readily.
+- Adding `PrepareDecorator` to target custom BaseURLs.
+- Adding ACR suffix to public cloud environment.
+- Updating Glide dependencies.
 
 ## v7.2.5
 - Fixed the Active Directory endpoint for the China cloud.
