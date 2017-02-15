@@ -4,6 +4,11 @@ import (
 	"net/http"
 )
 
+const (
+	contentType      = "Content-Type"
+	mimeTypeFormPost = "application/x-www-form-urlencoded"
+)
+
 // Sender is the interface that wraps the Do method to send HTTP requests.
 //
 // The standard http.Client conforms to this interface.

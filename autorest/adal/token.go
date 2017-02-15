@@ -31,9 +31,6 @@ const (
 
 	// OAuthGrantTypeRefreshToken is the "grant_type" identifier used in refresh token flows
 	OAuthGrantTypeRefreshToken = "refresh_token"
-
-	contentType      = "Content-Type"
-	mimeTypeFormPost = "application/x-www-form-urlencoded"
 )
 
 var expirationBase time.Time
@@ -312,10 +309,10 @@ func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
 	if err != nil {
 		return fmt.Errorf("adal: Failed to read a new service principal token during refresh. Error = '%v'", err)
 	}
-	var token Token
 	if len(strings.Trim(string(rb), " ")) == 0 {
 		return fmt.Errorf("adal: Empty service principal token received during refresh")
 	}
+	var token Token
 	err = json.Unmarshal(rb, &token)
 	if err != nil {
 		return fmt.Errorf("adal: Failed to unmarshal the service principal token during refresh. Error = '%v' JSON = '%s'", err, string(rb))
