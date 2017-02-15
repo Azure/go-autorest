@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"reflect"
 	"strings"
 	"testing"
-
-	"io/ioutil"
 
 	"github.com/Azure/go-autorest/autorest/mocks"
 )
@@ -202,8 +201,7 @@ func TestByCopying_AcceptsNilBody(t *testing.T) {
 
 func TestByClosing(t *testing.T) {
 	r := mocks.NewResponse()
-	err := Respond(r,
-		ByClosing())
+	err := Respond(r, ByClosing())
 	if err != nil {
 		t.Fatalf("autorest: ByClosing failed (%v)", err)
 	}
