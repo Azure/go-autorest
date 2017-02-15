@@ -70,7 +70,8 @@ func TestDeserializeEnvironment(t *testing.T) {
 		"storageEndpointSuffix": "--storage-endpoint-suffix--",
 		"trafficManagerDNSSuffix": "--traffic-manager-dns-suffix--",
 		"serviceManagementVMDNSSuffix": "--asm-vm-dns-suffix--",
-		"resourceManagerVMDNSSuffix": "--arm-vm-dns-suffix--"
+		"resourceManagerVMDNSSuffix": "--arm-vm-dns-suffix--",
+		"containerRegistryDNSSuffix": "--container-registry-dns-suffix--"
 	}`
 
 	testSubject := Environment{}
@@ -124,6 +125,9 @@ func TestDeserializeEnvironment(t *testing.T) {
 	if "--arm-vm-dns-suffix--" != testSubject.ResourceManagerVMDNSSuffix {
 		t.Errorf("Expected ResourceManagerVMDNSSuffix to be \"--arm-vm-dns-suffix--\", but got %q", testSubject.ResourceManagerVMDNSSuffix)
 	}
+	if "--container-registry-dns-suffix--" != testSubject.ContainerRegistryDNSSuffix {
+		t.Errorf("Expected ContainerRegistryDNSSuffix to be \"--container-registry-dns-suffix--\", but got %q", testSubject.ContainerRegistryDNSSuffix)
+	}
 }
 
 func TestRoundTripSerialization(t *testing.T) {
@@ -144,6 +148,7 @@ func TestRoundTripSerialization(t *testing.T) {
 		ServiceBusEndpointSuffix:     "--service-bus-endpoint-suffix--",
 		ServiceManagementVMDNSSuffix: "--asm-vm-dns-suffix--",
 		ResourceManagerVMDNSSuffix:   "--arm-vm-dns-suffix--",
+		ContainerRegistryDNSSuffix:   "--container-registry-dns-suffix--",
 	}
 
 	bytes, err := json.Marshal(env)
@@ -204,5 +209,8 @@ func TestRoundTripSerialization(t *testing.T) {
 	}
 	if env.ResourceManagerVMDNSSuffix != testSubject.ResourceManagerVMDNSSuffix {
 		t.Errorf("Expected ResourceManagerVMDNSSuffix to be %q, but got %q", env.ResourceManagerVMDNSSuffix, testSubject.ResourceManagerVMDNSSuffix)
+	}
+	if env.ContainerRegistryDNSSuffix != testSubject.ContainerRegistryDNSSuffix {
+		t.Errorf("Expected ContainerRegistryDNSSuffix to be %q, but got %q", env.ContainerRegistryDNSSuffix, testSubject.ContainerRegistryDNSSuffix)
 	}
 }
