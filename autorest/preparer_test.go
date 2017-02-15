@@ -149,6 +149,28 @@ func ExampleWithBaseURL_second() {
 	// Output: parse :: missing protocol scheme
 }
 
+func ExampleWithCustomBaseURL() {
+	r, err := Prepare(&http.Request{},
+		WithCustomBaseURL("https://{account}.{service}.core.windows.net/",
+			map[string]interface{}{
+				"account": "myaccount",
+				"service": "blob",
+			}))
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+	} else {
+		fmt.Println(r.URL)
+	}
+	// Output: https://myaccount.blob.core.windows.net/
+}
+
+func ExampleWithCustomBaseURL_second() {
+	_, err := Prepare(&http.Request{},
+		WithCustomBaseURL(":", map[string]interface{}{}))
+	fmt.Println(err)
+	// Output: parse :: missing protocol scheme
+}
+
 // Create a request with a custom HTTP header
 func ExampleWithHeader() {
 	r, err := Prepare(&http.Request{},
@@ -252,6 +274,31 @@ func ExampleWithQueryParameters() {
 		fmt.Println(r.URL)
 	}
 	// Output: https://microsoft.com/a/b/c/?q1=value1&q2=value2
+}
+
+func TestWithCustomBaseURL(t *testing.T) {
+	r, err := Prepare(&http.Request{}, WithCustomBaseURL("https://{account}.{service}.core.windows.net/",
+		map[string]interface{}{
+			"account": "myaccount",
+			"service": "blob",
+		}))
+	if err != nil {
+		t.Fatalf("autorest: WithCustomBaseURL should not fail")
+	}
+	if r.URL.String() != "https://myaccount.blob.core.windows.net/" {
+		t.Fatalf("autorest: WithCustomBaseURL expected https://myaccount.blob.core.windows.net/, got %s", r.URL)
+	}
+}
+
+func TestWithCustomBaseURLwithInvalidURL(t *testing.T) {
+	_, err := Prepare(&http.Request{}, WithCustomBaseURL("hello/{account}.{service}.core.windows.net/",
+		map[string]interface{}{
+			"account": "myaccount",
+			"service": "blob",
+		}))
+	if err == nil {
+		t.Fatalf("autorest: WithCustomBaseURL should fail fo URL parse error")
+	}
 }
 
 func TestWithPathWithInvalidPath(t *testing.T) {
