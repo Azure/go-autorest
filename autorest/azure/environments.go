@@ -78,6 +78,7 @@ var (
 		ServiceBusEndpointSuffix:     "servicebus.usgovcloudapi.net",
 		ServiceManagementVMDNSSuffix: "usgovcloudapp.net",
 		ResourceManagerVMDNSSuffix:   "cloudapp.windowsazure.us",
+		ContainerRegistryDNSSuffix:   "azurecr.io",
 	}
 
 	// ChinaCloud is the cloud environment operated in China
@@ -98,6 +99,7 @@ var (
 		ServiceBusEndpointSuffix:     "servicebus.chinacloudapi.net",
 		ServiceManagementVMDNSSuffix: "chinacloudapp.cn",
 		ResourceManagerVMDNSSuffix:   "cloudapp.azure.cn",
+		ContainerRegistryDNSSuffix:   "azurecr.io",
 	}
 
 	// GermanCloud is the cloud environment operated in Germany
@@ -118,6 +120,7 @@ var (
 		ServiceBusEndpointSuffix:     "servicebus.cloudapi.de",
 		ServiceManagementVMDNSSuffix: "azurecloudapp.de",
 		ResourceManagerVMDNSSuffix:   "cloudapp.microsoftazure.de",
+		ContainerRegistryDNSSuffix:   "azurecr.io",
 	}
 )
 
