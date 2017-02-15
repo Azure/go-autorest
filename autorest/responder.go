@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -81,6 +82,24 @@ func ByCopying(b *bytes.Buffer) RespondDecorator {
 			err := r.Respond(resp)
 			if err == nil && resp != nil && resp.Body != nil {
 				resp.Body = TeeReadCloser(resp.Body, b)
+			}
+			return err
+		})
+	}
+}
+
+// ByDiscardingBody returns a RespondDecorator that first invokes the passed Responder after which
+// it copies the remaining bytes (if any) in the response body to ioutil.Discard. Since the passed
+// Responder is invoked prior to discarding the response body, the decorator may occur anywhere
+// within the set.
+func ByDiscardingBody() RespondDecorator {
+	return func(r Responder) Responder {
+		return ResponderFunc(func(resp *http.Response) error {
+			err := r.Respond(resp)
+			if err == nil && resp != nil && resp.Body != nil {
+				if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
+					return fmt.Errorf("Error discarding the response body: %v", err)
+				}
 			}
 			return err
 		})
