@@ -244,7 +244,7 @@ func main() {
 	}
 
 	client := &autorest.Client{}
-	client.Authorizer = spt
+	client.Authorizer = autorest.NewBearerAuthorizer(spt)
 
 	printResourceGroups(client)
 
