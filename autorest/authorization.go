@@ -2,6 +2,7 @@ package autorest
 
 import (
 	"fmt"
+	"github.com/Azure/go-autorest/autorest/adal"
 	"net/http"
 )
 
@@ -22,23 +23,34 @@ func (na NullAuthorizer) WithAuthorization() PrepareDecorator {
 
 // BearerAuthorizer implements the bearer authorization
 type BearerAuthorizer struct {
-	token string
+	tokenProvider adal.OAuthTokenProvider
 }
 
-func withBearerAuthorization(token string) PrepareDecorator {
-	return WithHeader(headerAuthorization, fmt.Sprintf("Bearer %s", token))
+// NewBearerAuthorizer crates a BearerAuthorizer using the given token provider
+func NewBearerAuthorizer(tp adal.OAuthTokenProvider) *BearerAuthorizer {
+	return &BearerAuthorizer{tokenProvider: tp}
+}
+
+func (ba *BearerAuthorizer) withBearerAuthorization() PrepareDecorator {
+	return WithHeader(headerAuthorization, fmt.Sprintf("Bearer %s", ba.tokenProvider.OAuthToken()))
 }
 
 // WithAuthorization returns a PrepareDecorator that adds an HTTP Authorization header whose
-// value is "Bearer " followed by the AccessToken of the ServicePrincipalToken.
+// value is "Bearer " followed by the token.
 //
-// By default, the token will automatically refresh if nearly expired (as determined by the
-// RefreshWithin interval). Use the AutoRefresh method to enable or disable automatically refreshing
-// tokens.
+// By default, the token will be automatically refreshed through the Refresher interface.
 func (ba *BearerAuthorizer) WithAuthorization() PrepareDecorator {
 	return func(p Preparer) Preparer {
 		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
-			return (withBearerAuthorization(ba.token)(p)).Prepare(r)
+			refresher, ok := ba.tokenProvider.(adal.Refresher)
+			if ok {
+				err := refresher.EnsureFresh()
+				if err != nil {
+					return r, NewErrorWithError(err, "azure.BearerAuthorizer", "WithAuthorization", nil,
+						"Failed to refresh the Token for request to %s", r.URL)
+				}
+			}
+			return (ba.withBearerAuthorization()(p)).Prepare(r)
 		})
 	}
 }

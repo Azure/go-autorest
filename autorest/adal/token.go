@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"encoding/json"
-	"github.com/Azure/go-autorest/autorest"
 	"github.com/dgrijalva/jwt-go"
 	"io/ioutil"
 	"strings"
@@ -37,6 +36,18 @@ var expirationBase time.Time
 
 func init() {
 	expirationBase, _ = time.Parse(time.RFC3339, tokenBaseDate)
+}
+
+// OAuthTokenProvider is an interface which should be implemented by an access token retriever
+type OAuthTokenProvider interface {
+	OAuthToken() string
+}
+
+// Refresher is an interface for token refresh functionality
+type Refresher interface {
+	Refresh() error
+	RefreshExchange(resource string) error
+	EnsureFresh() error
 }
 
 // TokenRefreshCallback is the type representing callbacks that will be called after
@@ -76,14 +87,9 @@ func (t Token) WillExpireIn(d time.Duration) bool {
 	return !t.Expires().After(time.Now().Add(d))
 }
 
-// WithAuthorization returns a PrepareDecorator that adds an HTTP Authorization header whose
-// value is "Bearer " followed by the AccessToken of the Token.
-func (t *Token) WithAuthorization() autorest.PrepareDecorator {
-	return func(p autorest.Preparer) autorest.Preparer {
-		return autorest.PreparerFunc(func(r *http.Request) (*http.Request, error) {
-			return (autorest.WithBearerAuthorization(t.AccessToken)(p)).Prepare(r)
-		})
-	}
+//OAuthToken return the current access token
+func (t *Token) OAuthToken() string {
+	return t.AccessToken
 }
 
 // ServicePrincipalNoSecret represents a secret type that contains no secret
@@ -242,9 +248,9 @@ func NewServicePrincipalTokenFromCertificate(oauthConfig OAuthConfig, clientID s
 }
 
 // EnsureFresh will refresh the token if it will expire within the refresh window (as set by
-// RefreshWithin).
+// RefreshWithin) and autoRefresh flag is on.
 func (spt *ServicePrincipalToken) EnsureFresh() error {
-	if spt.WillExpireIn(spt.refreshWithin) {
+	if spt.autoRefresh && spt.WillExpireIn(spt.refreshWithin) {
 		return spt.Refresh()
 	}
 	return nil
@@ -338,25 +344,3 @@ func (spt *ServicePrincipalToken) SetRefreshWithin(d time.Duration) {
 // SetSender sets the http.Client used when obtaining the Service Principal token. An
 // undecorated http.Client is used by default.
 func (spt *ServicePrincipalToken) SetSender(s Sender) { spt.sender = s }
-
-// WithAuthorization returns a PrepareDecorator that adds an HTTP Authorization header whose
-// value is "Bearer " followed by the AccessToken of the ServicePrincipalToken.
-//
-// By default, the token will automatically refresh if nearly expired (as determined by the
-// RefreshWithin interval). Use the AutoRefresh method to enable or disable automatically refreshing
-// tokens.
-func (spt *ServicePrincipalToken) WithAuthorization() autorest.PrepareDecorator {
-	return func(p autorest.Preparer) autorest.Preparer {
-		return autorest.PreparerFunc(func(r *http.Request) (*http.Request, error) {
-			if spt.autoRefresh {
-				err := spt.EnsureFresh()
-				if err != nil {
-					return r, autorest.NewErrorWithError(err,
-						"azure.ServicePrincipalToken", "WithAuthorization", nil, "Failed to refresh Service Principal Token for request to %s",
-						r.URL)
-				}
-			}
-			return (autorest.WithBearerAuthorization(spt.AccessToken)(p)).Prepare(r)
-		})
-	}
-}
