@@ -2,11 +2,12 @@ package autorest
 
 import (
 	"fmt"
-	"github.com/Azure/go-autorest/autorest/adal"
-	"github.com/Azure/go-autorest/autorest/mocks"
 	"net/http"
 	"reflect"
 	"testing"
+
+	"github.com/Azure/go-autorest/autorest/adal"
+	"github.com/Azure/go-autorest/autorest/mocks"
 )
 
 const (

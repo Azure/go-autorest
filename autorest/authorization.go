@@ -2,8 +2,9 @@ package autorest
 
 import (
 	"fmt"
-	"github.com/Azure/go-autorest/autorest/adal"
 	"net/http"
+
+	"github.com/Azure/go-autorest/autorest/adal"
 )
 
 // Authorizer is the interface that provides a PrepareDecorator used to supply request

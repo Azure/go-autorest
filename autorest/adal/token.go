@@ -6,16 +6,16 @@ import (
 	"crypto/sha1"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
-	"encoding/json"
 	"github.com/dgrijalva/jwt-go"
-	"io/ioutil"
-	"strings"
 )
 
 const (
