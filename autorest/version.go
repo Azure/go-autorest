@@ -1,15 +1,16 @@
 package autorest
 
 import (
+	"bytes"
 	"fmt"
+	"strings"
 )
 
 const (
-	major        = "8"
-	minor        = "0"
-	patch        = "0"
-	tag          = ""
-	semVerFormat = "%s.%s.%s%s"
+	major = 8
+	minor = 0
+	patch = 0
+	tag   = ""
 )
 
 var version string
@@ -17,7 +18,13 @@ var version string
 // Version returns the semantic version (see http://semver.org).
 func Version() string {
 	if version == "" {
-		version = fmt.Sprintf(semVerFormat, major, minor, patch, tag)
+		verBuilder := bytes.NewBufferString(fmt.Sprintf("%d.%d.%d", major, minor, patch))
+		if tag != "" && tag != "-" {
+			updated := strings.TrimPrefix(tag, "-")
+			verBuilder.WriteRune('-')
+			verBuilder.WriteString(updated)
+		}
+		version = verBuilder.String()
 	}
 	return version
 }
