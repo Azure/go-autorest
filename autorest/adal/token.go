@@ -271,7 +271,7 @@ func (spt *ServicePrincipalToken) InvokeRefreshCallbacks(token Token) error {
 
 // Refresh obtains a fresh token for the Service Principal.
 func (spt *ServicePrincipalToken) Refresh() error {
-	return spt.efreshInternal(spt.resource)
+	return spt.refreshInternal(spt.resource)
 }
 
 // RefreshExchange refreshes the token, but for a different resource.
