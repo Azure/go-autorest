@@ -70,7 +70,7 @@ func TestDeviceCodeReturnsErrorIfSendingFails(t *testing.T) {
 func TestDeviceCodeReturnsErrorIfBadRequest(t *testing.T) {
 	sender := mocks.NewSender()
 	body := mocks.NewBody("doesn't matter")
-	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, http.StatusBadRequest, "Bad Request"))
 
 	_, err := InitiateDeviceAuth(sender, TestOAuthConfig, TestClientID, TestResource)
 	if err == nil || !strings.Contains(err.Error(), errCodeHandlingFails) {
@@ -86,7 +86,7 @@ func TestDeviceCodeReturnsErrorIfCannotDeserializeDeviceCode(t *testing.T) {
 	gibberishJSON := strings.Replace(MockDeviceCodeResponse, "expires_in", "\":, :gibberish", -1)
 	sender := mocks.NewSender()
 	body := mocks.NewBody(gibberishJSON)
-	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 200, "OK"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK"))
 
 	_, err := InitiateDeviceAuth(sender, TestOAuthConfig, TestClientID, TestResource)
 	if err == nil || !strings.Contains(err.Error(), errCodeHandlingFails) {
@@ -101,7 +101,7 @@ func TestDeviceCodeReturnsErrorIfCannotDeserializeDeviceCode(t *testing.T) {
 func TestDeviceCodeReturnsErrorIfEmptyDeviceCode(t *testing.T) {
 	sender := mocks.NewSender()
 	body := mocks.NewBody("")
-	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 200, "OK"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK"))
 
 	_, err := InitiateDeviceAuth(sender, TestOAuthConfig, TestClientID, TestResource)
 	if err != ErrDeviceCodeEmpty {
@@ -124,7 +124,7 @@ func deviceCode() *DeviceCode {
 func TestDeviceTokenReturns(t *testing.T) {
 	sender := mocks.NewSender()
 	body := mocks.NewBody(MockDeviceTokenResponse)
-	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 200, "OK"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK"))
 
 	_, err := WaitForUserCompletion(sender, deviceCode())
 	if err != nil {
@@ -149,7 +149,7 @@ func TestDeviceTokenReturnsErrorIfSendingFails(t *testing.T) {
 func TestDeviceTokenReturnsErrorIfServerError(t *testing.T) {
 	sender := mocks.NewSender()
 	body := mocks.NewBody("")
-	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 500, "Internal Server Error"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, http.StatusInternalServerError, "Internal Server Error"))
 
 	_, err := WaitForUserCompletion(sender, deviceCode())
 	if err == nil || !strings.Contains(err.Error(), errTokenHandlingFails) {
@@ -165,7 +165,7 @@ func TestDeviceTokenReturnsErrorIfCannotDeserializeDeviceToken(t *testing.T) {
 	gibberishJSON := strings.Replace(MockDeviceTokenResponse, "expires_in", ";:\"gibberish", -1)
 	sender := mocks.NewSender()
 	body := mocks.NewBody(gibberishJSON)
-	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 200, "OK"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK"))
 
 	_, err := WaitForUserCompletion(sender, deviceCode())
 	if err == nil || !strings.Contains(err.Error(), errTokenHandlingFails) {
@@ -184,7 +184,7 @@ func errorDeviceTokenResponse(message string) string {
 func TestDeviceTokenReturnsErrorIfAuthorizationPending(t *testing.T) {
 	sender := mocks.NewSender()
 	body := mocks.NewBody(errorDeviceTokenResponse("authorization_pending"))
-	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, http.StatusBadRequest, "Bad Request"))
 
 	_, err := CheckForUserCompletion(sender, deviceCode())
 	if err != ErrDeviceAuthorizationPending {
@@ -199,7 +199,7 @@ func TestDeviceTokenReturnsErrorIfAuthorizationPending(t *testing.T) {
 func TestDeviceTokenReturnsErrorIfSlowDown(t *testing.T) {
 	sender := mocks.NewSender()
 	body := mocks.NewBody(errorDeviceTokenResponse("slow_down"))
-	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, http.StatusBadRequest, "Bad Request"))
 
 	_, err := CheckForUserCompletion(sender, deviceCode())
 	if err != ErrDeviceSlowDown {
@@ -255,7 +255,7 @@ func TestDeviceTokenSucceedsWithIntermediateSlowDown(t *testing.T) {
 func TestDeviceTokenReturnsErrorIfAccessDenied(t *testing.T) {
 	sender := mocks.NewSender()
 	body := mocks.NewBody(errorDeviceTokenResponse("access_denied"))
-	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, http.StatusBadRequest, "Bad Request"))
 
 	_, err := WaitForUserCompletion(sender, deviceCode())
 	if err != ErrDeviceAccessDenied {
@@ -270,7 +270,7 @@ func TestDeviceTokenReturnsErrorIfAccessDenied(t *testing.T) {
 func TestDeviceTokenReturnsErrorIfCodeExpired(t *testing.T) {
 	sender := mocks.NewSender()
 	body := mocks.NewBody(errorDeviceTokenResponse("code_expired"))
-	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, http.StatusBadRequest, "Bad Request"))
 
 	_, err := WaitForUserCompletion(sender, deviceCode())
 	if err != ErrDeviceCodeExpired {
@@ -285,7 +285,7 @@ func TestDeviceTokenReturnsErrorIfCodeExpired(t *testing.T) {
 func TestDeviceTokenReturnsErrorForUnknownError(t *testing.T) {
 	sender := mocks.NewSender()
 	body := mocks.NewBody(errorDeviceTokenResponse("unknown_error"))
-	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 400, "Bad Request"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, http.StatusBadRequest, "Bad Request"))
 
 	_, err := WaitForUserCompletion(sender, deviceCode())
 	if err == nil {
@@ -303,7 +303,7 @@ func TestDeviceTokenReturnsErrorForUnknownError(t *testing.T) {
 func TestDeviceTokenReturnsErrorIfTokenEmptyAndStatusOK(t *testing.T) {
 	sender := mocks.NewSender()
 	body := mocks.NewBody("")
-	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, 200, "OK"))
+	sender.AppendResponse(mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK"))
 
 	_, err := WaitForUserCompletion(sender, deviceCode())
 	if err != ErrOAuthTokenEmpty {
