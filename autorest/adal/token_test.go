@@ -289,7 +289,7 @@ func TestServicePrincipalTokenRefreshRejectsResponsesWithStatusNotOK(t *testing.
 	spt.SetSender(s)
 	err := spt.Refresh()
 	if err == nil {
-		t.Fatalf("adal: ServicePrincipalToken#Refresh should reject a response with status != 200")
+		t.Fatalf("adal: ServicePrincipalToken#Refresh should reject a response with status != %d", http.StatusOK)
 	}
 }
 
@@ -334,7 +334,7 @@ func TestServicePrincipalTokenRefreshReturnsErrorIfNotOk(t *testing.T) {
 
 	err := spt.Refresh()
 	if err == nil {
-		t.Fatal("adal: Failed to return an when receiving a status code other than HTTP 200")
+		t.Fatalf("adal: Failed to return an when receiving a status code other than HTTP %d", http.StatusOK)
 	}
 }
 
