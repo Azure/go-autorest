@@ -6,7 +6,8 @@ import (
 )
 
 const (
-	activeDirectoryAPIVersion = "1.0"
+	activeDirectoryAPIVersion       = "1.0"
+	activeDirectoryEndpointTemplate = "%s/oauth2/%s?api-version=%s"
 )
 
 // OAuthConfig represents the endpoints needed
@@ -19,20 +20,19 @@ type OAuthConfig struct {
 
 // NewOAuthConfig returns an OAuthConfig with tenant specific urls
 func NewOAuthConfig(activeDirectoryEndpoint, tenantID string) (*OAuthConfig, error) {
-	template := "%s/oauth2/%s?api-version=%s"
 	u, err := url.Parse(activeDirectoryEndpoint)
 	if err != nil {
 		return nil, err
 	}
-	authorizeURL, err := u.Parse(fmt.Sprintf(template, tenantID, "authorize", activeDirectoryAPIVersion))
+	authorizeURL, err := u.Parse(fmt.Sprintf(activeDirectoryEndpointTemplate, tenantID, "authorize", activeDirectoryAPIVersion))
 	if err != nil {
 		return nil, err
 	}
-	tokenURL, err := u.Parse(fmt.Sprintf(template, tenantID, "token", activeDirectoryAPIVersion))
+	tokenURL, err := u.Parse(fmt.Sprintf(activeDirectoryEndpointTemplate, tenantID, "token", activeDirectoryAPIVersion))
 	if err != nil {
 		return nil, err
 	}
-	deviceCodeURL, err := u.Parse(fmt.Sprintf(template, tenantID, "devicecode", activeDirectoryAPIVersion))
+	deviceCodeURL, err := u.Parse(fmt.Sprintf(activeDirectoryEndpointTemplate, tenantID, "devicecode", activeDirectoryAPIVersion))
 	if err != nil {
 		return nil, err
 	}
