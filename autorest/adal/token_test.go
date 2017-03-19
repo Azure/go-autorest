@@ -107,7 +107,7 @@ func TestServicePrincipalTokenRefreshUsesPOST(t *testing.T) {
 	spt := newServicePrincipalToken()
 
 	body := mocks.NewBody(newTokenJSON("test", "test"))
-	resp := mocks.NewResponseWithBodyAndStatus(body, 200, "OK")
+	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
 	s := DecorateSender(c,
@@ -136,7 +136,7 @@ func TestServicePrincipalTokenRefreshSetsMimeType(t *testing.T) {
 	spt := newServicePrincipalToken()
 
 	body := mocks.NewBody(newTokenJSON("test", "test"))
-	resp := mocks.NewResponseWithBodyAndStatus(body, 200, "OK")
+	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
 	s := DecorateSender(c,
@@ -163,7 +163,7 @@ func TestServicePrincipalTokenRefreshSetsURL(t *testing.T) {
 	spt := newServicePrincipalToken()
 
 	body := mocks.NewBody(newTokenJSON("test", "test"))
-	resp := mocks.NewResponseWithBodyAndStatus(body, 200, "OK")
+	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
 	s := DecorateSender(c,
@@ -187,7 +187,7 @@ func TestServicePrincipalTokenRefreshSetsURL(t *testing.T) {
 
 func testServicePrincipalTokenRefreshSetsBody(t *testing.T, spt *ServicePrincipalToken, f func(*testing.T, []byte)) {
 	body := mocks.NewBody(newTokenJSON("test", "test"))
-	resp := mocks.NewResponseWithBodyAndStatus(body, 200, "OK")
+	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
 	s := DecorateSender(c,
@@ -250,7 +250,7 @@ func TestServicePrincipalTokenRefreshClosesRequestBody(t *testing.T) {
 	spt := newServicePrincipalToken()
 
 	body := mocks.NewBody(newTokenJSON("test", "test"))
-	resp := mocks.NewResponseWithBodyAndStatus(body, 200, "OK")
+	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
 	s := DecorateSender(c,
@@ -275,7 +275,7 @@ func TestServicePrincipalTokenRefreshRejectsResponsesWithStatusNotOK(t *testing.
 	spt := newServicePrincipalToken()
 
 	body := mocks.NewBody(newTokenJSON("test", "test"))
-	resp := mocks.NewResponseWithBodyAndStatus(body, 401, "Unauthorized")
+	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusUnauthorized, "Unauthorized")
 
 	c := mocks.NewSender()
 	s := DecorateSender(c,
@@ -329,7 +329,7 @@ func TestServicePrincipalTokenRefreshReturnsErrorIfNotOk(t *testing.T) {
 	spt := newServicePrincipalToken()
 
 	c := mocks.NewSender()
-	c.AppendResponse(mocks.NewResponseWithStatus("401 NotAuthorized", 401))
+	c.AppendResponse(mocks.NewResponseWithStatus("401 NotAuthorized", http.StatusUnauthorized))
 	spt.SetSender(c)
 
 	err := spt.Refresh()
@@ -374,7 +374,7 @@ func TestServicePrincipalTokenEnsureFreshRefreshes(t *testing.T) {
 	expireToken(&spt.Token)
 
 	body := mocks.NewBody(newTokenJSON("test", "test"))
-	resp := mocks.NewResponseWithBodyAndStatus(body, 200, "OK")
+	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	f := false
 	c := mocks.NewSender()
