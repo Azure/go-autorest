@@ -90,7 +90,7 @@ func TestServicePrincipalTokenWithAuthorizationRefresh(t *testing.T) {
 		"token_type"   : "Bearer"
 	}`
 	body := mocks.NewBody(jwt)
-	resp := mocks.NewResponseWithBodyAndStatus(body, 200, "OK")
+	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 	c := mocks.NewSender()
 	s := DecorateSender(c,
 		(func() SendDecorator {
@@ -126,7 +126,7 @@ func TestServicePrincipalTokenWithAuthorizationReturnsErrorIfConnotRefresh(t *te
 	}
 
 	s := mocks.NewSender()
-	s.AppendResponse(mocks.NewResponseWithStatus("400 Bad Request", 400))
+	s.AppendResponse(mocks.NewResponseWithStatus("400 Bad Request", http.StatusBadRequest))
 	spt.SetSender(s)
 
 	ba := NewBearerAuthorizer(spt)
