@@ -127,6 +127,17 @@ type ServicePrincipalCertificateSecret struct {
 	PrivateKey  *rsa.PrivateKey
 }
 
+// ServicePrincipalMSISecret implements ServicePrincipalSecret for machines running the MSI Extension.
+type ServicePrincipalMSISecret struct {
+}
+
+// SetAuthenticationValues is a method of the interface ServicePrincipalSecret.
+// MSI extension requires the authority field to be set to the real tenant authority endpoint
+func (msiSecret *ServicePrincipalMSISecret) SetAuthenticationValues(spt *ServicePrincipalToken, v *url.Values) error {
+	v.Set("authority", spt.oauthConfig.AuthorityEndpoint.String())
+	return nil
+}
+
 // SignJwt returns the JWT signed with the certificate's private key.
 func (secret *ServicePrincipalCertificateSecret) SignJwt(spt *ServicePrincipalToken) (string, error) {
 	hasher := sha1.New()
@@ -247,6 +258,47 @@ func NewServicePrincipalTokenFromCertificate(oauthConfig OAuthConfig, clientID s
 	)
 }
 
+// NewServicePrincipalTokenFromMSI creates a ServicePrincipalToken via the MSI VM Extension.
+func NewServicePrincipalTokenFromMSI(oauthConfig OAuthConfig, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+	// Read MSI settings
+	bytes, err := ioutil.ReadFile("/var/lib/waagent/ManagedIdentity-Settings")
+	if err != nil {
+		return nil, err
+	}
+	msiSettings := struct {
+		URL string `json:"url"`
+	}{}
+	err = json.Unmarshal(bytes, &msiSettings)
+	if err != nil {
+		return nil, err
+	}
+
+	// We set the oauth config token endpoint to be MSI's endpoint
+	// We leave the authority as-is so MSI can POST it with the token request
+	msiEndpointURL, err := url.Parse(msiSettings.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	msiTokenEndpointURL, err := msiEndpointURL.Parse("/oauth2/token")
+	if err != nil {
+		return nil, err
+	}
+
+	oauthConfig.TokenEndpoint = *msiTokenEndpointURL
+
+	spt := &ServicePrincipalToken{
+		oauthConfig:   oauthConfig,
+		secret:        &ServicePrincipalMSISecret{},
+		resource:      resource,
+		autoRefresh:   true,
+		refreshWithin: defaultRefresh,
+		sender:        &http.Client{},
+	}
+
+	return spt, nil
+}
+
 // EnsureFresh will refresh the token if it will expire within the refresh window (as set by
 // RefreshWithin) and autoRefresh flag is on.
 func (spt *ServicePrincipalToken) EnsureFresh() error {
@@ -346,3 +398,5 @@ func (spt *ServicePrincipalToken) SetRefreshWithin(d time.Duration) {
 // SetSender sets the http.Client used when obtaining the Service Principal token. An
 // undecorated http.Client is used by default.
 func (spt *ServicePrincipalToken) SetSender(s Sender) { spt.sender = s }
+
+/// TODO: refreshInternal probably should hardcode client creds, it should let SetAuthCreds do the rigth thing
