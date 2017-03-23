@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	major = 7
-	minor = 3
-	patch = 1
+	major = 8
+	minor = 0
+	patch = 0
 	tag   = ""
 )
 
