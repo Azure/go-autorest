@@ -6,8 +6,7 @@ import (
 )
 
 const (
-	activeDirectoryAPIVersion       = "1.0"
-	activeDirectoryEndpointTemplate = "%s/oauth2/%s?api-version=%s"
+	activeDirectoryAPIVersion = "1.0"
 )
 
 // OAuthConfig represents the endpoints needed
@@ -20,6 +19,8 @@ type OAuthConfig struct {
 
 // NewOAuthConfig returns an OAuthConfig with tenant specific urls
 func NewOAuthConfig(activeDirectoryEndpoint, tenantID string) (*OAuthConfig, error) {
+	const activeDirectoryEndpointTemplate = "%s/oauth2/%s?api-version=%s"
+
 	u, err := url.Parse(activeDirectoryEndpoint)
 	if err != nil {
 		return nil, err

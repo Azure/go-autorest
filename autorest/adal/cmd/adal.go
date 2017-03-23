@@ -43,7 +43,7 @@ var (
 	tokenCachePath string
 )
 
-func checkMondatoryOptions(mode string, options ...option) {
+func checkMandatoryOptions(mode string, options ...option) {
 	for _, option := range options {
 		if strings.TrimSpace(option.value) == "" {
 			log.Fatalf("Authentication mode '%s' requires mandatory option '%s'.", mode, option.name)
@@ -73,27 +73,27 @@ func init() {
 
 	switch mode = strings.TrimSpace(mode); mode {
 	case clientSecretMode:
-		checkMondatoryOptions(clientSecretMode,
+		checkMandatoryOptions(clientSecretMode,
 			option{name: "resource", value: resource},
 			option{name: "tenantId", value: tenantID},
 			option{name: "applicationId", value: applicationID},
 			option{name: "secret", value: applicationSecret},
 		)
 	case clientCertMode:
-		checkMondatoryOptions(clientCertMode,
+		checkMandatoryOptions(clientCertMode,
 			option{name: "resource", value: resource},
 			option{name: "tenantId", value: tenantID},
 			option{name: "applicationId", value: applicationID},
 			option{name: "certificatePath", value: certificatePath},
 		)
 	case deviceMode:
-		checkMondatoryOptions(deviceMode,
+		checkMandatoryOptions(deviceMode,
 			option{name: "resource", value: resource},
 			option{name: "tenantId", value: tenantID},
 			option{name: "applicationId", value: applicationID},
 		)
 	case refreshMode:
-		checkMondatoryOptions(refreshMode,
+		checkMandatoryOptions(refreshMode,
 			option{name: "resource", value: resource},
 			option{name: "tenantId", value: tenantID},
 			option{name: "applicationId", value: applicationID},
