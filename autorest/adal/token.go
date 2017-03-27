@@ -30,6 +30,9 @@ const (
 
 	// OAuthGrantTypeRefreshToken is the "grant_type" identifier used in refresh token flows
 	OAuthGrantTypeRefreshToken = "refresh_token"
+
+	// managedIdentitySettingsPath is the path to the MSI Extension settings file (to discover the endpoint)
+	managedIdentitySettingsPath = "/var/lib/waagent/ManagedIdentity-Settings"
 )
 
 var expirationBase time.Time
@@ -260,8 +263,12 @@ func NewServicePrincipalTokenFromCertificate(oauthConfig OAuthConfig, clientID s
 
 // NewServicePrincipalTokenFromMSI creates a ServicePrincipalToken via the MSI VM Extension.
 func NewServicePrincipalTokenFromMSI(oauthConfig OAuthConfig, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+	return newServicePrincipalTokenFromMSI(oauthConfig, resource, managedIdentitySettingsPath, callbacks...)
+}
+
+func newServicePrincipalTokenFromMSI(oauthConfig OAuthConfig, resource, settingsPath string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	// Read MSI settings
-	bytes, err := ioutil.ReadFile("/var/lib/waagent/ManagedIdentity-Settings")
+	bytes, err := ioutil.ReadFile(settingsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -288,12 +295,13 @@ func NewServicePrincipalTokenFromMSI(oauthConfig OAuthConfig, resource string, c
 	oauthConfig.TokenEndpoint = *msiTokenEndpointURL
 
 	spt := &ServicePrincipalToken{
-		oauthConfig:   oauthConfig,
-		secret:        &ServicePrincipalMSISecret{},
-		resource:      resource,
-		autoRefresh:   true,
-		refreshWithin: defaultRefresh,
-		sender:        &http.Client{},
+		oauthConfig:      oauthConfig,
+		secret:           &ServicePrincipalMSISecret{},
+		resource:         resource,
+		autoRefresh:      true,
+		refreshWithin:    defaultRefresh,
+		sender:           &http.Client{},
+		refreshCallbacks: callbacks,
 	}
 
 	return spt, nil
@@ -398,5 +406,3 @@ func (spt *ServicePrincipalToken) SetRefreshWithin(d time.Duration) {
 // SetSender sets the http.Client used when obtaining the Service Principal token. An
 // undecorated http.Client is used by default.
 func (spt *ServicePrincipalToken) SetSender(s Sender) { spt.sender = s }
-
-/// TODO: refreshInternal probably should hardcode client creds, it should let SetAuthCreds do the rigth thing

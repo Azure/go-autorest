@@ -13,9 +13,6 @@ import (
 var cloud = azure.PublicCloud
 
 func main() {
-	//var spt *azure.ServicePrincipalToken
-	//var err error
-
 	tenantID := os.Getenv("TENANT_ID")
 	subscriptionID := os.Getenv("SUBSCRIPTION_ID")
 	resourceGroupName := os.Getenv("RESOURCE_GROUP")
