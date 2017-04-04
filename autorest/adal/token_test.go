@@ -503,7 +503,7 @@ func TestNewServicePrincipalTokenFromMSI(t *testing.T) {
 		tempSettingsFile.Name(),
 		cb)
 	if err != nil {
-		t.Fatal("Failed to get MSI SPT: %v", err)
+		t.Fatalf("Failed to get MSI SPT: %v", err)
 	}
 
 	// check some of the SPT fields
