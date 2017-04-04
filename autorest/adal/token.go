@@ -30,6 +30,9 @@ const (
 
 	// OAuthGrantTypeRefreshToken is the "grant_type" identifier used in refresh token flows
 	OAuthGrantTypeRefreshToken = "refresh_token"
+
+	// managedIdentitySettingsPath is the path to the MSI Extension settings file (to discover the endpoint)
+	managedIdentitySettingsPath = "/var/lib/waagent/ManagedIdentity-Settings"
 )
 
 var expirationBase time.Time
@@ -125,6 +128,17 @@ func (tokenSecret *ServicePrincipalTokenSecret) SetAuthenticationValues(spt *Ser
 type ServicePrincipalCertificateSecret struct {
 	Certificate *x509.Certificate
 	PrivateKey  *rsa.PrivateKey
+}
+
+// ServicePrincipalMSISecret implements ServicePrincipalSecret for machines running the MSI Extension.
+type ServicePrincipalMSISecret struct {
+}
+
+// SetAuthenticationValues is a method of the interface ServicePrincipalSecret.
+// MSI extension requires the authority field to be set to the real tenant authority endpoint
+func (msiSecret *ServicePrincipalMSISecret) SetAuthenticationValues(spt *ServicePrincipalToken, v *url.Values) error {
+	v.Set("authority", spt.oauthConfig.AuthorityEndpoint.String())
+	return nil
 }
 
 // SignJwt returns the JWT signed with the certificate's private key.
@@ -245,6 +259,52 @@ func NewServicePrincipalTokenFromCertificate(oauthConfig OAuthConfig, clientID s
 		},
 		callbacks...,
 	)
+}
+
+// NewServicePrincipalTokenFromMSI creates a ServicePrincipalToken via the MSI VM Extension.
+func NewServicePrincipalTokenFromMSI(oauthConfig OAuthConfig, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+	return newServicePrincipalTokenFromMSI(oauthConfig, resource, managedIdentitySettingsPath, callbacks...)
+}
+
+func newServicePrincipalTokenFromMSI(oauthConfig OAuthConfig, resource, settingsPath string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+	// Read MSI settings
+	bytes, err := ioutil.ReadFile(settingsPath)
+	if err != nil {
+		return nil, err
+	}
+	msiSettings := struct {
+		URL string `json:"url"`
+	}{}
+	err = json.Unmarshal(bytes, &msiSettings)
+	if err != nil {
+		return nil, err
+	}
+
+	// We set the oauth config token endpoint to be MSI's endpoint
+	// We leave the authority as-is so MSI can POST it with the token request
+	msiEndpointURL, err := url.Parse(msiSettings.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	msiTokenEndpointURL, err := msiEndpointURL.Parse("/oauth2/token")
+	if err != nil {
+		return nil, err
+	}
+
+	oauthConfig.TokenEndpoint = *msiTokenEndpointURL
+
+	spt := &ServicePrincipalToken{
+		oauthConfig:      oauthConfig,
+		secret:           &ServicePrincipalMSISecret{},
+		resource:         resource,
+		autoRefresh:      true,
+		refreshWithin:    defaultRefresh,
+		sender:           &http.Client{},
+		refreshCallbacks: callbacks,
+	}
+
+	return spt, nil
 }
 
 // EnsureFresh will refresh the token if it will expire within the refresh window (as set by

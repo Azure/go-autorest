@@ -12,6 +12,7 @@ const (
 // OAuthConfig represents the endpoints needed
 // in OAuth operations
 type OAuthConfig struct {
+	AuthorityEndpoint  url.URL
 	AuthorizeEndpoint  url.URL
 	TokenEndpoint      url.URL
 	DeviceCodeEndpoint url.URL
@@ -20,8 +21,11 @@ type OAuthConfig struct {
 // NewOAuthConfig returns an OAuthConfig with tenant specific urls
 func NewOAuthConfig(activeDirectoryEndpoint, tenantID string) (*OAuthConfig, error) {
 	const activeDirectoryEndpointTemplate = "%s/oauth2/%s?api-version=%s"
-
 	u, err := url.Parse(activeDirectoryEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	authorityURL, err := u.Parse(tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -39,6 +43,7 @@ func NewOAuthConfig(activeDirectoryEndpoint, tenantID string) (*OAuthConfig, err
 	}
 
 	return &OAuthConfig{
+		AuthorityEndpoint:  *authorityURL,
 		AuthorizeEndpoint:  *authorizeURL,
 		TokenEndpoint:      *tokenURL,
 		DeviceCodeEndpoint: *deviceCodeURL,
