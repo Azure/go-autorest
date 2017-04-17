@@ -11,6 +11,13 @@ import (
 	"strings"
 )
 
+var preserveRespBody = false
+
+// PreserveResponseBody enables all response bodies to be preserved (by default they are closed).
+func PreserveResponseBody(enabled bool) {
+	preserveRespBody = enabled
+}
+
 // Responder is the interface that wraps the Respond method.
 //
 // Respond accepts and reacts to an http.Response. Implementations must ensure to not share or hold
@@ -114,7 +121,7 @@ func ByClosing() RespondDecorator {
 		return ResponderFunc(func(resp *http.Response) error {
 			err := r.Respond(resp)
 			if resp != nil && resp.Body != nil {
-				if err := resp.Body.Close(); err != nil {
+				if err := closeOrPreserveRespBody(resp); err != nil {
 					return fmt.Errorf("Error closing the response body: %v", err)
 				}
 			}
@@ -130,7 +137,7 @@ func ByClosingIfError() RespondDecorator {
 		return ResponderFunc(func(resp *http.Response) error {
 			err := r.Respond(resp)
 			if err != nil && resp != nil && resp.Body != nil {
-				if err := resp.Body.Close(); err != nil {
+				if err := closeOrPreserveRespBody(resp); err != nil {
 					return fmt.Errorf("Error closing the response body: %v", err)
 				}
 			}
@@ -233,4 +240,16 @@ func ExtractHeaderValue(header string, resp *http.Response) string {
 		return h[0]
 	}
 	return ""
+}
+
+func closeOrPreserveRespBody(resp *http.Response) error {
+	if preserveRespBody {
+		b, readErr := ioutil.ReadAll(resp.Body)
+		err := resp.Body.Close()
+		if readErr == nil {
+			resp.Body = ioutil.NopCloser(bytes.NewReader(b))
+		}
+		return err
+	}
+	return resp.Body.Close()
 }
