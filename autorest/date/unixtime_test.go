@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/marstr/go-autorest/autorest/date"
+	"github.com/Azure/go-autorest/autorest/date"
 )
 
 func ExampleUnixTime_MarshalJSON() {
