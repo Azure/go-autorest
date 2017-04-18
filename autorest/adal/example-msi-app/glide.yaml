@@ -1,0 +1,12 @@
+package: github.com/Azure/go-autorest/autorest/adal/example-msi-app
+import:
+- package: github.com/Azure/azure-sdk-for-go
+  version: ~9.0.1-beta
+  subpackages:
+  - arm/resources/resources
+- package: github.com/Azure/go-autorest
+  version: dev
+  subpackages:
+  - autorest
+  - autorest/adal
+  - autorest/azure

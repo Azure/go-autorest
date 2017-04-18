@@ -8,7 +8,6 @@ go:
 
 install:
   - go get -u github.com/golang/lint/golint
-  - go get -u github.com/Azure/azure-sdk-for-go/arm/resources/resources
   - go get -u github.com/Masterminds/glide
   - go get -u github.com/stretchr/testify
   - go get -u github.com/GoASTScanner/gas
