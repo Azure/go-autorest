@@ -102,7 +102,9 @@ func TestUnixTime_JSONRoundTrip(t *testing.T) {
 		UnixEpoch(),
 		time.Date(2005, time.November, 5, 0, 0, 0, 0, time.UTC), // The day V for Vendetta (film) was released.
 		UnixEpoch().Add(-6 * time.Second),
-		UnixEpoch().Add(800 & time.Hour),
+		UnixEpoch().Add(800 * time.Hour),
+		UnixEpoch().Add(time.Nanosecond),
+		time.Date(2015, time.September, 05, 4, 30, 12, 9992, time.UTC),
 	}
 
 	for _, tc := range testCases {
@@ -119,8 +121,13 @@ func TestUnixTime_JSONRoundTrip(t *testing.T) {
 			var unmarshaled UnixTime
 			if err := json.Unmarshal(marshaled, &unmarshaled); err != nil {
 				subT.Error(err)
-			} else if time.Time(subject) != time.Time(unmarshaled) {
-				subT.Logf("round trip failed for: %v", time.Time(subject))
+			}
+
+			actual := time.Time(unmarshaled)
+			diff := actual.Sub(tc)
+			subT.Logf("\ngot :\t%s\nwant:\t%s\ndiff:\t%s", actual.String(), tc.String(), diff.String())
+
+			if diff > time.Duration(100) { // We lose some precision be working in floats. We shouldn't lose more than 100 nanoseconds.
 				subT.Fail()
 			}
 		})
