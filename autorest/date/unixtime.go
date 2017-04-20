@@ -19,14 +19,19 @@ func (t UnixTime) Duration() time.Duration {
 	return time.Time(t).Sub(unixEpoch)
 }
 
-// FromSeconds creates a UnixTime as a number of seconds from the UnixEpoch.
-func FromSeconds(seconds float64) UnixTime {
-	return UnixTime(UnixEpoch().Add(time.Duration(seconds * float64(time.Second))))
+// NewUnixTimeFromSeconds creates a UnixTime as a number of seconds from the UnixEpoch.
+func NewUnixTimeFromSeconds(seconds float64) UnixTime {
+	return NewUnixTimeFromDuration(time.Duration(seconds * float64(time.Second)))
 }
 
-// FromNanoseconds creates a UnixTime as a number of nanoseconds from the UnixEpoch.
-func FromNanoseconds(nanoseconds int64) UnixTime {
-	return UnixTime(UnixEpoch().Add(time.Duration(nanoseconds)))
+// NewUnixTimeFromNanoseconds creates a UnixTime as a number of nanoseconds from the UnixEpoch.
+func NewUnixTimeFromNanoseconds(nanoseconds int64) UnixTime {
+	return NewUnixTimeFromDuration(time.Duration(nanoseconds))
+}
+
+// NewUnixTimeFromDuration creates a UnixTime as a duration of time since the UnixEpoch.
+func NewUnixTimeFromDuration(dur time.Duration) UnixTime {
+	return UnixTime(unixEpoch.Add(dur))
 }
 
 // UnixEpoch retreives the moment considered the Unix Epoch. I.e. The time represented by '0'
@@ -53,7 +58,7 @@ func (t *UnixTime) UnmarshalJSON(text []byte) error {
 		return err
 	}
 
-	*t = FromSeconds(secondsSinceEpoch)
+	*t = NewUnixTimeFromSeconds(secondsSinceEpoch)
 
 	return nil
 }
@@ -91,11 +96,11 @@ func (t UnixTime) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary converts a from a binary.LittleEndian float64 of nanoseconds since the epoch into a UnixTime.
 func (t *UnixTime) UnmarshalBinary(raw []byte) error {
-	var secondsSinceEpoch int64
+	var nanosecondsSinceEpoch int64
 
-	if err := binary.Read(bytes.NewReader(raw), binary.LittleEndian, &secondsSinceEpoch); err != nil {
+	if err := binary.Read(bytes.NewReader(raw), binary.LittleEndian, &nanosecondsSinceEpoch); err != nil {
 		return err
 	}
-	*t = FromNanoseconds(secondsSinceEpoch)
+	*t = NewUnixTimeFromNanoseconds(nanosecondsSinceEpoch)
 	return nil
 }
