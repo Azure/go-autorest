@@ -30,15 +30,16 @@ func TestUnixTime_MarshalJSON(t *testing.T) {
 		time.Date(2017, time.April, 14, 20, 27, 47, 0, time.UTC), // The time this test was written
 		UnixEpoch(),
 		time.Date(1800, 01, 01, 0, 0, 0, 0, time.UTC),
+		time.Date(2200, 12, 29, 00, 01, 37, 82, time.UTC),
 	}
 
 	for _, tc := range testCases {
-		t.Run("", func(subT *testing.T) {
+		t.Run(tc.String(), func(subT *testing.T) {
 			var actual, expected float64
 			var marshaled []byte
 
 			target := UnixTime(tc)
-			expected = target.Duration().Seconds()
+			expected = float64(target.Duration().Nanoseconds()) / 1e9
 
 			if temp, err := json.Marshal(target); err == nil {
 				marshaled = temp
@@ -53,8 +54,9 @@ func TestUnixTime_MarshalJSON(t *testing.T) {
 				return
 			}
 
-			if diff := math.Abs(actual - expected); diff > .0000000001 { //Must be within 1 nanosecond of one another
-				subT.Logf("\ngot :\t%g\nwant:\t%g\ndiff:\t%g", actual, expected, diff)
+			diff := math.Abs(actual - expected)
+			subT.Logf("\ngot :\t%g\nwant:\t%g\ndiff:\t%g", actual, expected, diff)
+			if diff > 1e-9 { //Must be within 1 nanosecond of one another
 				subT.Fail()
 			}
 		})
