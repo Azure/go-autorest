@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"math"
 	"testing"
 	"time"
 )
@@ -27,6 +28,8 @@ func TestUnixTime_MarshalJSON(t *testing.T) {
 	testCases := []time.Time{
 		UnixEpoch().Add(-1 * time.Second),                        // One second befote the Unix Epoch
 		time.Date(2017, time.April, 14, 20, 27, 47, 0, time.UTC), // The time this test was written
+		UnixEpoch(),
+		time.Date(1800, 01, 01, 0, 0, 0, 0, time.UTC),
 	}
 
 	for _, tc := range testCases {
@@ -50,8 +53,8 @@ func TestUnixTime_MarshalJSON(t *testing.T) {
 				return
 			}
 
-			if actual != expected {
-				subT.Logf("\ngot :\t%g\nwant:\t%g", actual, expected)
+			if diff := math.Abs(actual - expected); diff > .0000000001 { //Must be within 1 nanosecond of one another
+				subT.Logf("\ngot :\t%g\nwant:\t%g\ndiff:\t%g", actual, expected, diff)
 				subT.Fail()
 			}
 		})
@@ -73,6 +76,7 @@ func TestUnixTime_UnmarshalJSON(t *testing.T) {
 		{"1.6E-10", UnixEpoch()}, // This is so small, it should get truncated into the UnixEpoch
 		{"2E-6", UnixEpoch().Add(2 * time.Microsecond)},
 		{"1.289345e9", UnixEpoch().Add(1289345000 * time.Second)},
+		{"1e-9", UnixEpoch().Add(time.Nanosecond)},
 	}
 
 	for _, tc := range testCases {
