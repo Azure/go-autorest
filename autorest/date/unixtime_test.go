@@ -16,7 +16,7 @@ func ExampleUnixTime_MarshalJSON() {
 	// Output: 0
 }
 
-func ExampleUnixTime_UnmarshalSON() {
+func ExampleUnixTime_UnmarshalJSON() {
 	var myTime UnixTime
 	json.Unmarshal([]byte("1.3e2"), &myTime)
 	fmt.Printf("%v", time.Time(myTime))
