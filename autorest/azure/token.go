@@ -44,7 +44,7 @@ type TokenRefreshCallback func(Token) error
 type Token struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
-	IDToken      string `json:"id_token"`
+	IDToken      string `json:"id_token,omitempty"`
 
 	ExpiresIn string `json:"expires_in"`
 	ExpiresOn string `json:"expires_on"`
