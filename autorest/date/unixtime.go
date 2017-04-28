@@ -44,7 +44,10 @@ func UnixEpoch() time.Time {
 func (t UnixTime) MarshalJSON() ([]byte, error) {
 	buffer := &bytes.Buffer{}
 	enc := json.NewEncoder(buffer)
-	enc.Encode(float64(time.Time(t).UnixNano()) / 1e9)
+	err := enc.Encode(float64(time.Time(t).UnixNano()) / 1e9)
+	if err != nil {
+		return nil, err
+	}
 	return buffer.Bytes(), nil
 }
 
