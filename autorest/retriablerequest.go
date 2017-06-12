@@ -59,10 +59,14 @@ func (rr *RetriableRequest) Prepare() (err error) {
 }
 
 // Reset indicates that the request will be sent again.
-func (rr *RetriableRequest) Reset() {
+func (rr *RetriableRequest) Reset() error {
 	if rr.rc != nil {
 		rr.req.Body = rr.rc
 	} else if rr.br != nil {
-		rr.br.Seek(0, io.SeekStart)
+		_, err := rr.br.Seek(0, io.SeekStart)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
