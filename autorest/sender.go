@@ -183,10 +183,6 @@ func DoRetryForAttempts(attempts int, backoff time.Duration) SendDecorator {
 				if err == nil {
 					return resp, err
 				}
-				err = rr.Reset()
-				if err != nil {
-					return resp, err
-				}
 				DelayForBackoff(backoff, attempt, r.Cancel)
 			}
 			return resp, err
@@ -213,10 +209,6 @@ func DoRetryForStatusCodes(attempts int, backoff time.Duration, codes ...int) Se
 				if err != nil || !ResponseHasStatusCode(resp, codes...) {
 					return resp, err
 				}
-				err = rr.Reset()
-				if err != nil {
-					return resp, err
-				}
 				DelayForBackoff(backoff, attempt, r.Cancel)
 			}
 			return resp, err
@@ -240,10 +232,6 @@ func DoRetryForDuration(d time.Duration, backoff time.Duration) SendDecorator {
 				}
 				resp, err = s.Do(rr.Request())
 				if err == nil {
-					return resp, err
-				}
-				err = rr.Reset()
-				if err != nil {
 					return resp, err
 				}
 				DelayForBackoff(backoff, attempt, r.Cancel)
