@@ -48,3 +48,9 @@ func (rr *RetriableRequest) Prepare() (err error) {
 	}
 	return err
 }
+
+func removeRequestBody(req *http.Request) {
+	req.Body = nil
+	req.GetBody = nil
+	req.ContentLength = 0
+}
