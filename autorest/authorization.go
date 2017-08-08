@@ -69,13 +69,17 @@ type BearerAuthorizerCallbackFunc func(tenantID, resource string) (*BearerAuthor
 
 // BearerAuthorizerCallback implements bearer authorization via a callback.
 type BearerAuthorizerCallback struct {
+	sender   Sender
 	callback BearerAuthorizerCallbackFunc
 }
 
 // NewBearerAuthorizerCallback creates a bearer authorization callback.  The callback
 // is invoked when the HTTP request is submitted.
-func NewBearerAuthorizerCallback(callback BearerAuthorizerCallbackFunc) *BearerAuthorizerCallback {
-	return &BearerAuthorizerCallback{callback: callback}
+func NewBearerAuthorizerCallback(sender Sender, callback BearerAuthorizerCallbackFunc) *BearerAuthorizerCallback {
+	if sender == nil {
+		sender = &http.Client{}
+	}
+	return &BearerAuthorizerCallback{sender: sender, callback: callback}
 }
 
 // WithAuthorization returns a PrepareDecorator that adds an HTTP Authorization header whose value
@@ -90,8 +94,7 @@ func (bacb *BearerAuthorizerCallback) WithAuthorization() PrepareDecorator {
 			rCopy := *r
 			removeRequestBody(&rCopy)
 
-			c := http.Client{}
-			resp, err := c.Do(&rCopy)
+			resp, err := bacb.sender.Do(&rCopy)
 			if err == nil && resp.StatusCode == 401 {
 				defer resp.Body.Close()
 				if hasBearerChallenge(resp) {

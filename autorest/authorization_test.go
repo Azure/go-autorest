@@ -135,3 +135,41 @@ func TestServicePrincipalTokenWithAuthorizationReturnsErrorIfConnotRefresh(t *te
 		t.Fatal("azure: BearerAuthorizer#WithAuthorization failed to return an error when refresh fails")
 	}
 }
+
+func TestBearerAuthorizerCallback(t *testing.T) {
+	tenantString := "123-tenantID-456"
+	resourceString := "https://fake.resource.net"
+
+	s := mocks.NewSender()
+	resp := mocks.NewResponseWithStatus("401 Unauthorized", http.StatusUnauthorized)
+	resp.Header = make(http.Header)
+	resp.Header[bearerChallengeHeader] = []string{bearer + " \"authorization\"=\"https://fake.net/" + tenantString + "\",\"resource\"=\"" + resourceString + "\""}
+	s.AppendResponse(resp)
+
+	auth := NewBearerAuthorizerCallback(s, func(tenantID, resource string) (*BearerAuthorizer, error) {
+		if tenantID != tenantString {
+			t.Fatal("BearerAuthorizerCallback: bad tenant ID")
+		}
+		if resource != resourceString {
+			t.Fatal("BearerAuthorizerCallback: bad resource")
+		}
+
+		oauthConfig, err := adal.NewOAuthConfig(TestActiveDirectoryEndpoint, tenantID)
+		if err != nil {
+			t.Fatalf("azure: NewOAuthConfig returned an error (%v)", err)
+		}
+
+		spt, err := adal.NewServicePrincipalToken(*oauthConfig, "id", "secret", resource)
+		if err != nil {
+			t.Fatalf("azure: NewServicePrincipalToken returned an error (%v)", err)
+		}
+
+		spt.SetSender(s)
+		return NewBearerAuthorizer(spt), nil
+	})
+
+	_, err := Prepare(mocks.NewRequest(), auth.WithAuthorization())
+	if err == nil {
+		t.Fatal("azure: BearerAuthorizerCallback#WithAuthorization failed to return an error when refresh fails")
+	}
+}
