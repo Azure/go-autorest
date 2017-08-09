@@ -772,8 +772,7 @@ func TestDelayWithRetryAfterWithSuccess(t *testing.T) {
 
 	client := mocks.NewSender()
 	resp := mocks.NewResponseWithStatus("429 Too many requests", http.StatusTooManyRequests)
-	resp.Header = make(http.Header, 0)
-	resp.Header.Set("Retry-After", fmt.Sprintf("%v", after))
+	mocks.SetResponseHeader(resp, "Retry-After", fmt.Sprintf("%v", after))
 	client.AppendAndRepeatResponse(resp, retries)
 	client.AppendResponse(mocks.NewResponseWithStatus("200 OK", http.StatusOK))
 
