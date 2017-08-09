@@ -142,8 +142,7 @@ func TestBearerAuthorizerCallback(t *testing.T) {
 
 	s := mocks.NewSender()
 	resp := mocks.NewResponseWithStatus("401 Unauthorized", http.StatusUnauthorized)
-	resp.Header = make(http.Header)
-	resp.Header[bearerChallengeHeader] = []string{bearer + " \"authorization\"=\"https://fake.net/" + tenantString + "\",\"resource\"=\"" + resourceString + "\""}
+	mocks.SetResponseHeader(resp, bearerChallengeHeader, bearer+" \"authorization\"=\"https://fake.net/"+tenantString+"\",\"resource\"=\""+resourceString+"\"")
 	s.AppendResponse(resp)
 
 	auth := NewBearerAuthorizerCallback(s, func(tenantID, resource string) (*BearerAuthorizer, error) {
