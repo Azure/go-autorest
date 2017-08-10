@@ -713,6 +713,20 @@ func TestWithHeaderAllocatesHeaders(t *testing.T) {
 	}
 }
 
+func TestNestedWithHeaderAllocatesHeaders(t *testing.T) {
+
+	r, err := Prepare(mocks.NewRequest(), Nest(WithHeader("x-foo", "bar"), WithHeader("x-foo2", "bar2")))
+	if err != nil {
+		t.Fatalf("autorest: WithHeader failed (%v)", err)
+	}
+	if r.Header.Get("x-foo") != "bar" {
+		t.Fatalf("autorest: WithHeader failed to add header (%s=%s)", "x-foo", r.Header.Get("x-foo"))
+	}
+	if r.Header.Get("x-foo2") != "bar2" {
+		t.Fatalf("autorest: WithHeader failed to add header (%s=%s)", "x-foo", r.Header.Get("x-foo"))
+	}
+}
+
 func TestWithPathCatchesNilURL(t *testing.T) {
 	_, err := Prepare(&http.Request{}, WithPath("a"))
 	if err == nil {

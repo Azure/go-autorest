@@ -80,6 +80,16 @@ func WithNothing() PrepareDecorator {
 	}
 }
 
+// Nest returns a PrepareDecorator that nests the prepare decorators together.
+func Nest(pds ...PrepareDecorator) PrepareDecorator {
+	return func(p Preparer) Preparer {
+		for _, pd := range pds {
+			p = pd(p)
+		}
+		return p
+	}
+}
+
 // WithHeader returns a PrepareDecorator that sets the specified HTTP header of the http.Request to
 // the passed value. It canonicalizes the passed header name (via http.CanonicalHeaderKey) before
 // adding the header.
