@@ -1,6 +1,9 @@
 package adal
 
-import "strconv"
+import (
+	"strconv"
+	"github.com/mitchellh/go-homedir"
+)
 
 // AzureCLIToken represents an AccessToken from the Azure CLI
 type AzureCLIToken struct {
@@ -18,8 +21,8 @@ type AzureCLIToken struct {
 }
 
 // AzureCLIAccessTokensPath returns the path where access tokens are stored from the Azure CLI
-func AzureCLIAccessTokensPath() string {
-	return "~/.azure/accessTokens.json"
+func AzureCLIAccessTokensPath() (string, error) {
+	return homedir.Expand("~/.azure/accessTokens.json")
 }
 
 // ToToken converts an AzureCLIToken to a Token
