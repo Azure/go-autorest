@@ -2,6 +2,7 @@ package adal
 
 import "strconv"
 
+// AzureCLIToken represents an AccessToken from the Azure CLI
 type AzureCLIToken struct {
 	AccessToken      string `json:"accessToken"`
 	Authority        string `json:"_authority"`
@@ -13,13 +14,15 @@ type AzureCLIToken struct {
 	RefreshToken     string `json:"refreshToken"`
 	Resource         string `json:"resource"`
 	TokenType        string `json:"tokenType"`
-	UserId           string `json:"userId"`
+	UserID           string `json:"userId"`
 }
 
+// AzureCLIAccessTokensPath returns the path where access tokens are stored from the Azure CLI
 func AzureCLIAccessTokensPath() string {
 	return "~/.azure/accessTokens.json"
 }
 
+// ToToken converts an AzureCLIToken to a Token
 func (t AzureCLIToken) ToToken() Token {
 	return Token{
 		AccessToken: t.AccessToken,
