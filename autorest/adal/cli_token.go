@@ -1,8 +1,8 @@
 package adal
 
 import (
-	"strconv"
 	"github.com/mitchellh/go-homedir"
+	"strconv"
 )
 
 // AzureCLIToken represents an AccessToken from the Azure CLI
