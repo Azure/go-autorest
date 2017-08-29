@@ -200,8 +200,10 @@ func DoRetryForStatusCodes(attempts int, backoff time.Duration, codes ...int) Se
 		return SenderFunc(func(r *http.Request) (resp *http.Response, err error) {
 			rr := NewRetriableRequest(r)
 			// Increment to add the first call (attempts denotes number of retries)
+			fmt.Println("DoRetryForStatusCodes")
 			attempts++
 			for attempt := 0; attempt < attempts; attempt++ {
+				fmt.Println("for loop inside DoRetryForStatusCodes")
 				err = rr.Prepare()
 				if err != nil {
 					return resp, err
@@ -265,7 +267,7 @@ func DoRetryForDuration(d time.Duration, backoff time.Duration) SendDecorator {
 func WithLogging(logger *log.Logger) SendDecorator {
 	return func(s Sender) Sender {
 		return SenderFunc(func(r *http.Request) (*http.Response, error) {
-			logger.Printf("Sending %s %s", r.Method, r.URL)
+			logger.Printf("Sending %s %s with headers %s", r.Method, r.URL, r.Header)
 			resp, err := s.Do(r)
 			if err != nil {
 				logger.Printf("%s %s received error '%v'", r.Method, r.URL, err)
