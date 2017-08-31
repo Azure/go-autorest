@@ -29,11 +29,11 @@ type AzureCLIProfile struct {
 // AzureCLISubscription represents a Subscription from the Azure CLI
 type AzureCLISubscription struct {
 	EnvironmentName string `json:"environmentName"`
-	Id              string `json:"id"`
+	ID              string `json:"id"`
 	IsDefault       bool   `json:"isDefault"`
 	Name            string `json:"name"`
 	State           string `json:"state"`
-	TenantId        string `json:"tenantId"`
+	TenantID        string `json:"tenantId"`
 }
 
 // AzureCLIAccessTokensPath returns the path where access tokens are stored from the Azure CLI
