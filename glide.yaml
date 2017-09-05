@@ -19,3 +19,4 @@ import:
   subpackages:
   - .
 - package: github.com/mitchellh/go-homedir
+- package: github.com/dimchansky/utfbom
