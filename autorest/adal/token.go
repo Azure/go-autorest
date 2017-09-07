@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"runtime"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -31,8 +32,11 @@ const (
 	// OAuthGrantTypeRefreshToken is the "grant_type" identifier used in refresh token flows
 	OAuthGrantTypeRefreshToken = "refresh_token"
 
-	// managedIdentitySettingsPath is the path to the MSI Extension settings file (to discover the endpoint)
-	managedIdentitySettingsPath = "/var/lib/waagent/ManagedIdentity-Settings"
+	// managedIdentitySettingsLinuxPath is the path to the MSI Extension settings file (to discover the endpoint)
+	managedIdentitySettingsLinuxPath = "/var/lib/waagent/ManagedIdentity-Settings"
+
+	// managedIdentitySettingsWindowsPath is the path to the MSI Extension settings file (to discover the endpoint)
+	managedIdentitySettingsWindowsPath = "C:/WindowsAzure/Config/ManagedIdentity-Settings"
 
 	// metadataHeader is the header required by MSI extension
 	metadataHeader = "Metadata"
@@ -138,9 +142,8 @@ type ServicePrincipalMSISecret struct {
 }
 
 // SetAuthenticationValues is a method of the interface ServicePrincipalSecret.
-// MSI extension requires the authority field to be set to the real tenant authority endpoint
+// MSI extension no longer requires the authority field
 func (msiSecret *ServicePrincipalMSISecret) SetAuthenticationValues(spt *ServicePrincipalToken, v *url.Values) error {
-	v.Set("authority", spt.oauthConfig.AuthorityEndpoint.String())
 	return nil
 }
 
@@ -266,7 +269,14 @@ func NewServicePrincipalTokenFromCertificate(oauthConfig OAuthConfig, clientID s
 
 // NewServicePrincipalTokenFromMSI creates a ServicePrincipalToken via the MSI VM Extension.
 func NewServicePrincipalTokenFromMSI(oauthConfig OAuthConfig, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
-	return newServicePrincipalTokenFromMSI(oauthConfig, resource, managedIdentitySettingsPath, callbacks...)
+	var MSIpath string
+	switch runtime.GOOS {
+		case "windows":
+			MSIpath = managedIdentitySettingsWindowsPath
+		default:
+			MSIpath = managedIdentitySettingsLinuxPath
+	}
+	return newServicePrincipalTokenFromMSI(oauthConfig, resource, MSIpath, callbacks...)
 }
 
 func newServicePrincipalTokenFromMSI(oauthConfig OAuthConfig, resource, settingsPath string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
@@ -374,12 +384,17 @@ func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
 	if err != nil {
 		return fmt.Errorf("adal: Failed to execute the refresh request. Error = '%v'", err)
 	}
+
 	defer resp.Body.Close()
+	rb, err := ioutil.ReadAll(resp.Body)
+
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("adal: Refresh request failed. Status Code = '%d'", resp.StatusCode)
+		if err != nil {
+			return fmt.Errorf("adal: Refresh request failed. Status Code = '%d'. Failed reading response body", resp.StatusCode)
+		}
+		return fmt.Errorf("adal: Refresh request failed. Status Code = '%d'. Response body: %s", resp.StatusCode, string(rb))
 	}
 
-	rb, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("adal: Failed to read a new service principal token during refresh. Error = '%v'", err)
 	}
