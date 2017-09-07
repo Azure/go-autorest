@@ -151,13 +151,7 @@ func TestServicePrincipalTokenFromMSIRefreshUsesPOST(t *testing.T) {
 		t.Fatal("Couldn't fill temp settings file")
 	}
 
-	oauthConfig, err := NewOAuthConfig("http://adendpoint", "1-2-3-4")
-	if err != nil {
-		t.Fatal("Failed to construct oauthconfig")
-	}
-
 	spt, err := newServicePrincipalTokenFromMSI(
-		*oauthConfig,
 		resource,
 		tempSettingsFile.Name(),
 		cb)
@@ -553,13 +547,7 @@ func TestNewServicePrincipalTokenFromMSI(t *testing.T) {
 		t.Fatal("Couldn't fill temp settings file")
 	}
 
-	oauthConfig, err := NewOAuthConfig("http://adendpoint", "1-2-3-4")
-	if err != nil {
-		t.Fatal("Failed to construct oauthconfig")
-	}
-
 	spt, err := newServicePrincipalTokenFromMSI(
-		*oauthConfig,
 		resource,
 		tempSettingsFile.Name(),
 		cb)

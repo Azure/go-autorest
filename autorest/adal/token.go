@@ -268,7 +268,7 @@ func NewServicePrincipalTokenFromCertificate(oauthConfig OAuthConfig, clientID s
 }
 
 // NewServicePrincipalTokenFromMSI creates a ServicePrincipalToken via the MSI VM Extension.
-func NewServicePrincipalTokenFromMSI(oauthConfig OAuthConfig, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+func NewServicePrincipalTokenFromMSI(resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	var MSIpath string
 	switch runtime.GOOS {
 		case "windows":
@@ -276,10 +276,10 @@ func NewServicePrincipalTokenFromMSI(oauthConfig OAuthConfig, resource string, c
 		default:
 			MSIpath = managedIdentitySettingsLinuxPath
 	}
-	return newServicePrincipalTokenFromMSI(oauthConfig, resource, MSIpath, callbacks...)
+	return newServicePrincipalTokenFromMSI(resource, MSIpath, callbacks...)
 }
 
-func newServicePrincipalTokenFromMSI(oauthConfig OAuthConfig, resource, settingsPath string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+func newServicePrincipalTokenFromMSI(resource, settingsPath string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	// Read MSI settings
 	bytes, err := ioutil.ReadFile(settingsPath)
 	if err != nil {
@@ -294,21 +294,18 @@ func newServicePrincipalTokenFromMSI(oauthConfig OAuthConfig, resource, settings
 	}
 
 	// We set the oauth config token endpoint to be MSI's endpoint
-	// We leave the authority as-is so MSI can POST it with the token request
 	msiEndpointURL, err := url.Parse(msiSettings.URL)
 	if err != nil {
 		return nil, err
 	}
 
-	msiTokenEndpointURL, err := msiEndpointURL.Parse("/oauth2/token")
+	oauthConfig, err := NewOAuthConfig(msiEndpointURL.String(), "")
 	if err != nil {
 		return nil, err
 	}
 
-	oauthConfig.TokenEndpoint = *msiTokenEndpointURL
-
 	spt := &ServicePrincipalToken{
-		oauthConfig:      oauthConfig,
+		oauthConfig:      *oauthConfig,
 		secret:           &ServicePrincipalMSISecret{},
 		resource:         resource,
 		autoRefresh:      true,
