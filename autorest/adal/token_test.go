@@ -547,10 +547,9 @@ func TestNewServicePrincipalTokenFromMSI(t *testing.T) {
 		t.Fatal("Couldn't fill temp settings file")
 	}
 
-	spt, err := newServicePrincipalTokenFromMSI(
-		resource,
-		tempSettingsFile.Name(),
-		cb)
+	msiPath = tempSettingsFile.Name()
+
+	spt, err := NewServicePrincipalTokenFromMSI(resource, cb)
 	if err != nil {
 		t.Fatalf("Failed to get MSI SPT: %v", err)
 	}

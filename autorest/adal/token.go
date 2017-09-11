@@ -11,7 +11,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -31,12 +30,6 @@ const (
 
 	// OAuthGrantTypeRefreshToken is the "grant_type" identifier used in refresh token flows
 	OAuthGrantTypeRefreshToken = "refresh_token"
-
-	// managedIdentitySettingsLinuxPath is the path to the MSI Extension settings file (to discover the endpoint)
-	managedIdentitySettingsLinuxPath = "/var/lib/waagent/ManagedIdentity-Settings"
-
-	// managedIdentitySettingsWindowsPath is the path to the MSI Extension settings file (to discover the endpoint)
-	managedIdentitySettingsWindowsPath = "C:/WindowsAzure/Config/ManagedIdentity-Settings"
 
 	// metadataHeader is the header required by MSI extension
 	metadataHeader = "Metadata"
@@ -142,7 +135,6 @@ type ServicePrincipalMSISecret struct {
 }
 
 // SetAuthenticationValues is a method of the interface ServicePrincipalSecret.
-// MSI extension no longer requires the authority field
 func (msiSecret *ServicePrincipalMSISecret) SetAuthenticationValues(spt *ServicePrincipalToken, v *url.Values) error {
 	return nil
 }
@@ -269,19 +261,8 @@ func NewServicePrincipalTokenFromCertificate(oauthConfig OAuthConfig, clientID s
 
 // NewServicePrincipalTokenFromMSI creates a ServicePrincipalToken via the MSI VM Extension.
 func NewServicePrincipalTokenFromMSI(resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
-	var MSIpath string
-	switch runtime.GOOS {
-	case "windows":
-		MSIpath = managedIdentitySettingsWindowsPath
-	default:
-		MSIpath = managedIdentitySettingsLinuxPath
-	}
-	return newServicePrincipalTokenFromMSI(resource, MSIpath, callbacks...)
-}
-
-func newServicePrincipalTokenFromMSI(resource, settingsPath string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	// Read MSI settings
-	bytes, err := ioutil.ReadFile(settingsPath)
+	bytes, err := ioutil.ReadFile(msiPath)
 	if err != nil {
 		return nil, err
 	}
@@ -293,8 +274,18 @@ func newServicePrincipalTokenFromMSI(resource, settingsPath string, callbacks ..
 		return nil, err
 	}
 
+	return newServicePrincipalTokenFromMSI(msiSettings.URL, resource, callbacks...)
+}
+
+// NewServicePrincipalTokenFromMSIWithEndpoint creates a ServicePrincipalToken via the MSI VM Extension.
+// It overrides the MSI VM Extension configuration.
+func NewServicePrincipalTokenFromMSIWithEndpoint(msiEndpoint, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+	return newServicePrincipalTokenFromMSI(msiEndpoint, resource, callbacks...)
+}
+
+func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	// We set the oauth config token endpoint to be MSI's endpoint
-	msiEndpointURL, err := url.Parse(msiSettings.URL)
+	msiEndpointURL, err := url.Parse(msiEndpoint)
 	if err != nil {
 		return nil, err
 	}
