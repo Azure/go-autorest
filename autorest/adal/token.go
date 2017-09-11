@@ -11,10 +11,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
-	"runtime"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -271,10 +271,10 @@ func NewServicePrincipalTokenFromCertificate(oauthConfig OAuthConfig, clientID s
 func NewServicePrincipalTokenFromMSI(resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	var MSIpath string
 	switch runtime.GOOS {
-		case "windows":
-			MSIpath = managedIdentitySettingsWindowsPath
-		default:
-			MSIpath = managedIdentitySettingsLinuxPath
+	case "windows":
+		MSIpath = managedIdentitySettingsWindowsPath
+	default:
+		MSIpath = managedIdentitySettingsLinuxPath
 	}
 	return newServicePrincipalTokenFromMSI(resource, MSIpath, callbacks...)
 }
