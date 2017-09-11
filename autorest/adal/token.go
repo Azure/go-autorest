@@ -259,31 +259,44 @@ func NewServicePrincipalTokenFromCertificate(oauthConfig OAuthConfig, clientID s
 	)
 }
 
-// NewServicePrincipalTokenFromMSI creates a ServicePrincipalToken via the MSI VM Extension.
-func NewServicePrincipalTokenFromMSI(resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+// Resource enumerates resources from which MSI authentication is supported
+type Resource string
+
+const (
+	// VirtualMachine specifies MSI support for VMs
+	VirtualMachine Resource = "VM"
+)
+
+// GetMSIEndpoint gets the correct endpoint for MSI auth depending on which resource
+// code is running on.
+func GetMSIEndpoint(resource Resource) (string, error) {
+	switch resource {
+	case VirtualMachine:
+		return getVMEndpoint(msiPath)
+	default:
+		return "", fmt.Errorf("Resource '%s' is not supported", resource)
+	}
+}
+
+func getVMEndpoint(path string) (string, error) {
 	// Read MSI settings
-	bytes, err := ioutil.ReadFile(msiPath)
+	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	msiSettings := struct {
 		URL string `json:"url"`
 	}{}
 	err = json.Unmarshal(bytes, &msiSettings)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return newServicePrincipalTokenFromMSI(msiSettings.URL, resource, callbacks...)
+	return msiSettings.URL, nil
 }
 
-// NewServicePrincipalTokenFromMSIWithEndpoint creates a ServicePrincipalToken via the MSI VM Extension.
-// It overrides the MSI VM Extension configuration.
-func NewServicePrincipalTokenFromMSIWithEndpoint(msiEndpoint, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
-	return newServicePrincipalTokenFromMSI(msiEndpoint, resource, callbacks...)
-}
-
-func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+// NewServicePrincipalTokenFromMSI creates a ServicePrincipalToken via the MSI VM Extension.
+func NewServicePrincipalTokenFromMSI(msiEndpoint, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	// We set the oauth config token endpoint to be MSI's endpoint
 	msiEndpointURL, err := url.Parse(msiEndpoint)
 	if err != nil {
