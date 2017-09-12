@@ -135,32 +135,9 @@ func TestServicePrincipalTokenRefreshUsesPOST(t *testing.T) {
 
 func TestServicePrincipalTokenFromMSIRefreshUsesPOST(t *testing.T) {
 	resource := "https://resource"
-
 	cb := func(token Token) error { return nil }
-	tempSettingsFile, err := ioutil.TempFile("", "ManagedIdentity-Settings")
-	if err != nil {
-		t.Fatal("Couldn't write temp settings file")
-	}
-	defer os.Remove(tempSettingsFile.Name())
 
-	settingsContents := []byte(`{
-		"url": "http://msiendpoint/"
-	}`)
-
-	if _, err := tempSettingsFile.Write(settingsContents); err != nil {
-		t.Fatal("Couldn't fill temp settings file")
-	}
-
-	oauthConfig, err := NewOAuthConfig("http://adendpoint", "1-2-3-4")
-	if err != nil {
-		t.Fatal("Failed to construct oauthconfig")
-	}
-
-	spt, err := newServicePrincipalTokenFromMSI(
-		*oauthConfig,
-		resource,
-		tempSettingsFile.Name(),
-		cb)
+	spt, err := NewServicePrincipalTokenFromMSI("http://msiendpoint/", resource, cb)
 	if err != nil {
 		t.Fatalf("Failed to get MSI SPT: %v", err)
 	}
@@ -537,32 +514,9 @@ func TestServicePrincipalTokenManualRefreshFailsWithoutRefresh(t *testing.T) {
 
 func TestNewServicePrincipalTokenFromMSI(t *testing.T) {
 	resource := "https://resource"
-
 	cb := func(token Token) error { return nil }
-	tempSettingsFile, err := ioutil.TempFile("", "ManagedIdentity-Settings")
-	if err != nil {
-		t.Fatal("Couldn't write temp settings file")
-	}
-	defer os.Remove(tempSettingsFile.Name())
 
-	settingsContents := []byte(`{
-		"url": "http://msiendpoint/"
-	}`)
-
-	if _, err := tempSettingsFile.Write(settingsContents); err != nil {
-		t.Fatal("Couldn't fill temp settings file")
-	}
-
-	oauthConfig, err := NewOAuthConfig("http://adendpoint", "1-2-3-4")
-	if err != nil {
-		t.Fatal("Failed to construct oauthconfig")
-	}
-
-	spt, err := newServicePrincipalTokenFromMSI(
-		*oauthConfig,
-		resource,
-		tempSettingsFile.Name(),
-		cb)
+	spt, err := NewServicePrincipalTokenFromMSI("http://msiendpoint/", resource, cb)
 	if err != nil {
 		t.Fatalf("Failed to get MSI SPT: %v", err)
 	}
@@ -578,6 +532,31 @@ func TestNewServicePrincipalTokenFromMSI(t *testing.T) {
 
 	if len(spt.refreshCallbacks) != 1 {
 		t.Fatal("SPT had incorrect refresh callbacks.")
+	}
+}
+
+func TestGetVMEndpoint(t *testing.T) {
+	tempSettingsFile, err := ioutil.TempFile("", "ManagedIdentity-Settings")
+	if err != nil {
+		t.Fatal("Couldn't write temp settings file")
+	}
+	defer os.Remove(tempSettingsFile.Name())
+
+	settingsContents := []byte(`{
+		"url": "http://msiendpoint/"
+	}`)
+
+	if _, err := tempSettingsFile.Write(settingsContents); err != nil {
+		t.Fatal("Couldn't fill temp settings file")
+	}
+
+	endpoint, err := getMSIVMEndpoint(tempSettingsFile.Name())
+	if err != nil {
+		t.Fatal("Coudn't get VM endpoint")
+	}
+
+	if endpoint != "http://msiendpoint/" {
+		t.Fatal("Didn't get correct endpoint")
 	}
 }
 
