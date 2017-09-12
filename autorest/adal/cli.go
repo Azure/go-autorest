@@ -2,7 +2,6 @@ package adal
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"time"
 
@@ -57,13 +56,11 @@ func (t AzureCLIToken) ToToken() (*Token, error) {
 	}
 
 	difference := tokenExpirationDate.Sub(expirationBase)
-	seconds := difference.Seconds()
-
 	token := Token{
 		AccessToken:  t.AccessToken,
 		Type:         t.TokenType,
 		ExpiresIn:    "3600",
-		ExpiresOn:    strconv.Itoa(int(seconds)),
+		ExpiresOn:    strconv.Itoa(int(difference.Seconds())),
 		RefreshToken: t.RefreshToken,
 		Resource:     t.Resource,
 	}
@@ -72,8 +69,6 @@ func (t AzureCLIToken) ToToken() (*Token, error) {
 
 // ParseAzureCLIExpirationDate parses either a Azure CLI or CloudShell date into a time object
 func ParseAzureCLIExpirationDate(input string) (*time.Time, error) {
-	log.Printf("[DEBUG] Token Date: %s", input)
-
 	// CloudShell (and potentially the Azure CLI in future)
 	expirationDate, cloudShellErr := time.Parse(time.RFC3339, input)
 	if cloudShellErr != nil {
