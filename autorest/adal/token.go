@@ -35,10 +35,10 @@ const (
 	managedIdentitySettingsPath = "/var/lib/waagent/ManagedIdentity-Settings"
 )
 
-var expirationBase time.Time
+var ExpirationBase time.Time
 
 func init() {
-	expirationBase, _ = time.Parse(time.RFC3339, tokenBaseDate)
+	ExpirationBase, _ = time.Parse(time.RFC3339, tokenBaseDate)
 }
 
 // OAuthTokenProvider is an interface which should be implemented by an access token retriever
@@ -76,7 +76,7 @@ func (t Token) Expires() time.Time {
 	if err != nil {
 		s = -3600
 	}
-	return expirationBase.Add(time.Duration(s) * time.Second).UTC()
+	return ExpirationBase.Add(time.Duration(s) * time.Second).UTC()
 }
 
 // IsExpired returns true if the Token is expired, false otherwise.
