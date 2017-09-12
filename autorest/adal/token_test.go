@@ -550,7 +550,7 @@ func TestGetVMEndpoint(t *testing.T) {
 		t.Fatal("Couldn't fill temp settings file")
 	}
 
-	endpoint, err := getVMEndpoint(tempSettingsFile.Name())
+	endpoint, err := getMSIVMEndpoint(tempSettingsFile.Name())
 	if err != nil {
 		t.Fatal("Coudn't get VM endpoint")
 	}

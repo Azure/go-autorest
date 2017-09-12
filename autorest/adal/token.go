@@ -259,26 +259,12 @@ func NewServicePrincipalTokenFromCertificate(oauthConfig OAuthConfig, clientID s
 	)
 }
 
-// Resource enumerates resources from which MSI authentication is supported
-type Resource string
-
-const (
-	// VirtualMachine specifies MSI support for VMs
-	VirtualMachine Resource = "VM"
-)
-
-// GetMSIEndpoint gets the correct endpoint for MSI auth depending on which resource
-// code is running on.
-func GetMSIEndpoint(resource Resource) (string, error) {
-	switch resource {
-	case VirtualMachine:
-		return getVMEndpoint(msiPath)
-	default:
-		return "", fmt.Errorf("Resource '%s' is not supported", resource)
-	}
+// GetMSIVMEndpoint gets the MSI endpoint on Virtual Machines.
+func GetMSIVMEndpoint() (string, error) {
+	return getMSIVMEndpoint(msiPath)
 }
 
-func getVMEndpoint(path string) (string, error) {
+func getMSIVMEndpoint(path string) (string, error) {
 	// Read MSI settings
 	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
