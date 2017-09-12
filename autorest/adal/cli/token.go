@@ -1,10 +1,11 @@
-package adal
+package cli
 
 import (
 	"fmt"
 	"strconv"
 	"time"
 
+	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/mitchellh/go-homedir"
 )
 
@@ -22,41 +23,15 @@ type AzureCLIToken struct {
 	UserID           string `json:"userId"`
 }
 
-// AzureCLIProfile represents a Profile from the Azure CLI
-type AzureCLIProfile struct {
-	InstallationID string                 `json:"installationId"`
-	Subscriptions  []AzureCLISubscription `json:"subscriptions"`
-}
-
-// AzureCLISubscription represents a Subscription from the Azure CLI
-type AzureCLISubscription struct {
-	EnvironmentName string `json:"environmentName"`
-	ID              string `json:"id"`
-	IsDefault       bool   `json:"isDefault"`
-	Name            string `json:"name"`
-	State           string `json:"state"`
-	TenantID        string `json:"tenantId"`
-}
-
-// AzureCLIAccessTokensPath returns the path where access tokens are stored from the Azure CLI
-func AzureCLIAccessTokensPath() (string, error) {
-	return homedir.Expand("~/.azure/accessTokens.json")
-}
-
-// AzureCLIProfilePath returns the path where the Azure Profile is stored from the Azure CLI
-func AzureCLIProfilePath() (string, error) {
-	return homedir.Expand("~/.azure/azureProfile.json")
-}
-
 // ToToken converts an AzureCLIToken to a Token
-func (t AzureCLIToken) ToToken() (*Token, error) {
+func (t AzureCLIToken) ToToken() (*adal.Token, error) {
 	tokenExpirationDate, err := ParseAzureCLIExpirationDate(t.ExpiresOn)
 	if err != nil {
 		return nil, fmt.Errorf("Error parsing Token Expiration Date %q: %+v", t.ExpiresOn, err)
 	}
 
-	difference := tokenExpirationDate.Sub(expirationBase)
-	token := Token{
+	difference := tokenExpirationDate.Sub(adal.ExpirationBase)
+	token := adal.Token{
 		AccessToken:  t.AccessToken,
 		Type:         t.TokenType,
 		ExpiresIn:    "3600",
@@ -65,6 +40,11 @@ func (t AzureCLIToken) ToToken() (*Token, error) {
 		Resource:     t.Resource,
 	}
 	return &token, nil
+}
+
+// AzureCLIAccessTokensPath returns the path where access tokens are stored from the Azure CLI
+func AzureCLIAccessTokensPath() (string, error) {
+	return homedir.Expand("~/.azure/accessTokens.json")
 }
 
 // ParseAzureCLIExpirationDate parses either a Azure CLI or CloudShell date into a time object
