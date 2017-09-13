@@ -15,12 +15,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/dgrijalva/jwt-go"
 )
 
 const (
 	defaultRefresh = 5 * time.Minute
-	tokenBaseDate  = "1970-01-01T00:00:00Z"
 
 	// OAuthGrantTypeDeviceCode is the "grant_type" identifier used in device flow
 	OAuthGrantTypeDeviceCode = "device_code"
@@ -34,12 +34,6 @@ const (
 	// managedIdentitySettingsPath is the path to the MSI Extension settings file (to discover the endpoint)
 	managedIdentitySettingsPath = "/var/lib/waagent/ManagedIdentity-Settings"
 )
-
-var ExpirationBase time.Time
-
-func init() {
-	ExpirationBase, _ = time.Parse(time.RFC3339, tokenBaseDate)
-}
 
 // OAuthTokenProvider is an interface which should be implemented by an access token retriever
 type OAuthTokenProvider interface {
@@ -76,7 +70,10 @@ func (t Token) Expires() time.Time {
 	if err != nil {
 		s = -3600
 	}
-	return ExpirationBase.Add(time.Duration(s) * time.Second).UTC()
+
+	expiration := date.NewUnixTimeFromSeconds(float64(s))
+
+	return time.Time(expiration).UTC()
 }
 
 // IsExpired returns true if the Token is expired, false otherwise.
