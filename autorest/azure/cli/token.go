@@ -1,7 +1,9 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -66,4 +68,22 @@ func ParseExpirationDate(input string) (*time.Time, error) {
 	}
 
 	return &expirationDate, nil
+}
+
+// LoadTokens restores a set of Token objects from a file located at 'path'.
+func LoadTokens(path string) ([]Token, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file (%s) while loading token: %v", path, err)
+	}
+	defer file.Close()
+
+	var tokens []Token
+
+	dec := json.NewDecoder(file)
+	if err = dec.Decode(&tokens); err != nil {
+		return nil, fmt.Errorf("failed to decode contents of file (%s) into a `cli.Token` representation: %v", path, err)
+	}
+
+	return tokens, nil
 }
