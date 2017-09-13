@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/mocks"
 )
 
@@ -342,7 +343,7 @@ func TestServicePrincipalTokenRefreshReturnsErrorIfNotOk(t *testing.T) {
 func TestServicePrincipalTokenRefreshUnmarshals(t *testing.T) {
 	spt := newServicePrincipalToken()
 
-	expiresOn := strconv.Itoa(int(time.Now().Add(3600 * time.Second).Sub(expirationBase).Seconds()))
+	expiresOn := strconv.Itoa(int(time.Now().Add(3600 * time.Second).Sub(date.UnixEpoch()).Seconds()))
 	j := newTokenJSON(expiresOn, "resource")
 	resp := mocks.NewResponseWithContent(j)
 	c := mocks.NewSender()
@@ -430,7 +431,7 @@ func TestRefreshCallback(t *testing.T) {
 		return nil
 	})
 
-	expiresOn := strconv.Itoa(int(time.Now().Add(3600 * time.Second).Sub(expirationBase).Seconds()))
+	expiresOn := strconv.Itoa(int(time.Now().Add(3600 * time.Second).Sub(date.UnixEpoch()).Seconds()))
 
 	sender := mocks.NewSender()
 	j := newTokenJSON(expiresOn, "resource")
@@ -451,7 +452,7 @@ func TestRefreshCallbackErrorPropagates(t *testing.T) {
 		return fmt.Errorf(errorText)
 	})
 
-	expiresOn := strconv.Itoa(int(time.Now().Add(3600 * time.Second).Sub(expirationBase).Seconds()))
+	expiresOn := strconv.Itoa(int(time.Now().Add(3600 * time.Second).Sub(date.UnixEpoch()).Seconds()))
 
 	sender := mocks.NewSender()
 	j := newTokenJSON(expiresOn, "resource")
@@ -554,7 +555,7 @@ func expireToken(t *Token) *Token {
 
 func setTokenToExpireAt(t *Token, expireAt time.Time) *Token {
 	t.ExpiresIn = "3600"
-	t.ExpiresOn = strconv.Itoa(int(expireAt.Sub(expirationBase).Seconds()))
+	t.ExpiresOn = strconv.Itoa(int(expireAt.Sub(date.UnixEpoch()).Seconds()))
 	t.NotBefore = t.ExpiresOn
 	return t
 }

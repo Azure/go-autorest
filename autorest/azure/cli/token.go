@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/Azure/go-autorest/autorest/adal"
+	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/mitchellh/go-homedir"
 )
 
-// AzureCLIToken represents an AccessToken from the Azure CLI
-type AzureCLIToken struct {
+// Token represents an AccessToken from the Azure CLI
+type Token struct {
 	AccessToken      string `json:"accessToken"`
 	Authority        string `json:"_authority"`
 	ClientID         string `json:"_clientId"`
@@ -23,15 +24,17 @@ type AzureCLIToken struct {
 	UserID           string `json:"userId"`
 }
 
-// ToToken converts an AzureCLIToken to a Token
-func (t AzureCLIToken) ToToken() (*adal.Token, error) {
-	tokenExpirationDate, err := ParseAzureCLIExpirationDate(t.ExpiresOn)
+// ToADALToken converts an Azure CLI `Token`` to an `adal.Token``
+func (t Token) ToADALToken() (converted adal.Token, err error) {
+	tokenExpirationDate, err := ParseExpirationDate(t.ExpiresOn)
 	if err != nil {
-		return nil, fmt.Errorf("Error parsing Token Expiration Date %q: %+v", t.ExpiresOn, err)
+		err = fmt.Errorf("Error parsing Token Expiration Date %q: %+v", t.ExpiresOn, err)
+		return
 	}
 
-	difference := tokenExpirationDate.Sub(adal.ExpirationBase)
-	token := adal.Token{
+	difference := tokenExpirationDate.Sub(date.UnixEpoch())
+
+	converted = adal.Token{
 		AccessToken:  t.AccessToken,
 		Type:         t.TokenType,
 		ExpiresIn:    "3600",
@@ -39,21 +42,21 @@ func (t AzureCLIToken) ToToken() (*adal.Token, error) {
 		RefreshToken: t.RefreshToken,
 		Resource:     t.Resource,
 	}
-	return &token, nil
+	return
 }
 
-// AzureCLIAccessTokensPath returns the path where access tokens are stored from the Azure CLI
-func AzureCLIAccessTokensPath() (string, error) {
+// AccessTokensPath returns the path where access tokens are stored from the Azure CLI
+func AccessTokensPath() (string, error) {
 	return homedir.Expand("~/.azure/accessTokens.json")
 }
 
-// ParseAzureCLIExpirationDate parses either a Azure CLI or CloudShell date into a time object
-func ParseAzureCLIExpirationDate(input string) (*time.Time, error) {
+// ParseExpirationDate parses either a Azure CLI or CloudShell date into a time object
+func ParseExpirationDate(input string) (*time.Time, error) {
 	// CloudShell (and potentially the Azure CLI in future)
 	expirationDate, cloudShellErr := time.Parse(time.RFC3339, input)
 	if cloudShellErr != nil {
 		// Azure CLI (Python) e.g. 2017-08-31 19:48:57.998857 (plus the local timezone)
-		cliFormat := "2006-01-02 15:04:05.999999"
+		const cliFormat = "2006-01-02 15:04:05.999999"
 		expirationDate, cliErr := time.ParseInLocation(cliFormat, input, time.Local)
 		if cliErr == nil {
 			return &expirationDate, nil
