@@ -353,7 +353,8 @@ func TestWithErrorUnlessStatusCode_UnwrappedError(t *testing.T) {
 		WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByClosing())
 	if err == nil {
-		t.Fatalf("azure: returned nil error for proper error response")
+		t.Logf("azure: returned nil error for proper error response")
+		t.Fail()
 	}
 	azErr, ok := err.(*RequestError)
 	if !ok {
@@ -373,8 +374,8 @@ func TestWithErrorUnlessStatusCode_UnwrappedError(t *testing.T) {
 	}
 
 	details, _ := json.Marshal(*azErr.ServiceError.Details)
-	if string(details) != `[{"code":"conflict1","message":"error message1"},{"code":"conflict2","message":"error message2"}]` {
-		t.Fatalf("azure: error details is not unmarshaled properly")
+	if expected := `[{"code":"conflict1","message":"error message1"},{"code":"conflict2","message":"error message2"}]`; string(details) != expected {
+		t.Fatalf("azure: error details is not unmarshaled properly. Got=\"%s\"; Expected=\"%s\"", expected, string(details))
 	}
 
 	_ = azErr.Error()

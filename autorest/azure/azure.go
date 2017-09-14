@@ -170,7 +170,10 @@ func WithErrorUnlessStatusCode(codes ...int) autorest.RespondDecorator {
 					if err := json.Unmarshal(b.Bytes(), &se); err == nil && se.Message != "" {
 						e.ServiceError = se
 					} else {
-						e.ServiceError = &ServiceError{Code: "Unknown", Message: "Unknown service error"}
+						e.ServiceError = &ServiceError{
+							Code:    "Unknown",
+							Message: "Unknown service error",
+						}
 					}
 				}
 
