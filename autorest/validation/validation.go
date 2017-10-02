@@ -105,15 +105,12 @@ func validateStruct(x reflect.Value, v Constraint, name ...string) error {
 		return createError(x, v, fmt.Sprintf("field %q doesn't exist", v.Target))
 	}
 
-	if err := Validate([]Validation{
+	return Validate([]Validation{
 		{
 			TargetValue: getInterfaceValue(f),
 			Constraints: []Constraint{v},
 		},
-	}); err != nil {
-		return err
-	}
-	return nil
+	})
 }
 
 func validatePtr(x reflect.Value, v Constraint) error {
