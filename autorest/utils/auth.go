@@ -2,11 +2,13 @@ package utils
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"unicode/utf16"
 
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/adal"
@@ -72,8 +74,11 @@ func GetTokenFromAuthFile(baseURI string) (auth Auth, err error) {
 		return
 	}
 
-	// Auth file might be UTF-16 LE encoded
-	decoded := decode(contents)
+	// Auth file might be encoded
+	decoded, err := decode(contents)
+	if err != nil {
+		return
+	}
 
 	var af map[string]string
 	err = json.Unmarshal(decoded, &af)
@@ -99,18 +104,34 @@ func GetTokenFromAuthFile(baseURI string) (auth Auth, err error) {
 	return
 }
 
-func decode(b []byte) []byte {
+func decode(b []byte) ([]byte, error) {
 	utf16leBOM := []byte{255, 254}
-	if bytes.HasPrefix(b, utf16leBOM) {
-		b = bytes.TrimPrefix(b, utf16leBOM)
+	utf16beBOM := []byte{254, 255}
+	utf8BOM := []byte{239, 187, 191}
 
-		decoded := new(bytes.Buffer)
-		for i := 0; i < len(b); i += 2 {
-			decoded.WriteByte(b[i])
+	switch {
+	case bytes.HasPrefix(b, utf16leBOM):
+		b = bytes.TrimPrefix(b, utf16leBOM)
+		u16 := make([]uint16, (len(b) / 2))
+		buf := bytes.NewReader(b)
+		err := binary.Read(buf, binary.LittleEndian, &u16)
+		if err != nil {
+			return nil, err
 		}
-		return decoded.Bytes()
+		return []byte(string(utf16.Decode(u16))), nil
+	case bytes.HasPrefix(b, utf16beBOM):
+		b = bytes.TrimPrefix(b, utf16beBOM)
+		u16 := make([]uint16, (len(b) / 2))
+		buf := bytes.NewReader(b)
+		err := binary.Read(buf, binary.BigEndian, &u16)
+		if err != nil {
+			return nil, err
+		}
+		return []byte(string(utf16.Decode(u16))), nil
+	case bytes.HasPrefix(b, utf8BOM):
+		return bytes.TrimPrefix(b, utf8BOM), nil
 	}
-	return b
+	return b, nil
 }
 
 func getResourceKey(baseURI string) string {
