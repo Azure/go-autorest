@@ -33,6 +33,7 @@ var (
 		Version(),
 	)
 
+	// StatusCodesForRetry are response status codes for which the client will retry the request.
 	StatusCodesForRetry = []int{
 		http.StatusRequestTimeout,      // 408
 		http.StatusTooManyRequests,     // 429
