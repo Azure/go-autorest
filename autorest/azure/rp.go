@@ -10,27 +10,23 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 )
 
-func RegisterResourceProvider(attempts int, backoff time.Duration, codes ...int) autorest.SendDecorator {
+// RegisterResourceProvider tries to register the Azure resource provider
+// in case it is not registered yet.
+func RegisterResourceProvider(attempts int, backoff time.Duration) autorest.SendDecorator {
 	return func(s autorest.Sender) autorest.Sender {
 		return autorest.SenderFunc(func(r *http.Request) (resp *http.Response, err error) {
-			fmt.Println("RegisterResourceProvider")
 			rr := autorest.NewRetriableRequest(r)
 			err = rr.Prepare()
 			if err != nil {
-				fmt.Println("err = rr.Prepare() failed")
 				return resp, err
 			}
 
-			fmt.Println(rr.Request())
 			resp, err = s.Do(rr.Request())
 			if err != nil {
 				return resp, err
 			}
 
 			if resp.StatusCode == http.StatusConflict {
-				fmt.Println("omgomg status conflict")
-				fmt.Println(resp)
-
 				var re RequestError
 				err = autorest.Respond(
 					resp,
@@ -42,21 +38,19 @@ func RegisterResourceProvider(attempts int, backoff time.Duration, codes ...int)
 				}
 
 				if re.ServiceError != nil && re.ServiceError.Code == "MissingSubscriptionRegistration" {
-					fmt.Println("Dun dun dun, you need to register")
 					err = register(s, r)
 					if err != nil {
-						fmt.Println("Errore")
-						fmt.Println(err)
-						return resp, err
+						return resp, fmt.Errorf("failed auto registering Resource Provider: %s", err)
 					}
-					fmt.Println("Registered!")
 				}
 			}
-			fmt.Println("Now lets retry...")
+			err = rr.Prepare()
+			if err != nil {
+				return resp, err
+			}
 			resp, err = autorest.SendWithSender(s, rr.Request(),
-				autorest.DoRetryForStatusCodes(attempts, backoff, codes...))
-
-			fmt.Println("retries done!")
+				autorest.DoRetryForStatusCodes(attempts, backoff, autorest.StatusCodesForRetry...),
+			)
 			return resp, err
 		})
 	}
@@ -92,13 +86,16 @@ func register(sender autorest.Sender, originalReq *http.Request) error {
 		if err != nil {
 			return err
 		}
-		//
-		fmt.Println(req)
 		resp, err := sender.Do(req)
-		fmt.Println(resp)
 		if err != nil {
 			return err
 		}
+		return autorest.Respond(
+			resp,
+			WithErrorUnlessStatusCode(http.StatusOK),
+			autorest.ByClosing(),
+		)
+
 	}
 	return nil
 }

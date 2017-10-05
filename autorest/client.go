@@ -33,7 +33,8 @@ var (
 		Version(),
 	)
 
-	statusCodesForRetry = []int{
+	// StatusCodesForRetry is a group of code for which the client could retry requests
+	StatusCodesForRetry = []int{
 		http.StatusRequestTimeout,      // 408
 		http.StatusTooManyRequests,     // 429
 		http.StatusInternalServerError, // 500
