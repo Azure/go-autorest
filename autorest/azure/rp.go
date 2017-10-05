@@ -5,14 +5,13 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/Azure/go-autorest/autorest"
 )
 
 // RegisterResourceProvider tries to register the Azure resource provider
 // in case it is not registered yet.
-func RegisterResourceProvider(attempts int, backoff time.Duration) autorest.SendDecorator {
+func RegisterResourceProvider() autorest.SendDecorator {
 	return func(s autorest.Sender) autorest.Sender {
 		return autorest.SenderFunc(func(r *http.Request) (resp *http.Response, err error) {
 			rr := autorest.NewRetriableRequest(r)
