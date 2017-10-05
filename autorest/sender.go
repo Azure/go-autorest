@@ -265,7 +265,7 @@ func DoRetryForDuration(d time.Duration, backoff time.Duration) SendDecorator {
 func WithLogging(logger *log.Logger) SendDecorator {
 	return func(s Sender) Sender {
 		return SenderFunc(func(r *http.Request) (*http.Response, error) {
-			logger.Printf("Sending %s %s with headers %s", r.Method, r.URL, r.Header)
+			logger.Printf("Sending %s %s", r.Method, r.URL)
 			resp, err := s.Do(r)
 			if err != nil {
 				logger.Printf("%s %s received error '%v'", r.Method, r.URL, err)
