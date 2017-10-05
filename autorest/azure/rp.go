@@ -45,9 +45,6 @@ func RegisterResourceProvider(attempts int, backoff time.Duration) autorest.Send
 				}
 			}
 			err = rr.Prepare()
-			if err != nil {
-				return resp, err
-			}
 			return resp, err
 		})
 	}
