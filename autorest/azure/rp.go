@@ -48,9 +48,6 @@ func RegisterResourceProvider(attempts int, backoff time.Duration) autorest.Send
 			if err != nil {
 				return resp, err
 			}
-			resp, err = autorest.SendWithSender(s, rr.Request(),
-				autorest.DoRetryForStatusCodes(attempts, backoff, autorest.StatusCodesForRetry...),
-			)
 			return resp, err
 		})
 	}
