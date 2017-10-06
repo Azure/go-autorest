@@ -5,22 +5,18 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"unicode/utf16"
+
+	"github.com/Azure/go-autorest/autorest/azure"
 
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/dimchansky/utfbom"
 )
-
-var pcEndpoints = map[string]string{
-	"managementEndpointUrl":          "https://management.core.windows.net",
-	"resourceManagerEndpointUrl":     "https://management.azure.com",
-	"activeDirectoryEndpointUrl":     "https://login.microsoftonline.com",
-	"galleryEndpointUrl":             "https://gallery.azure.com",
-	"activeDirectoryGraphResourceId": "https://graph.windows.net",
-}
 
 // Auth includes authentication details for ARM clients
 type Auth struct {
@@ -54,7 +50,10 @@ func GetTokenFromAuthFile(baseURI string) (auth Auth, err error) {
 	}
 	auth.File = af
 
-	k := getResourceKey(baseURI)
+	k, err := getResourceKey(baseURI)
+	if err != nil {
+		return
+	}
 	auth.BaseURI = af[k]
 
 	config, err := adal.NewOAuthConfig(af["activeDirectoryEndpointUrl"], af["tenantId"])
@@ -93,11 +92,18 @@ func decode(b []byte) ([]byte, error) {
 	return ioutil.ReadAll(reader)
 }
 
-func getResourceKey(baseURI string) string {
+func getResourceKey(baseURI string) (string, error) {
+	pcEndpoints := map[string]string{
+		"managementEndpointUrl":          strings.TrimSuffix(azure.PublicCloud.ServiceManagementEndpoint, "/"),
+		"resourceManagerEndpointUrl":     strings.TrimSuffix(azure.PublicCloud.ResourceManagerEndpoint, "/"),
+		"activeDirectoryEndpointUrl":     strings.TrimSuffix(azure.PublicCloud.ActiveDirectoryEndpoint, "/"),
+		"galleryEndpointUrl":             strings.TrimSuffix(azure.PublicCloud.GalleryEndpoint, "/"),
+		"activeDirectoryGraphResourceId": strings.TrimSuffix(azure.PublicCloud.GraphEndpoint, "/"),
+	}
 	for k, v := range pcEndpoints {
 		if baseURI == v {
-			return k
+			return k, nil
 		}
 	}
-	return ""
+	return "", fmt.Errorf("auth: base URI not found in endpoints")
 }
