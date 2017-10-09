@@ -347,6 +347,65 @@ func TestWithErrorUnlessStatusCode_NoAzureError(t *testing.T) {
 
 }
 
+func TestWithErrorUnlessStatusCode_UnwrappedError(t *testing.T) {
+	j := `{
+		"target": null,
+		"code": "InternalError",
+		"message": "Azure is having trouble right now.",
+		"details": [{"code": "conflict1", "message":"error message1"},
+					{"code": "conflict2", "message":"error message2"}],
+		"innererror": []
+}`
+	uuid := "71FDB9F4-5E49-4C12-B266-DE7B4FD999A6"
+	r := mocks.NewResponseWithContent(j)
+	mocks.SetResponseHeader(r, HeaderRequestID, uuid)
+	r.Request = mocks.NewRequest()
+	r.StatusCode = http.StatusInternalServerError
+	r.Status = http.StatusText(r.StatusCode)
+
+	err := autorest.Respond(r,
+		WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByClosing())
+	if err == nil {
+		t.Logf("azure: returned nil error for proper error response")
+		t.Fail()
+	}
+	azErr, ok := err.(*RequestError)
+	if !ok {
+		t.Fatalf("azure: returned error is not azure.RequestError: %T", err)
+	}
+
+	if expected := http.StatusInternalServerError; azErr.StatusCode != expected {
+		t.Fatalf("azure: got wrong StatusCode=%v Expected=%d", azErr.StatusCode, expected)
+	}
+
+	if expected := "Azure is having trouble right now."; azErr.ServiceError.Message != expected {
+		t.Fatalf("azure: got wrong Message=%s Expected=%s", azErr.Message, expected)
+	}
+
+	if expected := uuid; azErr.RequestID != expected {
+		t.Fatalf("azure: wrong request ID in error. expected=%q; got=%q", expected, azErr.RequestID)
+	}
+
+	details, _ := json.Marshal(*azErr.ServiceError.Details)
+	if expected := `[{"code":"conflict1","message":"error message1"},{"code":"conflict2","message":"error message2"}]`; string(details) != expected {
+		t.Fatalf("azure: error details is not unmarshaled properly. Got=\"%s\"; Expected=\"%s\"", expected, string(details))
+	}
+
+	_ = azErr.Error()
+
+	// the error body should still be there
+	defer r.Body.Close()
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(b) != j {
+		t.Fatalf("response body is wrong. got=%q expected=%q", string(b), j)
+	}
+
+}
+
 func TestRequestErrorString_WithError(t *testing.T) {
 	j := `{
 		"error": {
