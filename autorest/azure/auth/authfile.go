@@ -26,16 +26,16 @@ type Auth struct {
 
 // File represents the authentication file
 type File struct {
-	ClientID                string `json:"clientId,ompitempty"`
-	ClientSecret            string `json:"clientSecret,ompitempty"`
-	SubscriptionID          string `json:"subscriptionId,ompitempty"`
-	TenantID                string `json:"tenantId,ompitempty"`
-	ActiveDirectoryEndpoint string `json:"activeDirectoryEndpointUrl,ompitempty"`
-	ResourceManagerEndpoint string `json:"resourceManagerEndpointUrl,ompitempty"`
-	GraphResourceID         string `json:"activeDirectoryGraphResourceId,ompitempty"`
-	SQLManagementEndpoint   string `json:"sqlManagementEndpointUrl,ompitempty"`
-	GalleryEndpoint         string `json:"galleryEndpointUrl,ompitempty"`
-	ManagementEndpoint      string `json:"managementEndpointUrl,ompitempty"`
+	ClientID                string `json:"clientId,omitempty"`
+	ClientSecret            string `json:"clientSecret,omitempty"`
+	SubscriptionID          string `json:"subscriptionId,omitempty"`
+	TenantID                string `json:"tenantId,omitempty"`
+	ActiveDirectoryEndpoint string `json:"activeDirectoryEndpointUrl,omitempty"`
+	ResourceManagerEndpoint string `json:"resourceManagerEndpointUrl,omitempty"`
+	GraphResourceID         string `json:"activeDirectoryGraphResourceId,omitempty"`
+	SQLManagementEndpoint   string `json:"sqlManagementEndpointUrl,omitempty"`
+	GalleryEndpoint         string `json:"galleryEndpointUrl,omitempty"`
+	ManagementEndpoint      string `json:"managementEndpointUrl,omitempty"`
 }
 
 // GetTokenFromAuthFile creates an authorizer from an Azure CLI auth file
