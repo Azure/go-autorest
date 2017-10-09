@@ -24,25 +24,25 @@ var (
 	}
 )
 
-func TestGetTokenFromAuthFile(t *testing.T) {
+func TestGetClientSetup(t *testing.T) {
 	os.Setenv("AZURE_AUTH_LOCATION", filepath.Join(getCredsPath(), "credsutf16le.json"))
-	auth, err := GetTokenFromAuthFile("https://management.azure.com")
+	setup, err := GetClientSetup("https://management.azure.com")
 	if err != nil {
-		t.Logf("GetTokenFromAuthFile failed, got error %v", err)
+		t.Logf("GetClientSetup failed, got error %v", err)
 		t.Fail()
 	}
 
-	if auth.BaseURI != "https://management.azure.com/" {
-		t.Logf("auth.BaseURI not set correctly, expected 'https://management.azure.com/', got '%s'", auth.BaseURI)
+	if setup.BaseURI != "https://management.azure.com/" {
+		t.Logf("auth.BaseURI not set correctly, expected 'https://management.azure.com/', got '%s'", setup.BaseURI)
 		t.Fail()
 	}
 
-	if !reflect.DeepEqual(expectedFile, auth.File) {
-		t.Logf("auth.File not set correctly, expected %v, got %v", expectedFile, auth.File)
+	if !reflect.DeepEqual(expectedFile, setup.File) {
+		t.Logf("auth.File not set correctly, expected %v, got %v", expectedFile, setup.File)
 		t.Fail()
 	}
 
-	if auth.Authorizer == nil {
+	if setup.BearerAuthorizer == nil {
 		t.Log("auth.Authorizer not set correctly, got nil")
 		t.Fail()
 	}

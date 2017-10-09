@@ -17,9 +17,10 @@ import (
 	"github.com/dimchansky/utfbom"
 )
 
-// Auth includes authentication details for ARM clients
-type Auth struct {
-	Authorizer *autorest.BearerAuthorizer
+// ClientSetup includes authentication details and cloud specific
+// parameters for ARM clients
+type ClientSetup struct {
+	*autorest.BearerAuthorizer
 	File
 	BaseURI string
 }
@@ -38,8 +39,9 @@ type File struct {
 	ManagementEndpoint      string `json:"managementEndpointUrl,omitempty"`
 }
 
-// GetTokenFromAuthFile creates an authorizer from an Azure CLI auth file
-func GetTokenFromAuthFile(baseURI string) (auth Auth, err error) {
+// GetClientSetup provides an authorizer, base URI, subscriptionID and
+// tenantID parameters from an Azure CLI auth file
+func GetClientSetup(baseURI string) (auth ClientSetup, err error) {
 	fileLocation := os.Getenv("AZURE_AUTH_LOCATION")
 	if fileLocation == "" {
 		return auth, errors.New("auth file not found. Environment variable AZURE_AUTH_LOCATION is not set")
@@ -61,7 +63,7 @@ func GetTokenFromAuthFile(baseURI string) (auth Auth, err error) {
 		return
 	}
 
-	resource, err := getResource(auth.File, baseURI)
+	resource, err := getResourceForToken(auth.File, baseURI)
 	if err != nil {
 		return
 	}
@@ -77,7 +79,7 @@ func GetTokenFromAuthFile(baseURI string) (auth Auth, err error) {
 		return
 	}
 
-	auth.Authorizer = autorest.NewBearerAuthorizer(spToken)
+	auth.BearerAuthorizer = autorest.NewBearerAuthorizer(spToken)
 	return
 }
 
@@ -103,8 +105,11 @@ func decode(b []byte) ([]byte, error) {
 	return ioutil.ReadAll(reader)
 }
 
-func getResource(f File, baseURI string) (string, error) {
-	// Compare dafault base URI from the SDK to the endpounts from the public cloud
+func getResourceForToken(f File, baseURI string) (string, error) {
+	// Compare dafault base URI from the SDK to the endpoints from the public cloud
+	// Base URI and token resource are the same string. This func finds the authentication
+	// file field that matches the SDK base URI. The SDK defines the public cloud
+	// endpoint as its default base URI
 	if !strings.HasSuffix(baseURI, "/") {
 		baseURI += "/"
 	}
