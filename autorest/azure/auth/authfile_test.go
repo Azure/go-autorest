@@ -5,21 +5,22 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
 var (
-	expectedFile = map[string]string{
-		"clientId":                       "client-id-123",
-		"clientSecret":                   "client-secret-456",
-		"subscriptionId":                 "sub-id-789",
-		"tenantId":                       "tenant-id-123",
-		"activeDirectoryEndpointUrl":     "https://login.microsoftonline.com",
-		"resourceManagerEndpointUrl":     "https://management.azure.com/",
-		"activeDirectoryGraphResourceId": "https://graph.windows.net/",
-		"sqlManagementEndpointUrl":       "https://management.core.windows.net:8443/",
-		"galleryEndpointUrl":             "https://gallery.azure.com/",
-		"managementEndpointUrl":          "https://management.core.windows.net/",
+	expectedFile = File{
+		ClientID:                "client-id-123",
+		ClientSecret:            "client-secret-456",
+		SubscriptionID:          "sub-id-789",
+		TenantID:                "tenant-id-123",
+		ActiveDirectoryEndpoint: "https://login.microsoftonline.com",
+		ResourceManagerEndpoint: "https://management.azure.com/",
+		GraphResourceID:         "https://graph.windows.net/",
+		SQLManagementEndpoint:   "https://management.core.windows.net:8443/",
+		GalleryEndpoint:         "https://gallery.azure.com/",
+		ManagementEndpoint:      "https://management.core.windows.net/",
 	}
 )
 
@@ -36,7 +37,7 @@ func TestGetTokenFromAuthFile(t *testing.T) {
 		t.Fail()
 	}
 
-	if areMapsEqual(expectedFile, auth.File) == false {
+	if !reflect.DeepEqual(expectedFile, auth.File) {
 		t.Logf("auth.File not set correctly, expected %v, got %v", expectedFile, auth.File)
 		t.Fail()
 	}
@@ -65,13 +66,13 @@ func TestDecodeAndUnmarshal(t *testing.T) {
 			t.Logf("error decoding file '%s': %s", test, err)
 			t.Fail()
 		}
-		var got map[string]string
+		var got File
 		err = json.Unmarshal(decoded, &got)
 		if err != nil {
 			t.Logf("error unmarshaling file '%s': %s", test, err)
 			t.Fail()
 		}
-		if areMapsEqual(expectedFile, got) == false {
+		if !reflect.DeepEqual(expectedFile, got) {
 			t.Logf("unmarshaled map expected %v, got %v", expectedFile, got)
 			t.Fail()
 		}

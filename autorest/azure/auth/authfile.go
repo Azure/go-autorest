@@ -11,18 +11,31 @@ import (
 	"strings"
 	"unicode/utf16"
 
-	"github.com/Azure/go-autorest/autorest/azure"
-
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/adal"
+	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/dimchansky/utfbom"
 )
 
 // Auth includes authentication details for ARM clients
 type Auth struct {
 	Authorizer *autorest.BearerAuthorizer
-	File       map[string]string
-	BaseURI    string
+	File
+	BaseURI string
+}
+
+// File represents the authentication file
+type File struct {
+	ClientID                string `json:"clientId,ompitempty"`
+	ClientSecret            string `json:"clientSecret,ompitempty"`
+	SubscriptionID          string `json:"subscriptionId,ompitempty"`
+	TenantID                string `json:"tenantId,ompitempty"`
+	ActiveDirectoryEndpoint string `json:"activeDirectoryEndpointUrl,ompitempty"`
+	ResourceManagerEndpoint string `json:"resourceManagerEndpointUrl,ompitempty"`
+	GraphResourceID         string `json:"activeDirectoryGraphResourceId,ompitempty"`
+	SQLManagementEndpoint   string `json:"sqlManagementEndpointUrl,ompitempty"`
+	GalleryEndpoint         string `json:"galleryEndpointUrl,ompitempty"`
+	ManagementEndpoint      string `json:"managementEndpointUrl,ompitempty"`
 }
 
 // GetTokenFromAuthFile creates an authorizer from an Azure CLI auth file
@@ -43,25 +56,23 @@ func GetTokenFromAuthFile(baseURI string) (auth Auth, err error) {
 		return
 	}
 
-	var af map[string]string
-	err = json.Unmarshal(decoded, &af)
-	if err != nil {
-		return
-	}
-	auth.File = af
-
-	k, err := getResourceKey(baseURI)
-	if err != nil {
-		return
-	}
-	auth.BaseURI = af[k]
-
-	config, err := adal.NewOAuthConfig(af["activeDirectoryEndpointUrl"], af["tenantId"])
+	err = json.Unmarshal(decoded, &auth.File)
 	if err != nil {
 		return
 	}
 
-	spToken, err := adal.NewServicePrincipalToken(*config, af["clientId"], af["clientSecret"], af[k])
+	resource, err := getResource(auth.File, baseURI)
+	if err != nil {
+		return
+	}
+	auth.BaseURI = resource
+
+	config, err := adal.NewOAuthConfig(auth.ActiveDirectoryEndpoint, auth.TenantID)
+	if err != nil {
+		return
+	}
+
+	spToken, err := adal.NewServicePrincipalToken(*config, auth.ClientID, auth.ClientSecret, resource)
 	if err != nil {
 		return
 	}
@@ -92,18 +103,18 @@ func decode(b []byte) ([]byte, error) {
 	return ioutil.ReadAll(reader)
 }
 
-func getResourceKey(baseURI string) (string, error) {
-	pcEndpoints := map[string]string{
-		"managementEndpointUrl":          strings.TrimSuffix(azure.PublicCloud.ServiceManagementEndpoint, "/"),
-		"resourceManagerEndpointUrl":     strings.TrimSuffix(azure.PublicCloud.ResourceManagerEndpoint, "/"),
-		"activeDirectoryEndpointUrl":     strings.TrimSuffix(azure.PublicCloud.ActiveDirectoryEndpoint, "/"),
-		"galleryEndpointUrl":             strings.TrimSuffix(azure.PublicCloud.GalleryEndpoint, "/"),
-		"activeDirectoryGraphResourceId": strings.TrimSuffix(azure.PublicCloud.GraphEndpoint, "/"),
-	}
-	for k, v := range pcEndpoints {
-		if baseURI == v {
-			return k, nil
-		}
+func getResource(f File, baseURI string) (string, error) {
+	switch baseURI {
+	case strings.TrimSuffix(azure.PublicCloud.ServiceManagementEndpoint, "/"):
+		return f.ManagementEndpoint, nil
+	case strings.TrimSuffix(azure.PublicCloud.ResourceManagerEndpoint, "/"):
+		return f.ResourceManagerEndpoint, nil
+	case strings.TrimSuffix(azure.PublicCloud.ActiveDirectoryEndpoint, "/"):
+		return f.ActiveDirectoryEndpoint, nil
+	case strings.TrimSuffix(azure.PublicCloud.GalleryEndpoint, "/"):
+		return f.GalleryEndpoint, nil
+	case strings.TrimSuffix(azure.PublicCloud.GraphEndpoint, "/"):
+		return f.GraphResourceID, nil
 	}
 	return "", fmt.Errorf("auth: base URI not found in endpoints")
 }
