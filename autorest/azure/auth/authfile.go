@@ -104,16 +104,20 @@ func decode(b []byte) ([]byte, error) {
 }
 
 func getResource(f File, baseURI string) (string, error) {
+	// Compare dafault base URI from the SDK to the endpounts from the public cloud
+	if !strings.HasSuffix(baseURI, "/") {
+		baseURI += "/"
+	}
 	switch baseURI {
-	case strings.TrimSuffix(azure.PublicCloud.ServiceManagementEndpoint, "/"):
+	case azure.PublicCloud.ServiceManagementEndpoint:
 		return f.ManagementEndpoint, nil
-	case strings.TrimSuffix(azure.PublicCloud.ResourceManagerEndpoint, "/"):
+	case azure.PublicCloud.ResourceManagerEndpoint:
 		return f.ResourceManagerEndpoint, nil
-	case strings.TrimSuffix(azure.PublicCloud.ActiveDirectoryEndpoint, "/"):
+	case azure.PublicCloud.ActiveDirectoryEndpoint:
 		return f.ActiveDirectoryEndpoint, nil
-	case strings.TrimSuffix(azure.PublicCloud.GalleryEndpoint, "/"):
+	case azure.PublicCloud.GalleryEndpoint:
 		return f.GalleryEndpoint, nil
-	case strings.TrimSuffix(azure.PublicCloud.GraphEndpoint, "/"):
+	case azure.PublicCloud.GraphEndpoint:
 		return f.GraphResourceID, nil
 	}
 	return "", fmt.Errorf("auth: base URI not found in endpoints")
