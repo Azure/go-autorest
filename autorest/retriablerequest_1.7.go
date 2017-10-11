@@ -4,6 +4,7 @@ package autorest
 
 import (
 	"bytes"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -16,6 +17,9 @@ type RetriableRequest struct {
 
 // Prepare signals that the request is about to be sent.
 func (rr *RetriableRequest) Prepare() (err error) {
+	if rr.br != nil {
+		rr.req.Body = ioutil.NopCloser(rr.br)
+	}
 	// preserve the request body; this is to support retry logic as
 	// the underlying transport will always close the reqeust body
 	if rr.req.Body != nil {

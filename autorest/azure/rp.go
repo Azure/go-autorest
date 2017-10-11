@@ -28,7 +28,6 @@ func RegisterResourceProvider() autorest.SendDecorator {
 			}
 
 			if resp.StatusCode == http.StatusConflict {
-				fmt.Println("status conflict")
 				var re RequestError
 				err = autorest.Respond(
 					resp,
@@ -40,11 +39,19 @@ func RegisterResourceProvider() autorest.SendDecorator {
 				}
 
 				if re.ServiceError != nil && re.ServiceError.Code == "MissingSubscriptionRegistration" {
-					fmt.Println("register..")
 					err = register(s, r, re)
 					if err != nil {
 						return resp, fmt.Errorf("failed auto registering Resource Provider: %s", err)
 					}
+				}
+				err = rr.Prepare()
+				if err != nil {
+					return resp, err
+				}
+
+				resp, err = s.Do(rr.Request())
+				if err != nil {
+					return resp, err
 				}
 			}
 			return resp, err
@@ -122,7 +129,6 @@ func register(sender autorest.Sender, originalReq *http.Request, re RequestError
 	// poll for registered provisioning state
 	var attempt int
 	for err == nil {
-		fmt.Println("poll for registration...")
 		// taken from the resources SDK
 		// https://github.com/Azure/azure-sdk-for-go/blob/9f366792afa3e0ddaecdc860e793ba9d75e76c27/arm/resources/resources/providers.go#L45
 		preparer := autorest.CreatePreparer(
