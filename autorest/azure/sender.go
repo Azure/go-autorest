@@ -11,39 +11,12 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 )
 
-// RegisterResourceProvider tries to register the Azure resource provider
-// in case it is not registered yet.
-func RegisterResourceProvider(delay, duration time.Duration) autorest.SendDecorator {
+// DoRetryForStatusCodes is the Azure specific implementation for retring requests
+func DoRetryForStatusCodes(azc Client, codes ...int) autorest.SendDecorator {
 	return func(s autorest.Sender) autorest.Sender {
 		return autorest.SenderFunc(func(r *http.Request) (resp *http.Response, err error) {
 			rr := autorest.NewRetriableRequest(r)
-			err = rr.Prepare()
-			if err != nil {
-				return resp, err
-			}
-
-			resp, err = s.Do(rr.Request())
-			if err != nil {
-				return resp, err
-			}
-
-			if resp.StatusCode == http.StatusConflict {
-				var re RequestError
-				err = autorest.Respond(
-					resp,
-					autorest.ByUnmarshallingJSON(&re),
-					autorest.ByClosing(),
-				)
-				if err != nil {
-					return resp, err
-				}
-
-				if re.ServiceError != nil && re.ServiceError.Code == "MissingSubscriptionRegistration" {
-					err = register(s, r, re, delay, duration)
-					if err != nil {
-						return resp, fmt.Errorf("failed auto registering Resource Provider: %s", err)
-					}
-				}
+			for attempt := 0; attempt <= azc.RetryAttempts; attempt++ {
 				err = rr.Prepare()
 				if err != nil {
 					return resp, err
@@ -52,6 +25,32 @@ func RegisterResourceProvider(delay, duration time.Duration) autorest.SendDecora
 				resp, err = s.Do(rr.Request())
 				if err != nil {
 					return resp, err
+				}
+
+				if resp.StatusCode == http.StatusConflict {
+					var re RequestError
+					err = autorest.Respond(
+						resp,
+						autorest.ByUnmarshallingJSON(&re),
+						autorest.ByClosing(),
+					)
+					if err != nil {
+						return resp, err
+					}
+
+					if re.ServiceError != nil && re.ServiceError.Code == "MissingSubscriptionRegistration" {
+						err = register(azc, r, re)
+						if err != nil {
+							return resp, fmt.Errorf("failed auto registering Resource Provider: %s", err)
+						}
+					}
+				}
+				if !autorest.ResponseHasStatusCode(resp, codes...) {
+					return resp, err
+				}
+				delayed := autorest.DelayWithRetryAfter(resp, r.Cancel)
+				if !delayed {
+					autorest.DelayForBackoff(azc.RetryDuration, attempt, r.Cancel)
 				}
 			}
 			return resp, err
@@ -69,7 +68,7 @@ func getProvider(re RequestError) (string, error) {
 	return "", errors.New("provider was not found in the response")
 }
 
-func register(sender autorest.Sender, originalReq *http.Request, re RequestError, delay, duration time.Duration) error {
+func register(azc Client, originalReq *http.Request, re RequestError) error {
 	subID := getSubscription(originalReq.URL.Path)
 	if subID == "" {
 		return errors.New("missing parameter subscriptionID to register resource provider")
@@ -106,7 +105,7 @@ func register(sender autorest.Sender, originalReq *http.Request, re RequestError
 		return err
 	}
 	req.Cancel = originalReq.Cancel
-	resp, err := autorest.SendWithSender(sender, req)
+	resp, err := autorest.SendWithSender(azc, req)
 	if err != nil {
 		return err
 	}
@@ -128,7 +127,7 @@ func register(sender autorest.Sender, originalReq *http.Request, re RequestError
 
 	// poll for registered provisioning state
 	now := time.Now()
-	for err == nil && time.Since(now) < duration {
+	for err == nil && time.Since(now) < azc.PollingDuration {
 		// taken from the resources SDK
 		// https://github.com/Azure/azure-sdk-for-go/blob/9f366792afa3e0ddaecdc860e793ba9d75e76c27/arm/resources/resources/providers.go#L45
 		preparer := autorest.CreatePreparer(
@@ -142,7 +141,7 @@ func register(sender autorest.Sender, originalReq *http.Request, re RequestError
 		}
 		req.Cancel = originalReq.Cancel
 
-		resp, err := autorest.SendWithSender(sender, req)
+		resp, err := autorest.SendWithSender(azc, req)
 		if err != nil {
 			return err
 		}
@@ -164,10 +163,10 @@ func register(sender autorest.Sender, originalReq *http.Request, re RequestError
 
 		delayed := autorest.DelayWithRetryAfter(resp, originalReq.Cancel)
 		if !delayed {
-			autorest.DelayForBackoff(delay, 0, originalReq.Cancel)
+			autorest.DelayForBackoff(azc.PollingDelay, 0, originalReq.Cancel)
 		}
 	}
-	if !(time.Since(now) < duration) {
+	if !(time.Since(now) < azc.PollingDuration) {
 		return errors.New("polling for resource provider registration has exceeded the polling duration")
 	}
 	return err
