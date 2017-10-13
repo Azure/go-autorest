@@ -12,6 +12,7 @@ import (
 )
 
 // DoRetryForStatusCodes is the Azure specific implementation for retring requests
+// It also tries to register the resource provider in case it is unregistered
 func DoRetryForStatusCodes(azc Client, codes ...int) autorest.SendDecorator {
 	return func(s autorest.Sender) autorest.Sender {
 		return autorest.SenderFunc(func(r *http.Request) (resp *http.Response, err error) {
@@ -39,7 +40,7 @@ func DoRetryForStatusCodes(azc Client, codes ...int) autorest.SendDecorator {
 					}
 
 					if re.ServiceError != nil && re.ServiceError.Code == "MissingSubscriptionRegistration" {
-						err = register(azc, s, r, re)
+						err = azc.register(s, r, re)
 						if err != nil {
 							return resp, fmt.Errorf("failed auto registering Resource Provider: %s", err)
 						}
@@ -68,7 +69,7 @@ func getProvider(re RequestError) (string, error) {
 	return "", errors.New("provider was not found in the response")
 }
 
-func register(azc Client, s autorest.Sender, originalReq *http.Request, re RequestError) error {
+func (azc Client) register(s autorest.Sender, originalReq *http.Request, re RequestError) error {
 	subID := getSubscription(originalReq.URL.Path)
 	if subID == "" {
 		return errors.New("missing parameter subscriptionID to register resource provider")
@@ -95,7 +96,7 @@ func register(azc Client, s autorest.Sender, originalReq *http.Request, re Reque
 	}
 
 	preparer := autorest.CreatePreparer(
-		azc.AzurePreparation(),
+		azc.azurePreparation(),
 		autorest.AsPost(),
 		autorest.WithBaseURL(newURL.String()),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/providers/{resourceProviderNamespace}/register", pathParameters),
@@ -133,7 +134,7 @@ func register(azc Client, s autorest.Sender, originalReq *http.Request, re Reque
 		// taken from the resources SDK
 		// https://github.com/Azure/azure-sdk-for-go/blob/9f366792afa3e0ddaecdc860e793ba9d75e76c27/arm/resources/resources/providers.go#L45
 		preparer := autorest.CreatePreparer(
-			azc.AzurePreparation(),
+			azc.azurePreparation(),
 			autorest.AsGet(),
 			autorest.WithBaseURL(newURL.String()),
 			autorest.WithPathParameters("/subscriptions/{subscriptionId}/providers/{resourceProviderNamespace}", pathParameters),
