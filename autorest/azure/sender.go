@@ -40,7 +40,8 @@ func DoRetryForStatusCodes(azc Client, codes ...int) autorest.SendDecorator {
 					}
 
 					if re.ServiceError != nil && re.ServiceError.Code == "MissingSubscriptionRegistration" {
-						err = azc.register(s, r, re)
+						azc.Sender = s
+						err = azc.register(r, re)
 						if err != nil {
 							return resp, fmt.Errorf("failed auto registering Resource Provider: %s", err)
 						}
@@ -69,7 +70,7 @@ func getProvider(re RequestError) (string, error) {
 	return "", errors.New("provider was not found in the response")
 }
 
-func (azc Client) register(s autorest.Sender, originalReq *http.Request, re RequestError) error {
+func (azc Client) register(originalReq *http.Request, re RequestError) error {
 	subID := getSubscription(originalReq.URL.Path)
 	if subID == "" {
 		return errors.New("missing parameter subscriptionID to register resource provider")
@@ -108,7 +109,7 @@ func (azc Client) register(s autorest.Sender, originalReq *http.Request, re Requ
 	}
 	req.Cancel = originalReq.Cancel
 
-	resp, err := autorest.SendWithSender(s, req)
+	resp, err := autorest.SendWithSender(azc.Sender, req)
 	if err != nil {
 		return err
 	}
@@ -146,7 +147,7 @@ func (azc Client) register(s autorest.Sender, originalReq *http.Request, re Requ
 		}
 		req.Cancel = originalReq.Cancel
 
-		resp, err := autorest.SendWithSender(s, req)
+		resp, err := autorest.SendWithSender(azc.Sender, req)
 		if err != nil {
 			return err
 		}
