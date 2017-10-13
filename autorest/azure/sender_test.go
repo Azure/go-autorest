@@ -3,7 +3,6 @@ package azure
 import (
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/mocks"
@@ -39,7 +38,7 @@ func TestRegisterResourceProvider(t *testing.T) {
 	client.AppendResponse(mocks.NewResponseWithStatus("200 OK", http.StatusOK))
 
 	r, err := autorest.SendWithSender(client, mocks.NewRequestForURL("https://lol/subscriptions/rofl"),
-		RegisterResourceProvider(time.Second, time.Second*10),
+		DoRetryForStatusCodes(Client{}, statusCodesForRetry...),
 	)
 	if err != nil {
 		t.Fatalf("got error: %v", err)

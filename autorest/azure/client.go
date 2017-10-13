@@ -20,15 +20,11 @@ type Client struct {
 // If Sender is not set, it uses a new instance of http.Client. In both cases it will, if UserAgent
 // is set, apply set the User-Agent header. This is the Azure specific implementation
 func (azc Client) Do(r *http.Request) (*http.Response, error) {
-	if r.UserAgent() == "" {
-		r, _ = autorest.Prepare(r,
-			autorest.WithUserAgent(azc.UserAgent))
-	}
 	r, err := autorest.Prepare(r,
-		azc.WithInspection(),
-		azc.WithAuthorization())
+		azc.AzurePreparation(),
+	)
 	if err != nil {
-		return nil, NewErrorWithError(err, "autorest/Client", "Do", nil, "Preparing request failed")
+		return nil, err
 	}
 	resp, err := autorest.SendWithSender(azc.sender(), r,
 		DoRetryForStatusCodes(azc, statusCodesForRetry...))
@@ -44,4 +40,22 @@ func (azc Client) sender() autorest.Sender {
 		return &http.Client{Jar: j}
 	}
 	return azc.Sender
+}
+
+func (azc Client) AzurePreparation() autorest.PrepareDecorator {
+	return func(p autorest.Preparer) autorest.Preparer {
+		return autorest.PreparerFunc(func(r *http.Request) (*http.Request, error) {
+			if r.UserAgent() == "" {
+				r, _ = autorest.Prepare(r,
+					autorest.WithUserAgent(azc.UserAgent))
+			}
+			r, err := autorest.Prepare(r,
+				azc.WithInspection(),
+				azc.WithAuthorization())
+			if err != nil {
+				return nil, NewErrorWithError(err, "autorest/Client", "Do", nil, "Preparing request failed")
+			}
+			return r, nil
+		})
+	}
 }

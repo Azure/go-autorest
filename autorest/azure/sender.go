@@ -39,7 +39,7 @@ func DoRetryForStatusCodes(azc Client, codes ...int) autorest.SendDecorator {
 					}
 
 					if re.ServiceError != nil && re.ServiceError.Code == "MissingSubscriptionRegistration" {
-						err = register(azc, r, re)
+						err = register(azc, s, r, re)
 						if err != nil {
 							return resp, fmt.Errorf("failed auto registering Resource Provider: %s", err)
 						}
@@ -68,7 +68,7 @@ func getProvider(re RequestError) (string, error) {
 	return "", errors.New("provider was not found in the response")
 }
 
-func register(azc Client, originalReq *http.Request, re RequestError) error {
+func register(azc Client, s autorest.Sender, originalReq *http.Request, re RequestError) error {
 	subID := getSubscription(originalReq.URL.Path)
 	if subID == "" {
 		return errors.New("missing parameter subscriptionID to register resource provider")
@@ -95,6 +95,7 @@ func register(azc Client, originalReq *http.Request, re RequestError) error {
 	}
 
 	preparer := autorest.CreatePreparer(
+		azc.AzurePreparation(),
 		autorest.AsPost(),
 		autorest.WithBaseURL(newURL.String()),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/providers/{resourceProviderNamespace}/register", pathParameters),
@@ -105,7 +106,8 @@ func register(azc Client, originalReq *http.Request, re RequestError) error {
 		return err
 	}
 	req.Cancel = originalReq.Cancel
-	resp, err := autorest.SendWithSender(azc, req)
+
+	resp, err := autorest.SendWithSender(s, req)
 	if err != nil {
 		return err
 	}
@@ -131,17 +133,19 @@ func register(azc Client, originalReq *http.Request, re RequestError) error {
 		// taken from the resources SDK
 		// https://github.com/Azure/azure-sdk-for-go/blob/9f366792afa3e0ddaecdc860e793ba9d75e76c27/arm/resources/resources/providers.go#L45
 		preparer := autorest.CreatePreparer(
+			azc.AzurePreparation(),
 			autorest.AsGet(),
 			autorest.WithBaseURL(newURL.String()),
 			autorest.WithPathParameters("/subscriptions/{subscriptionId}/providers/{resourceProviderNamespace}", pathParameters),
-			autorest.WithQueryParameters(queryParameters))
+			autorest.WithQueryParameters(queryParameters),
+		)
 		req, err = preparer.Prepare(&http.Request{})
 		if err != nil {
 			return err
 		}
 		req.Cancel = originalReq.Cancel
 
-		resp, err := autorest.SendWithSender(azc, req)
+		resp, err := autorest.SendWithSender(s, req)
 		if err != nil {
 			return err
 		}
