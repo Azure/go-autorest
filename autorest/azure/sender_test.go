@@ -38,7 +38,9 @@ func TestRegisterResourceProvider(t *testing.T) {
 	client.AppendResponse(mocks.NewResponseWithStatus("200 OK", http.StatusOK))
 
 	r, err := autorest.SendWithSender(client, mocks.NewRequestForURL("https://lol/subscriptions/rofl"),
-		DoRetryForStatusCodes(Client{}, statusCodesForRetry...),
+		DoRetryForStatusCodes(Client{
+			Client: autorest.NewClientWithUserAgent(""),
+		}, statusCodesForRetry...),
 	)
 	if err != nil {
 		t.Fatalf("got error: %v", err)

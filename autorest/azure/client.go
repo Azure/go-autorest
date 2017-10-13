@@ -42,6 +42,7 @@ func (azc Client) sender() autorest.Sender {
 	return azc.Sender
 }
 
+// AzurePreparation is a prepare decorator that adds a User Agent and Authorization headers to the request
 func (azc Client) AzurePreparation() autorest.PrepareDecorator {
 	return func(p autorest.Preparer) autorest.Preparer {
 		return autorest.PreparerFunc(func(r *http.Request) (*http.Request, error) {
