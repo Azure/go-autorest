@@ -30,8 +30,6 @@ func (rr *RetriableRequest) Prepare() (err error) {
 			// fall back to making a copy (only do this once)
 			err = rr.prepareFromByteReader()
 		}
-		// indicates that the request body needs to be reset
-		rr.reset = true
 	}
 	return err
 }

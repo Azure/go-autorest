@@ -11,10 +11,9 @@ import (
 
 // RetriableRequest provides facilities for retrying an HTTP request.
 type RetriableRequest struct {
-	req   *http.Request
-	rc    io.ReadCloser
-	br    *bytes.Reader
-	reset bool
+	req *http.Request
+	rc  io.ReadCloser
+	br  *bytes.Reader
 }
 
 // Prepare signals that the request is about to be sent.
@@ -42,8 +41,6 @@ func (rr *RetriableRequest) Prepare() (err error) {
 			// fall back to making a copy (only do this once)
 			err = rr.prepareFromByteReader()
 		}
-		// indicates that the request body needs to be reset
-		rr.reset = true
 	}
 	return err
 }
