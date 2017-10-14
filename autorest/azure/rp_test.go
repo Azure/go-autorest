@@ -3,6 +3,7 @@ package azure
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/mocks"
@@ -10,6 +11,9 @@ import (
 
 func TestRegisterResourceProvider(t *testing.T) {
 	client := mocks.NewSender()
+	// first response, should retry because it is a transient error
+	client.AppendResponse(mocks.NewResponseWithStatus("Internal server error", http.StatusInternalServerError))
+	// response indicates the resource provider has not been registered
 	client.AppendResponse(mocks.NewResponseWithBodyAndStatus(mocks.NewBody(`{
 	"error":{
 		"code":"MissingSubscriptionRegistration",
@@ -24,23 +28,29 @@ func TestRegisterResourceProvider(t *testing.T) {
 	}
 }
 `), http.StatusConflict, "MissingSubscriptionRegistration"))
-
+	// first poll response, still not ready
 	client.AppendResponse(mocks.NewResponseWithBodyAndStatus(mocks.NewBody(`{
 	"registrationState": "Registering"
 }
 `), http.StatusOK, "200 OK"))
-
+	// last poll response, respurce provider has been registered
 	client.AppendResponse(mocks.NewResponseWithBodyAndStatus(mocks.NewBody(`{
 	"registrationState": "Registered"
 }
 `), http.StatusOK, "200 OK"))
-
+	// retry original request, response is successful
 	client.AppendResponse(mocks.NewResponseWithStatus("200 OK", http.StatusOK))
 
-	r, err := autorest.SendWithSender(client, mocks.NewRequestForURL("https://lol/subscriptions/rofl"),
-		DoRetryForStatusCodes(Client{
-			Client: autorest.NewClientWithUserAgent(""),
-		}, statusCodesForRetry...),
+	req := mocks.NewRequestForURL("https://lol/subscriptions/rofl")
+	req.Body = mocks.NewBody("lolol")
+	r, err := autorest.SendWithSender(client, req,
+		RegisterResourceProvider(autorest.Client{
+			PollingDelay:    time.Second,
+			PollingDuration: time.Second * 10,
+			RetryAttempts:   5,
+			RetryDuration:   time.Second,
+			Sender:          client,
+		}),
 	)
 	if err != nil {
 		t.Fatalf("got error: %v", err)
