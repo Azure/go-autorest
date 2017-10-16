@@ -9,7 +9,7 @@ import (
 	"github.com/Azure/go-autorest/autorest/mocks"
 )
 
-func TestRegisterResourceProvider(t *testing.T) {
+func TestDoRetryWithRegistration(t *testing.T) {
 	client := mocks.NewSender()
 	// first response, should retry because it is a transient error
 	client.AppendResponse(mocks.NewResponseWithStatus("Internal server error", http.StatusInternalServerError))
@@ -44,7 +44,7 @@ func TestRegisterResourceProvider(t *testing.T) {
 	req := mocks.NewRequestForURL("https://lol/subscriptions/rofl")
 	req.Body = mocks.NewBody("lolol")
 	r, err := autorest.SendWithSender(client, req,
-		RegisterResourceProvider(autorest.Client{
+		DoRetryWithRegistration(autorest.Client{
 			PollingDelay:    time.Second,
 			PollingDuration: time.Second * 10,
 			RetryAttempts:   5,
@@ -62,6 +62,6 @@ func TestRegisterResourceProvider(t *testing.T) {
 	)
 
 	if r.StatusCode != http.StatusOK {
-		t.Fatalf("azure: Sender#RegisterResourceProvider -- Got: StatusCode %v; Want: StatusCode 200 OK", r.StatusCode)
+		t.Fatalf("azure: Sender#DoRetryWithRegistration -- Got: StatusCode %v; Want: StatusCode 200 OK", r.StatusCode)
 	}
 }

@@ -11,41 +11,14 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 )
 
-// RegisterResourceProvider  tries to register the resource provider in case it is unregistered
-func RegisterResourceProvider(client autorest.Client) autorest.SendDecorator {
+// DoRetryWithRegistration tries to register the resource provider in case it is unregistered.
+// It also handles request retries
+func DoRetryWithRegistration(client autorest.Client) autorest.SendDecorator {
 	return func(s autorest.Sender) autorest.Sender {
 		return autorest.SenderFunc(func(r *http.Request) (resp *http.Response, err error) {
+			shouldRetry := true
 			rr := autorest.NewRetriableRequest(r)
-			err = rr.Prepare()
-			if err != nil {
-				return resp, err
-			}
-
-			resp, err = autorest.SendWithSender(s, rr.Request(),
-				autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...),
-			)
-			if err != nil {
-				return resp, err
-			}
-
-			if resp.StatusCode == http.StatusConflict {
-				var re RequestError
-				err = autorest.Respond(
-					resp,
-					autorest.ByUnmarshallingJSON(&re),
-				)
-				if err != nil {
-					return resp, err
-				}
-
-				if re.ServiceError != nil && re.ServiceError.Code == "MissingSubscriptionRegistration" {
-					// in tests, the sender should be the same for all requests
-					client.Sender = s
-					err = register(client, r, re)
-					if err != nil {
-						return resp, fmt.Errorf("failed auto registering Resource Provider: %s", err)
-					}
-				}
+			for shouldRetry {
 				err = rr.Prepare()
 				if err != nil {
 					return resp, err
@@ -56,6 +29,28 @@ func RegisterResourceProvider(client autorest.Client) autorest.SendDecorator {
 				)
 				if err != nil {
 					return resp, err
+				}
+				shouldRetry = false
+
+				if resp.StatusCode == http.StatusConflict {
+					var re RequestError
+					err = autorest.Respond(
+						resp,
+						autorest.ByUnmarshallingJSON(&re),
+					)
+					if err != nil {
+						return resp, err
+					}
+
+					if re.ServiceError != nil && re.ServiceError.Code == "MissingSubscriptionRegistration" {
+						// in tests, the sender should be the same for all requests
+						client.Sender = s
+						err = register(client, r, re)
+						if err != nil {
+							return resp, fmt.Errorf("failed auto registering Resource Provider: %s", err)
+						}
+						shouldRetry = true
+					}
 				}
 			}
 			return resp, err
