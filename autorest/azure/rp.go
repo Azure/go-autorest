@@ -32,25 +32,26 @@ func DoRetryWithRegistration(client autorest.Client) autorest.SendDecorator {
 				}
 				shouldRetry = false
 
-				if resp.StatusCode == http.StatusConflict {
-					var re RequestError
-					err = autorest.Respond(
-						resp,
-						autorest.ByUnmarshallingJSON(&re),
-					)
-					if err != nil {
-						return resp, err
-					}
+				if resp.StatusCode != http.StatusConflict {
+					return resp, err
+				}
+				var re RequestError
+				err = autorest.Respond(
+					resp,
+					autorest.ByUnmarshallingJSON(&re),
+				)
+				if err != nil {
+					return resp, err
+				}
 
-					if re.ServiceError != nil && re.ServiceError.Code == "MissingSubscriptionRegistration" {
-						// in tests, the sender should be the same for all requests
-						client.Sender = s
-						err = register(client, r, re)
-						if err != nil {
-							return resp, fmt.Errorf("failed auto registering Resource Provider: %s", err)
-						}
-						shouldRetry = true
+				if re.ServiceError != nil && re.ServiceError.Code == "MissingSubscriptionRegistration" {
+					// in tests, the sender should be the same for all requests
+					client.Sender = s
+					err = register(client, r, re)
+					if err != nil {
+						return resp, fmt.Errorf("failed auto registering Resource Provider: %s", err)
 					}
+					shouldRetry = true
 				}
 			}
 			return resp, err
