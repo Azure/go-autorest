@@ -16,9 +16,9 @@ import (
 func DoRetryWithRegistration(client autorest.Client) autorest.SendDecorator {
 	return func(s autorest.Sender) autorest.Sender {
 		return autorest.SenderFunc(func(r *http.Request) (resp *http.Response, err error) {
-			shouldRetry := true
+			attempts := 0
 			rr := autorest.NewRetriableRequest(r)
-			for shouldRetry {
+			for attempts < client.RetryAttempts {
 				err = rr.Prepare()
 				if err != nil {
 					return resp, err
@@ -30,7 +30,6 @@ func DoRetryWithRegistration(client autorest.Client) autorest.SendDecorator {
 				if err != nil {
 					return resp, err
 				}
-				shouldRetry = false
 
 				if resp.StatusCode != http.StatusConflict {
 					return resp, err
@@ -51,10 +50,10 @@ func DoRetryWithRegistration(client autorest.Client) autorest.SendDecorator {
 					if err != nil {
 						return resp, fmt.Errorf("failed auto registering Resource Provider: %s", err)
 					}
-					shouldRetry = true
 				}
+				attempts++
 			}
-			return resp, err
+			return resp, errors.New("failed request and resource provider registration")
 		})
 	}
 }
