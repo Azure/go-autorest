@@ -396,7 +396,7 @@ func TestWithErrorUnlessStatusCode_UnwrappedError(t *testing.T) {
 		t.Logf("`ServiceError` was nil when it shouldn't have been.")
 		t.Fail()
 	} else if azErr.ServiceError.Details == nil {
-		t.Logf("`ServiceError.Details` was nil when it shouldn't have been %q", expectedServiceErrorDetails)
+		t.Logf("`ServiceError.Details` was nil when it should have been %q", expectedServiceErrorDetails)
 		t.Fail()
 	} else if details, _ := json.Marshal(*azErr.ServiceError.Details); expectedServiceErrorDetails != string(details) {
 		t.Logf("Error detaisl was not unmarshaled properly.\n\tgot:  %q\n\twant: %q", string(details), expectedServiceErrorDetails)
