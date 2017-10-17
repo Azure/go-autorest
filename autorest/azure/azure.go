@@ -180,10 +180,7 @@ func WithErrorUnlessStatusCode(codes ...int) autorest.RespondDecorator {
 					return fmt.Errorf("autorest/azure: error response cannot be parsed: %q error: %v", b.String(), decodeErr)
 				} else if e.ServiceError == nil {
 					// Check if error is unwrapped ServiceError
-					var se *ServiceError
-					if err := json.Unmarshal(b.Bytes(), &se); err == nil && se.Message != "" {
-						e.ServiceError = se
-					} else {
+					if err := json.Unmarshal(b.Bytes(), &e.ServiceError); err != nil || e.ServiceError.Message == "" {
 						e.ServiceError = &ServiceError{
 							Code:    "Unknown",
 							Message: "Unknown service error",
