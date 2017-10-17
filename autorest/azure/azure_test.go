@@ -366,39 +366,48 @@ func TestWithErrorUnlessStatusCode_UnwrappedError(t *testing.T) {
 	err := autorest.Respond(r,
 		WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByClosing())
+
 	if err == nil {
-		t.Logf("azure: returned nil error for proper error response")
-		t.Fail()
+		t.Fatal("azure: returned nil error for proper error response")
 	}
+
 	azErr, ok := err.(*RequestError)
 	if !ok {
-		t.Fatalf("azure: returned error is not azure.RequestError: %T", err)
+		t.Fatalf("returned error is not azure.RequestError: %T", err)
 	}
 
 	if expected := http.StatusInternalServerError; azErr.StatusCode != expected {
-		t.Fatalf("azure: got wrong StatusCode=%v Expected=%d", azErr.StatusCode, expected)
+		t.Logf("Incorrect StatusCode got: %v want: %d", azErr.StatusCode, expected)
+		t.Fail()
 	}
 
 	if expected := "Azure is having trouble right now."; azErr.ServiceError.Message != expected {
-		t.Fatalf("azure: got wrong Message=%s Expected=%s", azErr.Message, expected)
+		t.Logf("Incorrect Message\n\tgot:  %q\n\twant: %q", azErr.Message, expected)
+		t.Fail()
 	}
 
 	if expected := uuid; azErr.RequestID != expected {
-		t.Fatalf("azure: wrong request ID in error. expected=%q; got=%q", expected, azErr.RequestID)
+		t.Logf("Incorrect request ID\n\tgot:  %q\n\twant: %q", azErr.RequestID, expected)
+		t.Fail()
 	}
 
-	details, _ := json.Marshal(*azErr.ServiceError.Details)
-	if expected := `[{"code":"conflict1","message":"error message1"},{"code":"conflict2","message":"error message2"}]`; string(details) != expected {
-		t.Fatalf("azure: error details is not unmarshaled properly. Got=\"%s\"; Expected=\"%s\"", expected, string(details))
+	expectedServiceErrorDetails := `[{"code":"conflict1","message":"error message1"},{"code":"conflict2","message":"error message2"}]`
+	if azErr.ServiceError == nil {
+		t.Logf("`ServiceError` was nil when it shouldn't have been.")
+		t.Fail()
+	} else if azErr.ServiceError.Details == nil {
+		t.Logf("`ServiceError.Details` was nil when it shouldn't have been %q", expectedServiceErrorDetails)
+		t.Fail()
+	} else if details, _ := json.Marshal(*azErr.ServiceError.Details); expectedServiceErrorDetails != string(details) {
+		t.Logf("Error detaisl was not unmarshaled properly.\n\tgot:  %q\n\twant: %q", string(details), expectedServiceErrorDetails)
+		t.Fail()
 	}
-
-	_ = azErr.Error()
 
 	// the error body should still be there
 	defer r.Body.Close()
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	if string(b) != j {
 		t.Fatalf("response body is wrong. got=%q expected=%q", string(b), j)
