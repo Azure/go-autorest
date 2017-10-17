@@ -80,6 +80,7 @@ func register(client autorest.Client, originalReq *http.Request, re RequestError
 
 	// taken from the resources SDK
 	// with almost identical code, this sections are easier to mantain
+	// It is also not a good idea to import the SDK here
 	// https://github.com/Azure/azure-sdk-for-go/blob/9f366792afa3e0ddaecdc860e793ba9d75e76c27/arm/resources/resources/providers.go#L252
 	pathParameters := map[string]interface{}{
 		"resourceProviderNamespace": autorest.Encode("path", providerName),
