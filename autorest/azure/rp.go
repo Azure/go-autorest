@@ -16,9 +16,8 @@ import (
 func DoRetryWithRegistration(client autorest.Client) autorest.SendDecorator {
 	return func(s autorest.Sender) autorest.Sender {
 		return autorest.SenderFunc(func(r *http.Request) (resp *http.Response, err error) {
-			attempts := 0
 			rr := autorest.NewRetriableRequest(r)
-			for attempts < client.RetryAttempts {
+			for currentAttempt := 0; currentAttempt < client.RetryAttempts; currentAttempt++ {
 				err = rr.Prepare()
 				if err != nil {
 					return resp, err
@@ -49,7 +48,6 @@ func DoRetryWithRegistration(client autorest.Client) autorest.SendDecorator {
 						return resp, fmt.Errorf("failed auto registering Resource Provider: %s", err)
 					}
 				}
-				attempts++
 			}
 			return resp, errors.New("failed request and resource provider registration")
 		})
@@ -81,6 +79,7 @@ func register(client autorest.Client, originalReq *http.Request, re RequestError
 	}
 
 	// taken from the resources SDK
+	// with almost identical code, this sections are easier to mantain
 	// https://github.com/Azure/azure-sdk-for-go/blob/9f366792afa3e0ddaecdc860e793ba9d75e76c27/arm/resources/resources/providers.go#L252
 	pathParameters := map[string]interface{}{
 		"resourceProviderNamespace": autorest.Encode("path", providerName),
