@@ -33,7 +33,8 @@ var (
 		Version(),
 	)
 
-	statusCodesForRetry = []int{
+	// StatusCodesForRetry are a defined group of status code for which the client will retry
+	StatusCodesForRetry = []int{
 		http.StatusRequestTimeout,      // 408
 		http.StatusTooManyRequests,     // 429
 		http.StatusInternalServerError, // 500
@@ -187,8 +188,7 @@ func (c Client) Do(r *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, NewErrorWithError(err, "autorest/Client", "Do", nil, "Preparing request failed")
 	}
-	resp, err := SendWithSender(c.sender(), r,
-		DoRetryForStatusCodes(c.RetryAttempts, c.RetryDuration, statusCodesForRetry...))
+	resp, err := SendWithSender(c.sender(), r)
 	Respond(resp,
 		c.ByInspecting())
 	return resp, err
