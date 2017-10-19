@@ -137,9 +137,7 @@ func EnvironmentFromName(name string) (Environment, error) {
 	}
 
 	if strings.EqualFold(name, "AZURESTACKCLOUD") == true {
-
-		println("autorest/azure: Reading Azure Stack Cloud config from directory", path.Join("etc", "kubernetes", "azurestackcloud.json"))
-		fbytes, err := ioutil.ReadFile(path.Join("/etc", "kubernetes", "azurestackcloud.json"))
+		fbytes, err := ioutil.ReadFile(path.Join("/etc", strings.ToLower(name), "azurestackcloud.json"))
 		if err != nil {
 			return env, fmt.Errorf("autorest/azure: Error opening Azure Stack Cloud config file - azurestackcloud.json %q", err.Error())
 		}
