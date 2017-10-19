@@ -175,6 +175,7 @@ func NewClientWithUserAgent(ua string) Client {
 		RetryDuration:   30 * time.Second,
 		UserAgent:       defaultUserAgent,
 	}
+	c.Sender = c.sender()
 	c.AddToUserAgent(ua)
 	return c
 }
