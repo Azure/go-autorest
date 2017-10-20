@@ -174,8 +174,8 @@ func NewClientWithUserAgent(ua string) Client {
 		RetryAttempts:   DefaultRetryAttempts,
 		RetryDuration:   30 * time.Second,
 		UserAgent:       defaultUserAgent,
+		Sender:          sender(),
 	}
-	c.Sender = c.sender()
 	c.AddToUserAgent(ua)
 	return c
 }
@@ -203,19 +203,21 @@ func (c Client) Do(r *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, NewErrorWithError(err, "autorest/Client", "Do", nil, "Preparing request failed")
 	}
-	resp, err := SendWithSender(c.sender(), r)
+
+	if c.Sender == nil {
+		c.Sender = sender()
+	}
+
+	resp, err := SendWithSender(c, r)
 	Respond(resp,
 		c.ByInspecting())
 	return resp, err
 }
 
 // sender returns the Sender to which to send requests.
-func (c Client) sender() Sender {
-	if c.Sender == nil {
-		j, _ := cookiejar.New(nil)
-		return &http.Client{Jar: j}
-	}
-	return c.Sender
+func sender() Sender {
+	j, _ := cookiejar.New(nil)
+	return &http.Client{Jar: j}
 }
 
 // WithAuthorization is a convenience method that returns the WithAuthorization PrepareDecorator
