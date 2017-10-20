@@ -204,20 +204,19 @@ func (c Client) Do(r *http.Request) (*http.Response, error) {
 		return nil, NewErrorWithError(err, "autorest/Client", "Do", nil, "Preparing request failed")
 	}
 
-	if c.Sender == nil {
-		c.Sender = sender()
-	}
-
-	resp, err := SendWithSender(c.Sender, r)
+	resp, err := SendWithSender(c.sender(), r)
 	Respond(resp,
 		c.ByInspecting())
 	return resp, err
 }
 
 // sender returns the Sender to which to send requests.
-func sender() Sender {
-	j, _ := cookiejar.New(nil)
-	return &http.Client{Jar: j}
+func (c Client) sender() Sender {
+	if c.Sender == nil {
+		j, _ := cookiejar.New(nil)
+		return &http.Client{Jar: j}
+	}
+	return c.Sender
 }
 
 // WithAuthorization is a convenience method that returns the WithAuthorization PrepareDecorator
