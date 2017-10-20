@@ -208,7 +208,7 @@ func (c Client) Do(r *http.Request) (*http.Response, error) {
 		c.Sender = sender()
 	}
 
-	resp, err := SendWithSender(c, r)
+	resp, err := SendWithSender(c.Sender, r)
 	Respond(resp,
 		c.ByInspecting())
 	return resp, err
