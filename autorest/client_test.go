@@ -163,7 +163,11 @@ func TestAddToUserAgent(t *testing.T) {
 func TestClientSenderReturnsHttpClientByDefault(t *testing.T) {
 	c := Client{}
 
-	if fmt.Sprintf("%T", c.sender()) != "*http.Client" {
+	if c.Sender == nil {
+		c.Sender = sender()
+	}
+
+	if fmt.Sprintf("%T", c.Sender) != "*http.Client" {
 		t.Fatal("autorest: Client#sender failed to return http.Client by default")
 	}
 }
@@ -174,7 +178,7 @@ func TestClientSenderReturnsSetSender(t *testing.T) {
 	s := mocks.NewSender()
 	c.Sender = s
 
-	if c.sender() != s {
+	if c.Sender != s {
 		t.Fatal("autorest: Client#sender failed to return set Sender")
 	}
 }
