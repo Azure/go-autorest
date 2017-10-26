@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v9.1.2
+
+### Bug Fixes
+
+- `DoRetryWithRegistration` now returns the original request error too.
 
 ## v9.1.1
 
