@@ -18,16 +18,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"path"
+	"os"
 	"strings"
 )
+
+// EnvironmentFilepathName captures the name of the environment variable
+// where
+const EnvironmentFilepathName = "AZURE_ENVIRONMENT_FILEPATH"
 
 var environments = map[string]Environment{
 	"AZURECHINACLOUD":        ChinaCloud,
 	"AZUREGERMANCLOUD":       GermanCloud,
 	"AZUREPUBLICCLOUD":       PublicCloud,
 	"AZUREUSGOVERNMENTCLOUD": USGovernmentCloud,
-	"AZURESTACKCLOUD":        AzureStackCloud,
 }
 
 // Environment represents a set of endpoints for each of Azure's Clouds.
@@ -135,33 +138,43 @@ var (
 		ResourceManagerVMDNSSuffix:   "cloudapp.microsoftazure.de",
 		ContainerRegistryDNSSuffix:   "azurecr.io",
 	}
-
-	//AzureStackCloud is the Azure enviornment running in customer datacenter
-	AzureStackCloud = Environment{
-		Name: "AzureStackCloud",
-	}
 )
 
-// EnvironmentFromName returns an Environment based on the common name specified
+// EnvironmentFromName returns an Environment based on the common name specified.
 func EnvironmentFromName(name string) (Environment, error) {
+	// IMPORTANT
+	// As per @radhikagupta5:
+	// This is technical debt, fundamentally here because Kubernetes is not currently accepting
+	// contributions to the providers. Once that is an option, the provider should be updated to
+	// directly call `EnvironmentFromFile`. Until then, we rely on dispatching Azure Stack environment creation
+	// from this method based on the name that is provided to us.
+	if strings.EqualFold(name, "AZURESTACKCLOUD") {
+		return EnvironmentFromFile(os.Getenv(EnvironmentFilepathName))
+	}
+
 	name = strings.ToUpper(name)
 	env, ok := environments[name]
 	if !ok {
 		return env, fmt.Errorf("autorest/azure: There is no cloud environment matching the name %q", name)
 	}
 
-	if strings.EqualFold(name, "AZURESTACKCLOUD") == true {
-
-		println("autorest/azure: Reading Azure Stack Cloud config from directory", path.Join("etc", "kubernetes", "azurestackcloud.json"))
-		fbytes, err := ioutil.ReadFile(path.Join("/etc", "kubernetes", "azurestackcloud.json"))
-		if err != nil {
-			return env, fmt.Errorf("autorest/azure: Error opening Azure Stack Cloud config file - azurestackcloud.json %q", err.Error())
-		}
-
-		err = json.Unmarshal(fbytes, &env)
-		if err != nil {
-			return env, fmt.Errorf("autorest/azure: Error parsing for Azure Stack Cloud config file %q", err.Error())
-		}
-	}
 	return env, nil
+}
+
+// EnvironmentFromFile loads an Environment from a configuration file available on disk.
+// This function is particularly useful in the Hybrid Cloud model, where one must define their own
+// endpoints.
+func EnvironmentFromFile(location string) (Environment, error) {
+	fileContents, err := ioutil.ReadFile(location)
+	if err != nil {
+		return Environment{}, err
+	}
+
+	var unmarshaled Environment
+
+	err = json.Unmarshal(fileContents, &unmarshaled)
+	if err != nil {
+		return Environment{}, err
+	}
+	return unmarshaled, nil
 }
