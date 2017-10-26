@@ -22,8 +22,8 @@ import (
 	"strings"
 )
 
-// EnvironmentFilepathName captures the name of the environment variable
-// where
+// EnvironmentFilepathName captures the name of the environment variable containing the path to the file
+// to be used while populating the Azure Environment.
 const EnvironmentFilepathName = "AZURE_ENVIRONMENT_FILEPATH"
 
 var environments = map[string]Environment{
@@ -164,17 +164,13 @@ func EnvironmentFromName(name string) (Environment, error) {
 // EnvironmentFromFile loads an Environment from a configuration file available on disk.
 // This function is particularly useful in the Hybrid Cloud model, where one must define their own
 // endpoints.
-func EnvironmentFromFile(location string) (Environment, error) {
+func EnvironmentFromFile(location string) (unmarshaled Environment, err error) {
 	fileContents, err := ioutil.ReadFile(location)
 	if err != nil {
-		return Environment{}, err
+		return
 	}
-
-	var unmarshaled Environment
 
 	err = json.Unmarshal(fileContents, &unmarshaled)
-	if err != nil {
-		return Environment{}, err
-	}
-	return unmarshaled, nil
+
+	return
 }
