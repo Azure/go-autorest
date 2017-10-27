@@ -1026,7 +1026,7 @@ func TestFuture_PollsUntilProvisioningStatusSucceeds(t *testing.T) {
 	client := mocks.NewSender()
 	client.AppendResponse(r1)
 	client.AppendAndRepeatResponse(r2, 2)
-	client.AppendAndRepeatResponse(r3, 1)
+	client.AppendResponse(r3)
 
 	future := NewFuture(mocks.NewRequest())
 

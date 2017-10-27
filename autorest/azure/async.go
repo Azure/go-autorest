@@ -68,7 +68,7 @@ func (f Future) Status() string {
 func (f *Future) Done(sender autorest.Sender) (bool, error) {
 	// exit early if this future has terminated
 	if f.ps.hasTerminated() {
-		return f.terminalReturn()
+		return true, f.errorInfo()
 	}
 
 	resp, err := sender.Do(f.req)
@@ -83,18 +83,20 @@ func (f *Future) Done(sender autorest.Sender) (bool, error) {
 	}
 
 	if f.ps.hasTerminated() {
-		return f.terminalReturn()
+		return true, f.errorInfo()
 	}
 
 	f.req, err = newPollingRequest(f.ps)
 	return false, err
 }
 
-func (f *Future) terminalReturn() (bool, error) {
+// if the operation failed the polling state will contain
+// error information and implements the error interface
+func (f *Future) errorInfo() error {
 	if !f.ps.hasSucceeded() {
-		return true, f.ps
+		return f.ps
 	}
-	return true, nil
+	return nil
 }
 
 // MarshalJSON implements the json.Marshaler interface.
