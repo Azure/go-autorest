@@ -1,11 +1,5 @@
 # CHANGELOG
 
-## v9.1.2
-
-### Bug Fixes
-
-- `DoRetryWithRegistration` now returns the original request error too.
-
 ## v9.1.1
 
 - Fixes a bug regarding the cookie jar on `autorest.Client.Sender`.
