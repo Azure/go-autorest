@@ -90,6 +90,28 @@ func (f *Future) Done(sender autorest.Sender) (bool, error) {
 	return false, err
 }
 
+// GetPollingDelay returns a duration the application should wait before checking
+// the status of the asynchronous request and true; this value is returned from
+// the service via the Retry-After response header.  If the header wasn't returned
+// then the function returns the zero-value time.Duration and false.
+func (f Future) GetPollingDelay() (time.Duration, bool) {
+	if f.resp == nil {
+		return 0, false
+	}
+
+	retry := f.resp.Header.Get(autorest.HeaderRetryAfter)
+	if retry == "" {
+		return 0, false
+	}
+
+	d, err := time.ParseDuration(retry + "s")
+	if err != nil {
+		panic(err)
+	}
+
+	return d, true
+}
+
 // if the operation failed the polling state will contain
 // error information and implements the error interface
 func (f *Future) errorInfo() error {
