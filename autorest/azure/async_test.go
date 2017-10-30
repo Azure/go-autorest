@@ -1034,7 +1034,11 @@ func TestFuture_PollsUntilProvisioningStatusSucceeds(t *testing.T) {
 		if err != nil {
 			t.Fatalf("azure: TestFuture polling Done failed")
 		}
-		time.Sleep(1 * time.Millisecond)
+		delay, ok := future.GetPollingDelay()
+		if !ok {
+			t.Fatalf("expected Retry-After value")
+		}
+		time.Sleep(delay)
 	}
 
 	if client.Attempts() < 4 {
