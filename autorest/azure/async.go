@@ -64,6 +64,11 @@ func (f Future) Status() string {
 	return f.ps.State
 }
 
+// PollingMethod returns the method used to monitor the status of the asynchronous operation.
+func (f Future) PollingMethod() PollingMethodType {
+	return f.ps.PollingMethod
+}
+
 // Done queries the service to see if the operation has completed.
 func (f *Future) Done(sender autorest.Sender) (bool, error) {
 	// exit early if this future has terminated
@@ -260,20 +265,26 @@ func (ps provisioningStatus) hasProvisioningError() bool {
 	return ps.ProvisioningError != ServiceError{}
 }
 
-type pollingResponseFormat string
+// PollingMethodType defines a type used for enumerating polling mechanisms.
+type PollingMethodType string
 
 const (
-	usesOperationResponse  pollingResponseFormat = "OperationResponse"
-	usesProvisioningStatus pollingResponseFormat = "ProvisioningStatus"
-	formatIsUnknown        pollingResponseFormat = ""
+	// PollingAsyncOperation indicates the polling method uses the Azure-AsyncOperation header.
+	PollingAsyncOperation PollingMethodType = "AsyncOperation"
+
+	// PollingLocation indicates the polling method uses the Location header.
+	PollingLocation PollingMethodType = "Location"
+
+	// PollingUnknown indicates an unknown polling method and is the default value.
+	PollingUnknown PollingMethodType = ""
 )
 
 type pollingState struct {
-	ResponseFormat pollingResponseFormat `json:"responseFormat"`
-	URI            string                `json:"uri"`
-	State          string                `json:"state"`
-	Code           string                `json:"code"`
-	Message        string                `json:"message"`
+	PollingMethod PollingMethodType `json:"pollingMethod"`
+	URI           string            `json:"uri"`
+	State         string            `json:"state"`
+	Code          string            `json:"code"`
+	Message       string            `json:"message"`
 }
 
 func (ps pollingState) hasSucceeded() bool {
@@ -304,7 +315,7 @@ func updatePollingState(resp *http.Response, ps *pollingState) error {
 	// -- The first response will always be a provisioningStatus response; only the polling requests,
 	//    depending on the header returned, may be something otherwise.
 	var pt provisioningTracker
-	if ps.ResponseFormat == usesOperationResponse {
+	if ps.PollingMethod == PollingAsyncOperation {
 		pt = &operationResource{}
 	} else {
 		pt = &provisioningStatus{}
@@ -312,7 +323,7 @@ func updatePollingState(resp *http.Response, ps *pollingState) error {
 
 	// If this is the first request (that is, the polling response shape is unknown), determine how
 	// to poll and what to expect
-	if ps.ResponseFormat == formatIsUnknown {
+	if ps.PollingMethod == PollingUnknown {
 		req := resp.Request
 		if req == nil {
 			return autorest.NewError("azure", "updatePollingState", "Azure Polling Error - Original HTTP request is missing")
@@ -321,9 +332,9 @@ func updatePollingState(resp *http.Response, ps *pollingState) error {
 		// Prefer the Azure-AsyncOperation header
 		ps.URI = getAsyncOperation(resp)
 		if ps.URI != "" {
-			ps.ResponseFormat = usesOperationResponse
+			ps.PollingMethod = PollingAsyncOperation
 		} else {
-			ps.ResponseFormat = usesProvisioningStatus
+			ps.PollingMethod = PollingLocation
 		}
 
 		// Else, use the Location header
@@ -381,7 +392,7 @@ func updatePollingState(resp *http.Response, ps *pollingState) error {
 	// -- Response
 	// -- Otherwise, Unknown
 	if ps.hasFailed() {
-		if ps.ResponseFormat == usesOperationResponse {
+		if ps.PollingMethod == PollingAsyncOperation {
 			or := pt.(*operationResource)
 			ps.Code = or.OperationError.Code
 			ps.Message = or.OperationError.Message

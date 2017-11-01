@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v9.3.0
+
+### New Features
+
+- Added PollingMethod() to Future so callers know what kind of polling mechanism is used.
+- Added azure.ChangeToGet() which transforms an http.Request into a GET (to be used with LROs).
+
 ## v9.2.0
 
 ### New Features
