@@ -183,7 +183,7 @@ func TestUpdatePollingState_ReturnsTerminatedForKnownProvisioningStates(t *testi
 	for _, state := range []string{operationSucceeded, operationCanceled, operationFailed} {
 		resp := mocks.NewResponseWithContent(fmt.Sprintf(pollingStateFormat, state))
 		resp.StatusCode = 42
-		ps := &pollingState{ResponseFormat: usesProvisioningStatus}
+		ps := &pollingState{PollingMethod: PollingLocation}
 		updatePollingState(resp, ps)
 		if !ps.hasTerminated() {
 			t.Fatalf("azure: updatePollingState failed to return a terminating pollingState for the '%s' state", state)
@@ -194,7 +194,7 @@ func TestUpdatePollingState_ReturnsTerminatedForKnownProvisioningStates(t *testi
 func TestUpdatePollingState_ReturnsSuccessForSuccessfulProvisioningState(t *testing.T) {
 	resp := mocks.NewResponseWithContent(fmt.Sprintf(pollingStateFormat, operationSucceeded))
 	resp.StatusCode = 42
-	ps := &pollingState{ResponseFormat: usesProvisioningStatus}
+	ps := &pollingState{PollingMethod: PollingLocation}
 	updatePollingState(resp, ps)
 	if !ps.hasSucceeded() {
 		t.Fatalf("azure: updatePollingState failed to return a successful pollingState for the '%s' state", operationSucceeded)
@@ -205,7 +205,7 @@ func TestUpdatePollingState_ReturnsInProgressForAllOtherProvisioningStates(t *te
 	s := "not a recognized state"
 	resp := mocks.NewResponseWithContent(fmt.Sprintf(pollingStateFormat, s))
 	resp.StatusCode = 42
-	ps := &pollingState{ResponseFormat: usesProvisioningStatus}
+	ps := &pollingState{PollingMethod: PollingLocation}
 	updatePollingState(resp, ps)
 	if ps.hasTerminated() {
 		t.Fatalf("azure: updatePollingState returned terminated for unknown state '%s'", s)
@@ -216,7 +216,7 @@ func TestUpdatePollingState_ReturnsSuccessWhenProvisioningStateFieldIsAbsentForS
 	for _, sc := range []int{http.StatusOK, http.StatusCreated, http.StatusNoContent} {
 		resp := mocks.NewResponseWithContent(pollingStateEmpty)
 		resp.StatusCode = sc
-		ps := &pollingState{ResponseFormat: usesProvisioningStatus}
+		ps := &pollingState{PollingMethod: PollingLocation}
 		updatePollingState(resp, ps)
 		if !ps.hasSucceeded() {
 			t.Fatalf("azure: updatePollingState failed to return success when the provisionState field is absent for Status Code %d", sc)
@@ -227,7 +227,7 @@ func TestUpdatePollingState_ReturnsSuccessWhenProvisioningStateFieldIsAbsentForS
 func TestUpdatePollingState_ReturnsInProgressWhenProvisioningStateFieldIsAbsentForAccepted(t *testing.T) {
 	resp := mocks.NewResponseWithContent(pollingStateEmpty)
 	resp.StatusCode = http.StatusAccepted
-	ps := &pollingState{ResponseFormat: usesProvisioningStatus}
+	ps := &pollingState{PollingMethod: PollingLocation}
 	updatePollingState(resp, ps)
 	if ps.hasTerminated() {
 		t.Fatalf("azure: updatePollingState returned terminated when the provisionState field is absent for Status Code Accepted")
@@ -237,7 +237,7 @@ func TestUpdatePollingState_ReturnsInProgressWhenProvisioningStateFieldIsAbsentF
 func TestUpdatePollingState_ReturnsFailedWhenProvisioningStateFieldIsAbsentForUnknownStatusCodes(t *testing.T) {
 	resp := mocks.NewResponseWithContent(pollingStateEmpty)
 	resp.StatusCode = 42
-	ps := &pollingState{ResponseFormat: usesProvisioningStatus}
+	ps := &pollingState{PollingMethod: PollingLocation}
 	updatePollingState(resp, ps)
 	if !ps.hasTerminated() || ps.hasSucceeded() {
 		t.Fatalf("azure: updatePollingState did not return failed when the provisionState field is absent for an unknown Status Code")
@@ -248,7 +248,7 @@ func TestUpdatePollingState_ReturnsTerminatedForKnownOperationResourceStates(t *
 	for _, state := range []string{operationSucceeded, operationCanceled, operationFailed} {
 		resp := mocks.NewResponseWithContent(fmt.Sprintf(operationResourceFormat, state))
 		resp.StatusCode = 42
-		ps := &pollingState{ResponseFormat: usesOperationResponse}
+		ps := &pollingState{PollingMethod: PollingAsyncOperation}
 		updatePollingState(resp, ps)
 		if !ps.hasTerminated() {
 			t.Fatalf("azure: updatePollingState failed to return a terminating pollingState for the '%s' state", state)
@@ -259,7 +259,7 @@ func TestUpdatePollingState_ReturnsTerminatedForKnownOperationResourceStates(t *
 func TestUpdatePollingState_ReturnsSuccessForSuccessfulOperationResourceState(t *testing.T) {
 	resp := mocks.NewResponseWithContent(fmt.Sprintf(operationResourceFormat, operationSucceeded))
 	resp.StatusCode = 42
-	ps := &pollingState{ResponseFormat: usesOperationResponse}
+	ps := &pollingState{PollingMethod: PollingAsyncOperation}
 	updatePollingState(resp, ps)
 	if !ps.hasSucceeded() {
 		t.Fatalf("azure: updatePollingState failed to return a successful pollingState for the '%s' state", operationSucceeded)
@@ -270,7 +270,7 @@ func TestUpdatePollingState_ReturnsInProgressForAllOtherOperationResourceStates(
 	s := "not a recognized state"
 	resp := mocks.NewResponseWithContent(fmt.Sprintf(operationResourceFormat, s))
 	resp.StatusCode = 42
-	ps := &pollingState{ResponseFormat: usesOperationResponse}
+	ps := &pollingState{PollingMethod: PollingAsyncOperation}
 	updatePollingState(resp, ps)
 	if ps.hasTerminated() {
 		t.Fatalf("azure: updatePollingState returned terminated for unknown state '%s'", s)
@@ -281,7 +281,7 @@ func TestUpdatePollingState_CopiesTheResponseBody(t *testing.T) {
 	s := fmt.Sprintf(pollingStateFormat, operationSucceeded)
 	resp := mocks.NewResponseWithContent(s)
 	resp.StatusCode = 42
-	ps := &pollingState{ResponseFormat: usesOperationResponse}
+	ps := &pollingState{PollingMethod: PollingAsyncOperation}
 	updatePollingState(resp, ps)
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -295,7 +295,7 @@ func TestUpdatePollingState_CopiesTheResponseBody(t *testing.T) {
 func TestUpdatePollingState_ClosesTheOriginalResponseBody(t *testing.T) {
 	resp := mocks.NewResponse()
 	b := resp.Body.(*mocks.Body)
-	ps := &pollingState{ResponseFormat: usesProvisioningStatus}
+	ps := &pollingState{PollingMethod: PollingLocation}
 	updatePollingState(resp, ps)
 	if b.IsOpen() {
 		t.Fatal("azure: updatePollingState failed to close the original http.Response Body")
@@ -313,23 +313,23 @@ func TestUpdatePollingState_FailsWhenResponseLacksRequest(t *testing.T) {
 	}
 }
 
-func TestUpdatePollingState_SetsTheResponseFormatWhenUsingTheAzureAsyncOperationHeader(t *testing.T) {
+func TestUpdatePollingState_SetsThePollingMethodWhenUsingTheAzureAsyncOperationHeader(t *testing.T) {
 	ps := pollingState{}
 	updatePollingState(newAsynchronousResponse(), &ps)
 
-	if ps.ResponseFormat != usesOperationResponse {
+	if ps.PollingMethod != PollingAsyncOperation {
 		t.Fatal("azure: updatePollingState failed to set the correct response format when using the Azure-AsyncOperation header")
 	}
 }
 
-func TestUpdatePollingState_SetsTheResponseFormatWhenUsingTheAzureAsyncOperationHeaderIsMissing(t *testing.T) {
+func TestUpdatePollingState_SetsThePollingMethodWhenUsingTheAzureAsyncOperationHeaderIsMissing(t *testing.T) {
 	resp := newAsynchronousResponse()
 	resp.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
 
 	ps := pollingState{}
 	updatePollingState(resp, &ps)
 
-	if ps.ResponseFormat != usesProvisioningStatus {
+	if ps.PollingMethod != PollingLocation {
 		t.Fatal("azure: updatePollingState failed to set the correct response format when the Azure-AsyncOperation header is absent")
 	}
 }
@@ -338,10 +338,10 @@ func TestUpdatePollingState_DoesNotChangeAnExistingReponseFormat(t *testing.T) {
 	resp := newAsynchronousResponse()
 	resp.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
 
-	ps := pollingState{ResponseFormat: usesOperationResponse}
+	ps := pollingState{PollingMethod: PollingAsyncOperation}
 	updatePollingState(resp, &ps)
 
-	if ps.ResponseFormat != usesOperationResponse {
+	if ps.PollingMethod != PollingAsyncOperation {
 		t.Fatal("azure: updatePollingState failed to leave an existing response format setting")
 	}
 }
@@ -414,21 +414,21 @@ func TestUpdatePollingState_ReturnsAnErrorIfAsyncHeadersAreMissingForANewOrDelet
 }
 
 func TestNewPollingRequest_ReturnsAnErrorWhenPrepareFails(t *testing.T) {
-	_, err := newPollingRequest(pollingState{ResponseFormat: usesOperationResponse, URI: mocks.TestBadURL})
+	_, err := newPollingRequest(pollingState{PollingMethod: PollingAsyncOperation, URI: mocks.TestBadURL})
 	if err == nil {
 		t.Fatal("azure: newPollingRequest failed to return an error when Prepare fails")
 	}
 }
 
 func TestNewPollingRequest_DoesNotReturnARequestWhenPrepareFails(t *testing.T) {
-	req, _ := newPollingRequest(pollingState{ResponseFormat: usesOperationResponse, URI: mocks.TestBadURL})
+	req, _ := newPollingRequest(pollingState{PollingMethod: PollingAsyncOperation, URI: mocks.TestBadURL})
 	if req != nil {
 		t.Fatal("azure: newPollingRequest returned an http.Request when Prepare failed")
 	}
 }
 
 func TestNewPollingRequest_ReturnsAGetRequest(t *testing.T) {
-	req, _ := newPollingRequest(pollingState{ResponseFormat: usesOperationResponse, URI: mocks.TestAzureAsyncURL})
+	req, _ := newPollingRequest(pollingState{PollingMethod: PollingAsyncOperation, URI: mocks.TestAzureAsyncURL})
 	if req.Method != "GET" {
 		t.Fatalf("azure: newPollingRequest did not create an HTTP GET request -- actual method %v", req.Method)
 	}
@@ -1031,6 +1031,9 @@ func TestFuture_PollsUntilProvisioningStatusSucceeds(t *testing.T) {
 	future := NewFuture(mocks.NewRequest())
 
 	for done, err := future.Done(client); !done; done, err = future.Done(client) {
+		if future.PollingMethod() != PollingLocation {
+			t.Fatalf("azure: wrong future polling method")
+		}
 		if err != nil {
 			t.Fatalf("azure: TestFuture polling Done failed")
 		}
@@ -1061,6 +1064,9 @@ func TestFuture_Marshalling(t *testing.T) {
 	if done {
 		t.Fatalf("azure: TestFuture marshalling shouldn't be done")
 	}
+	if future.PollingMethod() != PollingAsyncOperation {
+		t.Fatalf("azure: wrong future polling method")
+	}
 
 	data, err := json.Marshal(future)
 	if err != nil {
@@ -1079,7 +1085,7 @@ func TestFuture_Marshalling(t *testing.T) {
 	if future.ps.Message != future2.ps.Message {
 		t.Fatalf("azure: TestFuture marshalling messages don't match")
 	}
-	if future.ps.ResponseFormat != future2.ps.ResponseFormat {
+	if future.ps.PollingMethod != future2.ps.PollingMethod {
 		t.Fatalf("azure: TestFuture marshalling response formats don't match")
 	}
 	if future.ps.State != future2.ps.State {
