@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v9.3.1
+
+### Bug Fixes
+
+- DoRetryForStatusCodes will retry if sender.Do returns a non-nil error.
+
 ## v9.3.0
 
 ### New Features
