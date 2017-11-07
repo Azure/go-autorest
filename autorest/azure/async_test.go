@@ -15,7 +15,9 @@ package azure
 //  limitations under the License.
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -876,7 +878,7 @@ func TestDoPollForAsynchronous_ReturnsErrorForLastErrorResponse(t *testing.T) {
 	r1.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
 	r2 := newProvisioningStatusResponse("busy")
 	r2.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
-	r3 := newAsynchronousResponseWithError()
+	r3 := newAsynchronousResponseWithError("400 Bad Request", http.StatusBadRequest)
 	r3.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
 
 	client := mocks.NewSender()
@@ -923,7 +925,7 @@ func TestDoPollForAsynchronous_ReturnsOperationResourceErrorForFailedOperations(
 
 func TestDoPollForAsynchronous_ReturnsErrorForFirstPutRequest(t *testing.T) {
 	// Return 400 bad response with error code and message in first put
-	r1 := newAsynchronousResponseWithError()
+	r1 := newAsynchronousResponseWithError("400 Bad Request", http.StatusBadRequest)
 	client := mocks.NewSender()
 	client.AppendResponse(r1)
 
@@ -1096,6 +1098,46 @@ func TestFuture_Marshalling(t *testing.T) {
 	}
 }
 
+func TestFuture_WaitForCompletion(t *testing.T) {
+	r1 := newAsynchronousResponse()
+	r1.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+	r2 := newProvisioningStatusResponse("busy")
+	r2.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+	r3 := newAsynchronousResponseWithError("Internal server error", http.StatusInternalServerError)
+	r3.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+	r4 := newProvisioningStatusResponse(operationSucceeded)
+	r4.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+
+	sender := mocks.NewSender()
+	sender.AppendResponse(r1)
+	sender.AppendError(errors.New("transient network failure"))
+	sender.AppendAndRepeatResponse(r2, 2)
+	sender.AppendResponse(r3)
+	sender.AppendResponse(r4)
+
+	future := NewFuture(mocks.NewRequest())
+
+	client := autorest.Client{
+		PollingDelay:    autorest.DefaultPollingDelay,
+		PollingDuration: autorest.DefaultPollingDuration,
+		RetryAttempts:   autorest.DefaultRetryAttempts,
+		RetryDuration:   1 * time.Second,
+		Sender:          sender,
+	}
+
+	err := future.WaitForCompletion(context.Background(), client)
+	if err != nil {
+		t.Fatalf("azure: WaitForCompletion returned non-nil error")
+	}
+
+	if sender.Attempts() < 4 {
+		t.Fatalf("azure: TestFuture stopped polling before receiving a terminated OperationResource")
+	}
+
+	autorest.Respond(future.Response(),
+		autorest.ByClosing())
+}
+
 const (
 	operationResourceIllegal = `
 	This is not JSON and should fail...badly.
@@ -1171,8 +1213,8 @@ func newAsynchronousResponse() *http.Response {
 	return r
 }
 
-func newAsynchronousResponseWithError() *http.Response {
-	r := mocks.NewResponseWithStatus("400 Bad Request", http.StatusBadRequest)
+func newAsynchronousResponseWithError(response string, status int) *http.Response {
+	r := mocks.NewResponseWithStatus(response, status)
 	mocks.SetRetryHeader(r, retryDelay)
 	r.Request = mocks.NewRequestForURL(mocks.TestURL)
 	r.Body = mocks.NewBody(errorResponse)

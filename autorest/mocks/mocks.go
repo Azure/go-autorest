@@ -79,10 +79,15 @@ func (body *Body) reset() *Body {
 	return body
 }
 
+type response struct {
+	r *http.Response
+	e error
+}
+
 // Sender implements a simple null sender.
 type Sender struct {
 	attempts       int
-	responses      []*http.Response
+	responses      []response
 	repeatResponse []int
 	err            error
 	repeatError    int
@@ -99,11 +104,13 @@ func (c *Sender) Do(r *http.Request) (resp *http.Response, err error) {
 	c.attempts++
 
 	if len(c.responses) > 0 {
-		resp = c.responses[0]
+		resp = c.responses[0].r
 		if resp != nil {
 			if b, ok := resp.Body.(*Body); ok {
 				b.reset()
 			}
+		} else {
+			err = c.responses[0].e
 		}
 		c.repeatResponse[0]--
 		if c.repeatResponse[0] == 0 {
@@ -138,8 +145,23 @@ func (c *Sender) AppendResponse(resp *http.Response) {
 // AppendAndRepeatResponse adds the passed http.Response to the response stack along with a
 // repeat count. A negative repeat count will return the response for all remaining calls to Do.
 func (c *Sender) AppendAndRepeatResponse(resp *http.Response, repeat int) {
+	c.appendAndRepeat(response{r: resp}, repeat)
+}
+
+// AppendError adds the passed error to the response stack.
+func (c *Sender) AppendError(err error) {
+	c.AppendAndRepeatError(err, 1)
+}
+
+// AppendAndRepeatError adds the passed error to the response stack along with a repeat
+// count. A negative repeat count will return the response for all remaining calls to Do.
+func (c *Sender) AppendAndRepeatError(err error, repeat int) {
+	c.appendAndRepeat(response{e: err}, repeat)
+}
+
+func (c *Sender) appendAndRepeat(resp response, repeat int) {
 	if c.responses == nil {
-		c.responses = []*http.Response{resp}
+		c.responses = []response{resp}
 		c.repeatResponse = []int{repeat}
 	} else {
 		c.responses = append(c.responses, resp)
