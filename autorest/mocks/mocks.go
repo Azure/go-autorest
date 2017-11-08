@@ -90,6 +90,7 @@ type response struct {
 type Sender struct {
 	attempts       int
 	responses      []response
+	numResponses   int
 	repeatResponse []int
 	err            error
 	repeatError    int
@@ -181,6 +182,7 @@ func (c *Sender) appendAndRepeat(resp response, repeat int) {
 		c.responses = append(c.responses, resp)
 		c.repeatResponse = append(c.repeatResponse, repeat)
 	}
+	c.numResponses++
 }
 
 // Attempts returns the number of times Do was called.
@@ -203,6 +205,11 @@ func (c *Sender) SetAndRepeatError(err error, repeat int) {
 // SetEmitErrorAfter sets the number of attempts to be made before errors are emitted.
 func (c *Sender) SetEmitErrorAfter(ea int) {
 	c.emitErrorAfter = ea
+}
+
+// NumResponses returns the number of responses that have been added to the sender.
+func (c *Sender) NumResponses() int {
+	return c.numResponses
 }
 
 // T is a simple testing struct.

@@ -636,7 +636,7 @@ func TestDoPollForAsynchronous_PollsForStatusAccepted(t *testing.T) {
 	r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
 		DoPollForAsynchronous(time.Millisecond))
 
-	if client.Attempts() < 4 {
+	if client.Attempts() < client.NumResponses() {
 		t.Fatalf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
 	}
 
@@ -659,7 +659,7 @@ func TestDoPollForAsynchronous_PollsForStatusCreated(t *testing.T) {
 	r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
 		DoPollForAsynchronous(time.Millisecond))
 
-	if client.Attempts() < 4 {
+	if client.Attempts() < client.NumResponses() {
 		t.Fatalf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
 	}
 
@@ -683,7 +683,7 @@ func TestDoPollForAsynchronous_PollsUntilProvisioningStatusTerminates(t *testing
 	r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
 		DoPollForAsynchronous(time.Millisecond))
 
-	if client.Attempts() < 4 {
+	if client.Attempts() < client.NumResponses() {
 		t.Fatalf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
 	}
 
@@ -707,7 +707,7 @@ func TestDoPollForAsynchronous_PollsUntilProvisioningStatusSucceeds(t *testing.T
 	r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
 		DoPollForAsynchronous(time.Millisecond))
 
-	if client.Attempts() < 4 {
+	if client.Attempts() < client.NumResponses() {
 		t.Fatalf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
 	}
 
@@ -728,7 +728,7 @@ func TestDoPollForAsynchronous_PollsUntilOperationResourceHasTerminated(t *testi
 	r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
 		DoPollForAsynchronous(time.Millisecond))
 
-	if client.Attempts() < 4 {
+	if client.Attempts() < client.NumResponses() {
 		t.Fatalf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
 	}
 
@@ -749,7 +749,7 @@ func TestDoPollForAsynchronous_PollsUntilOperationResourceHasSucceeded(t *testin
 	r, _ := autorest.SendWithSender(client, mocks.NewRequest(),
 		DoPollForAsynchronous(time.Millisecond))
 
-	if client.Attempts() < 4 {
+	if client.Attempts() < client.NumResponses() {
 		t.Fatalf("azure: DoPollForAsynchronous stopped polling before receiving a terminated OperationResource")
 	}
 
@@ -1046,7 +1046,7 @@ func TestFuture_PollsUntilProvisioningStatusSucceeds(t *testing.T) {
 		time.Sleep(delay)
 	}
 
-	if client.Attempts() < 4 {
+	if client.Attempts() < client.NumResponses() {
 		t.Fatalf("azure: TestFuture stopped polling before receiving a terminated OperationResource")
 	}
 
@@ -1131,7 +1131,7 @@ func TestFuture_WaitForCompletion(t *testing.T) {
 		t.Fatalf("azure: WaitForCompletion returned non-nil error")
 	}
 
-	if sender.Attempts() < 6 {
+	if sender.Attempts() < sender.NumResponses() {
 		t.Fatalf("azure: TestFuture stopped polling before receiving a terminated OperationResource")
 	}
 
