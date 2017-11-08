@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 // Body implements acceptable body over a string.
@@ -82,6 +83,7 @@ func (body *Body) reset() *Body {
 type response struct {
 	r *http.Response
 	e error
+	d time.Duration
 }
 
 // Sender implements a simple null sender.
@@ -112,6 +114,7 @@ func (c *Sender) Do(r *http.Request) (resp *http.Response, err error) {
 		} else {
 			err = c.responses[0].e
 		}
+		time.Sleep(c.responses[0].d)
 		c.repeatResponse[0]--
 		if c.repeatResponse[0] == 0 {
 			c.responses = c.responses[1:]
@@ -142,10 +145,21 @@ func (c *Sender) AppendResponse(resp *http.Response) {
 	c.AppendAndRepeatResponse(resp, 1)
 }
 
+// AppendResponseWithDelay adds the passed http.Response to the response stack with the specified delay.
+func (c *Sender) AppendResponseWithDelay(resp *http.Response, delay time.Duration) {
+	c.AppendAndRepeatResponseWithDelay(resp, delay, 1)
+}
+
 // AppendAndRepeatResponse adds the passed http.Response to the response stack along with a
 // repeat count. A negative repeat count will return the response for all remaining calls to Do.
 func (c *Sender) AppendAndRepeatResponse(resp *http.Response, repeat int) {
 	c.appendAndRepeat(response{r: resp}, repeat)
+}
+
+// AppendAndRepeatResponseWithDelay adds the passed http.Response to the response stack with the specified
+// delay along with a repeat count. A negative repeat count will return the response for all remaining calls to Do.
+func (c *Sender) AppendAndRepeatResponseWithDelay(resp *http.Response, delay time.Duration, repeat int) {
+	c.appendAndRepeat(response{r: resp, d: delay}, repeat)
 }
 
 // AppendError adds the passed error to the response stack.

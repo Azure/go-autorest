@@ -1130,12 +1130,94 @@ func TestFuture_WaitForCompletion(t *testing.T) {
 		t.Fatalf("azure: WaitForCompletion returned non-nil error")
 	}
 
-	if sender.Attempts() < 4 {
+	if sender.Attempts() < 6 {
 		t.Fatalf("azure: TestFuture stopped polling before receiving a terminated OperationResource")
 	}
 
 	autorest.Respond(future.Response(),
 		autorest.ByClosing())
+}
+
+func TestFuture_WaitForCompletionTimedOut(t *testing.T) {
+	r1 := newAsynchronousResponse()
+	r1.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+	r2 := newProvisioningStatusResponse("busy")
+	r2.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+
+	sender := mocks.NewSender()
+	sender.AppendResponse(r1)
+	sender.AppendAndRepeatResponseWithDelay(r2, 1*time.Second, 5)
+
+	future := NewFuture(mocks.NewRequest())
+
+	client := autorest.Client{
+		PollingDelay:    autorest.DefaultPollingDelay,
+		PollingDuration: 2 * time.Second,
+		RetryAttempts:   autorest.DefaultRetryAttempts,
+		RetryDuration:   1 * time.Second,
+		Sender:          sender,
+	}
+
+	err := future.WaitForCompletion(context.Background(), client)
+	if err == nil {
+		t.Fatalf("azure: WaitForCompletion returned nil error, should have timed out")
+	}
+}
+
+func TestFuture_WaitForCompletionRetriesExceeded(t *testing.T) {
+	r1 := newAsynchronousResponse()
+	r1.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+
+	sender := mocks.NewSender()
+	sender.AppendResponse(r1)
+	sender.AppendAndRepeatError(errors.New("transient network failure"), autorest.DefaultRetryAttempts+1)
+
+	future := NewFuture(mocks.NewRequest())
+
+	client := autorest.Client{
+		PollingDelay:    autorest.DefaultPollingDelay,
+		PollingDuration: autorest.DefaultPollingDuration,
+		RetryAttempts:   autorest.DefaultRetryAttempts,
+		RetryDuration:   100 * time.Millisecond,
+		Sender:          sender,
+	}
+
+	err := future.WaitForCompletion(context.Background(), client)
+	if err == nil {
+		t.Fatalf("azure: WaitForCompletion returned nil error, should have errored out")
+	}
+}
+
+func TestFuture_WaitForCompletionCancelled(t *testing.T) {
+	r1 := newAsynchronousResponse()
+	r1.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+	r2 := newProvisioningStatusResponse("busy")
+	r2.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+
+	sender := mocks.NewSender()
+	sender.AppendResponse(r1)
+	sender.AppendAndRepeatResponseWithDelay(r2, 1*time.Second, 5)
+
+	future := NewFuture(mocks.NewRequest())
+
+	client := autorest.Client{
+		PollingDelay:    autorest.DefaultPollingDelay,
+		PollingDuration: autorest.DefaultPollingDuration,
+		RetryAttempts:   autorest.DefaultRetryAttempts,
+		RetryDuration:   autorest.DefaultRetryDuration,
+		Sender:          sender,
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		time.Sleep(2 * time.Second)
+		cancel()
+	}()
+
+	err := future.WaitForCompletion(ctx, client)
+	if err == nil {
+		t.Fatalf("azure: WaitForCompletion returned nil error, should have been cancelled")
+	}
 }
 
 const (

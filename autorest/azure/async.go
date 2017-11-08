@@ -125,12 +125,11 @@ func (f Future) GetPollingDelay() (time.Duration, bool) {
 // polling duration has been exceeded.  It will retry failed polling attempts based on
 // the retry value defined in the client up to the maximum retry attempts.
 func (f Future) WaitForCompletion(ctx context.Context, client autorest.Client) error {
-	start := time.Now()
+	ctx, cancel := context.WithTimeout(ctx, client.PollingDuration)
+	defer cancel()
+
 	done, err := f.Done(client)
 	for attempts := 0; !done; done, err = f.Done(client) {
-		if time.Since(start) > client.PollingDuration {
-			return autorest.NewErrorWithResponse("azure", "WaitForCompletion", f.resp, "the polling duration has been exceeded")
-		}
 		if attempts >= client.RetryAttempts {
 			return autorest.NewErrorWithError(err, "azure", "WaitForCompletion", f.resp, "the number of retries has been exceeded")
 		}
@@ -156,7 +155,7 @@ func (f Future) WaitForCompletion(ctx context.Context, client autorest.Client) e
 		// wait until the delay elapses or the context is cancelled
 		delayElapsed := autorest.DelayForBackoff(delay, delayAttempt, ctx.Done())
 		if !delayElapsed {
-			return ctx.Err()
+			return autorest.NewErrorWithError(ctx.Err(), "azure", "WaitForCompletion", f.resp, "context has been cancelled")
 		}
 	}
 	return err
