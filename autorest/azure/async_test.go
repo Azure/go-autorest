@@ -1105,6 +1105,7 @@ func TestFuture_WaitForCompletion(t *testing.T) {
 	r2.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
 	r3 := newAsynchronousResponseWithError("Internal server error", http.StatusInternalServerError)
 	r3.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
+	r3.Header.Del(http.CanonicalHeaderKey("Retry-After"))
 	r4 := newProvisioningStatusResponse(operationSucceeded)
 	r4.Header.Del(http.CanonicalHeaderKey(headerAsyncOperation))
 
@@ -1118,7 +1119,7 @@ func TestFuture_WaitForCompletion(t *testing.T) {
 	future := NewFuture(mocks.NewRequest())
 
 	client := autorest.Client{
-		PollingDelay:    autorest.DefaultPollingDelay,
+		PollingDelay:    1 * time.Second,
 		PollingDuration: autorest.DefaultPollingDuration,
 		RetryAttempts:   autorest.DefaultRetryAttempts,
 		RetryDuration:   1 * time.Second,
