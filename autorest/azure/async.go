@@ -16,6 +16,7 @@ package azure
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -37,6 +38,8 @@ const (
 	operationFailed     string = "Failed"
 	operationSucceeded  string = "Succeeded"
 )
+
+var pollingCodes = [...]int{http.StatusAccepted, http.StatusCreated, http.StatusOK}
 
 // Future provides a mechanism to access the status and results of an asynchronous request.
 // Since futures are stateful they should be passed by value to avoid race conditions.
@@ -78,7 +81,7 @@ func (f *Future) Done(sender autorest.Sender) (bool, error) {
 
 	resp, err := sender.Do(f.req)
 	f.resp = resp
-	if err != nil {
+	if err != nil || !autorest.ResponseHasStatusCode(resp, pollingCodes[:]...) {
 		return false, err
 	}
 
@@ -117,6 +120,47 @@ func (f Future) GetPollingDelay() (time.Duration, bool) {
 	return d, true
 }
 
+// WaitForCompletion will return when one of the following conditions is met: the long
+// running operation has completed, the provided context is cancelled, or the client's
+// polling duration has been exceeded.  It will retry failed polling attempts based on
+// the retry value defined in the client up to the maximum retry attempts.
+func (f Future) WaitForCompletion(ctx context.Context, client autorest.Client) error {
+	ctx, cancel := context.WithTimeout(ctx, client.PollingDuration)
+	defer cancel()
+
+	done, err := f.Done(client)
+	for attempts := 0; !done; done, err = f.Done(client) {
+		if attempts >= client.RetryAttempts {
+			return autorest.NewErrorWithError(err, "azure", "WaitForCompletion", f.resp, "the number of retries has been exceeded")
+		}
+		// we want delayAttempt to be zero in the non-error case so
+		// that DelayForBackoff doesn't perform exponential back-off
+		var delayAttempt int
+		var delay time.Duration
+		if err == nil {
+			// check for Retry-After delay, if not present use the client's polling delay
+			var ok bool
+			delay, ok = f.GetPollingDelay()
+			if !ok {
+				delay = client.PollingDelay
+			}
+		} else {
+			// there was an error polling for status so perform exponential
+			// back-off based on the number of attempts using the client's retry
+			// duration.  update attempts after delayAttempt to avoid off-by-one.
+			delayAttempt = attempts
+			delay = client.RetryDuration
+			attempts++
+		}
+		// wait until the delay elapses or the context is cancelled
+		delayElapsed := autorest.DelayForBackoff(delay, delayAttempt, ctx.Done())
+		if !delayElapsed {
+			return autorest.NewErrorWithError(ctx.Err(), "azure", "WaitForCompletion", f.resp, "context has been cancelled")
+		}
+	}
+	return err
+}
+
 // if the operation failed the polling state will contain
 // error information and implements the error interface
 func (f *Future) errorInfo() error {
@@ -152,8 +196,7 @@ func DoPollForAsynchronous(delay time.Duration) autorest.SendDecorator {
 			if err != nil {
 				return resp, err
 			}
-			pollingCodes := []int{http.StatusAccepted, http.StatusCreated, http.StatusOK}
-			if !autorest.ResponseHasStatusCode(resp, pollingCodes...) {
+			if !autorest.ResponseHasStatusCode(resp, pollingCodes[:]...) {
 				return resp, nil
 			}
 

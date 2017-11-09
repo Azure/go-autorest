@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v9.4.0
+
+### New Features
+
+- Added WaitForCompletion() to Future as a default polling implementation.
+
+### Bug Fixes
+
+- Method Future.Done() shouldn't update polling status for unexpected HTTP status codes.
+
 ## v9.3.1
 
 ### Bug Fixes
