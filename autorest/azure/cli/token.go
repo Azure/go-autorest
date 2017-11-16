@@ -23,6 +23,7 @@ import (
 
 	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/date"
+	"github.com/mitchellh/go-homedir"
 )
 
 // Token represents an AccessToken from the Azure CLI
