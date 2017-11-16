@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v9.4.1
+
+### Bug Fixes
+
+- Update the logic to get path of access tokens through AZURE_ACCESS_TOKEN_FILE.
+
 ## v9.4.0
 
 ### New Features
