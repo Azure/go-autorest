@@ -62,13 +62,14 @@ func (t Token) ToADALToken() (converted adal.Token, err error) {
 }
 
 // AccessTokensPath returns the path where access tokens are stored from the Azure CLI
+// TODO(#199): add unit test.
 func AccessTokensPath() (string, error) {
 	// Azure-CLI allows user to customize the path of access tokens thorugh environment variable.
 	var accessTokenPath = os.Getenv("AZURE_ACCESS_TOKEN_FILE")
 	var err error
 
 	// Fallback logic to default path on non-cloud-shell environment.
-	// TODO(sushi): remove the dependency on hard-coding path.
+	// TODO(#200): remove the dependency on hard-coding path.
 	if accessTokenPath == "" {
 		accessTokenPath, err = homedir.Expand("~/.azure/accessTokens.json")
 	}
