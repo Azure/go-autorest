@@ -5,7 +5,8 @@
 ### Bug Fixes
 
 - Update the AccessTokensPath() to read access tokens path through AZURE_ACCESS_TOKEN_FILE. If this
-environment variable is not set, it will fall back to use default path set by Azure CLI.
+  environment variable is not set, it will fall back to use default path set by Azure CLI.
+- Use case-insensitive string comparison for polling states.
 
 ## v9.4.0
 

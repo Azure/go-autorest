@@ -234,20 +234,15 @@ func getAsyncOperation(resp *http.Response) string {
 }
 
 func hasSucceeded(state string) bool {
-	return state == operationSucceeded
+	return strings.EqualFold(state, operationSucceeded)
 }
 
 func hasTerminated(state string) bool {
-	switch state {
-	case operationCanceled, operationFailed, operationSucceeded:
-		return true
-	default:
-		return false
-	}
+	return strings.EqualFold(state, operationCanceled) || strings.EqualFold(state, operationFailed) || strings.EqualFold(state, operationSucceeded)
 }
 
 func hasFailed(state string) bool {
-	return state == operationFailed
+	return strings.EqualFold(state, operationFailed)
 }
 
 type provisioningTracker interface {
@@ -426,7 +421,7 @@ func updatePollingState(resp *http.Response, ps *pollingState) error {
 		}
 	}
 
-	if ps.State == operationInProgress && ps.URI == "" {
+	if strings.EqualFold(ps.State, operationInProgress) && ps.URI == "" {
 		return autorest.NewError("azure", "updatePollingState", "Azure Polling Error - Unable to obtain polling URI for %s %s", resp.Request.Method, resp.Request.URL)
 	}
 
