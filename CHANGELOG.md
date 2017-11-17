@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v9.4.1
+
+### Bug Fixes
+
+- Update the AccessTokensPath() to read access tokens path through AZURE_ACCESS_TOKEN_FILE. If this
+environment variable is not set, it will fall back to use default path set by Azure CLI.
+
 ## v9.4.0
 
 ### New Features
