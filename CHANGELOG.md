@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v9.4.2
+
+### Bug Fixes
+
+- Validate parameters when creating credentials.
+- Don't retry requests if the returned status is a 401 (http.StatusUnauthorized) as it will never succeed.
+
 ## v9.4.1
 
 ### Bug Fixes

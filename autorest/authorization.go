@@ -69,7 +69,11 @@ func (ba *BearerAuthorizer) WithAuthorization() PrepareDecorator {
 			if ok {
 				err := refresher.EnsureFresh()
 				if err != nil {
-					return r, NewErrorWithError(err, "azure.BearerAuthorizer", "WithAuthorization", nil,
+					var resp *http.Response
+					if tokError, ok := err.(adal.TokenRefreshError); ok {
+						resp = tokError.Response()
+					}
+					return r, NewErrorWithError(err, "azure.BearerAuthorizer", "WithAuthorization", resp,
 						"Failed to refresh the Token for request to %s", r.URL)
 				}
 			}

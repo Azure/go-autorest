@@ -204,7 +204,13 @@ func (c Client) Do(r *http.Request) (*http.Response, error) {
 		c.WithInspection(),
 		c.WithAuthorization())
 	if err != nil {
-		return nil, NewErrorWithError(err, "autorest/Client", "Do", nil, "Preparing request failed")
+		var resp *http.Response
+		if detErr, ok := err.(DetailedError); ok {
+			// if the authorization failed (e.g. invalid credentials) there will
+			// be a response associated with the error, be sure to return it.
+			resp = detErr.Response
+		}
+		return resp, NewErrorWithError(err, "autorest/Client", "Do", nil, "Preparing request failed")
 	}
 
 	resp, err := SendWithSender(c.sender(), r)
