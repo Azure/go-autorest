@@ -327,6 +327,12 @@ func NewServicePrincipalTokenFromCertificate(oauthConfig OAuthConfig, clientID s
 	if err := validateStringParam(resource, "resource"); err != nil {
 		return nil, err
 	}
+	if certificate == nil {
+		return nil, fmt.Errorf("parameter 'certificate' cannot be nil")
+	}
+	if privateKey == nil {
+		return nil, fmt.Errorf("parameter 'privateKey' cannot be nil")
+	}
 	return NewServicePrincipalTokenWithSecret(
 		oauthConfig,
 		clientID,
