@@ -54,6 +54,12 @@ type OAuthTokenProvider interface {
 	OAuthToken() string
 }
 
+// TokenRefreshError is an interface used by errors returned during token refresh.
+type TokenRefreshError interface {
+	error
+	Response() *http.Response
+}
+
 // Refresher is an interface for token refresh functionality
 type Refresher interface {
 	Refresh() error
@@ -76,6 +82,11 @@ type Token struct {
 
 	Resource string `json:"resource"`
 	Type     string `json:"token_type"`
+}
+
+// IsZero returns true if the token object is zero-initialized.
+func (t Token) IsZero() bool {
+	return t == Token{}
 }
 
 // Expires returns the time.Time when the Token expires.
@@ -210,8 +221,27 @@ type ServicePrincipalToken struct {
 	refreshCallbacks []TokenRefreshCallback
 }
 
+func validateOAuthConfig(oac OAuthConfig) error {
+	if oac.IsZero() {
+		return fmt.Errorf("parameter 'oauthConfig' cannot be zero-initialized")
+	}
+	return nil
+}
+
 // NewServicePrincipalTokenWithSecret create a ServicePrincipalToken using the supplied ServicePrincipalSecret implementation.
 func NewServicePrincipalTokenWithSecret(oauthConfig OAuthConfig, id string, resource string, secret ServicePrincipalSecret, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+	if err := validateOAuthConfig(oauthConfig); err != nil {
+		return nil, err
+	}
+	if err := validateStringParam(id, "id"); err != nil {
+		return nil, err
+	}
+	if err := validateStringParam(resource, "resource"); err != nil {
+		return nil, err
+	}
+	if secret == nil {
+		return nil, fmt.Errorf("parameter 'secret' cannot be nil")
+	}
 	spt := &ServicePrincipalToken{
 		oauthConfig:      oauthConfig,
 		secret:           secret,
@@ -227,6 +257,18 @@ func NewServicePrincipalTokenWithSecret(oauthConfig OAuthConfig, id string, reso
 
 // NewServicePrincipalTokenFromManualToken creates a ServicePrincipalToken using the supplied token
 func NewServicePrincipalTokenFromManualToken(oauthConfig OAuthConfig, clientID string, resource string, token Token, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+	if err := validateOAuthConfig(oauthConfig); err != nil {
+		return nil, err
+	}
+	if err := validateStringParam(clientID, "clientID"); err != nil {
+		return nil, err
+	}
+	if err := validateStringParam(resource, "resource"); err != nil {
+		return nil, err
+	}
+	if token.IsZero() {
+		return nil, fmt.Errorf("parameter 'token' cannot be zero-initialized")
+	}
 	spt, err := NewServicePrincipalTokenWithSecret(
 		oauthConfig,
 		clientID,
@@ -245,6 +287,18 @@ func NewServicePrincipalTokenFromManualToken(oauthConfig OAuthConfig, clientID s
 // NewServicePrincipalToken creates a ServicePrincipalToken from the supplied Service Principal
 // credentials scoped to the named resource.
 func NewServicePrincipalToken(oauthConfig OAuthConfig, clientID string, secret string, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+	if err := validateOAuthConfig(oauthConfig); err != nil {
+		return nil, err
+	}
+	if err := validateStringParam(clientID, "clientID"); err != nil {
+		return nil, err
+	}
+	if err := validateStringParam(secret, "secret"); err != nil {
+		return nil, err
+	}
+	if err := validateStringParam(resource, "resource"); err != nil {
+		return nil, err
+	}
 	return NewServicePrincipalTokenWithSecret(
 		oauthConfig,
 		clientID,
@@ -258,6 +312,21 @@ func NewServicePrincipalToken(oauthConfig OAuthConfig, clientID string, secret s
 
 // NewServicePrincipalTokenFromCertificate create a ServicePrincipalToken from the supplied pkcs12 bytes.
 func NewServicePrincipalTokenFromCertificate(oauthConfig OAuthConfig, clientID string, certificate *x509.Certificate, privateKey *rsa.PrivateKey, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+	if err := validateOAuthConfig(oauthConfig); err != nil {
+		return nil, err
+	}
+	if err := validateStringParam(clientID, "clientID"); err != nil {
+		return nil, err
+	}
+	if err := validateStringParam(resource, "resource"); err != nil {
+		return nil, err
+	}
+	if certificate == nil {
+		return nil, fmt.Errorf("parameter 'certificate' cannot be nil")
+	}
+	if privateKey == nil {
+		return nil, fmt.Errorf("parameter 'privateKey' cannot be nil")
+	}
 	return NewServicePrincipalTokenWithSecret(
 		oauthConfig,
 		clientID,
@@ -316,6 +385,26 @@ func NewServicePrincipalTokenFromMSI(msiEndpoint, resource string, callbacks ...
 	}
 
 	return spt, nil
+}
+
+// internal type that implements TokenRefreshError
+type tokenRefreshError struct {
+	message string
+	resp    *http.Response
+}
+
+// Error implements the error interface which is part of the TokenRefreshError interface.
+func (tre tokenRefreshError) Error() string {
+	return tre.message
+}
+
+// Response implements the TokenRefreshError interface, it returns the raw HTTP response from the refresh operation.
+func (tre tokenRefreshError) Response() *http.Response {
+	return tre.resp
+}
+
+func newTokenRefreshError(message string, resp *http.Response) TokenRefreshError {
+	return tokenRefreshError{message: message, resp: resp}
 }
 
 // EnsureFresh will refresh the token if it will expire within the refresh window (as set by
@@ -388,9 +477,9 @@ func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
 
 	if resp.StatusCode != http.StatusOK {
 		if err != nil {
-			return fmt.Errorf("adal: Refresh request failed. Status Code = '%d'. Failed reading response body", resp.StatusCode)
+			return newTokenRefreshError(fmt.Sprintf("adal: Refresh request failed. Status Code = '%d'. Failed reading response body", resp.StatusCode), resp)
 		}
-		return fmt.Errorf("adal: Refresh request failed. Status Code = '%d'. Response body: %s", resp.StatusCode, string(rb))
+		return newTokenRefreshError(fmt.Sprintf("adal: Refresh request failed. Status Code = '%d'. Response body: %s", resp.StatusCode, string(rb)), resp)
 	}
 
 	if err != nil {
