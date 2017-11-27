@@ -34,10 +34,7 @@ type OAuthConfig struct {
 
 // IsZero returns true if the OAuthConfig object is zero-initialized.
 func (oac OAuthConfig) IsZero() bool {
-	return len(oac.AuthorityEndpoint.Host) == 0 &&
-		len(oac.AuthorizeEndpoint.Host) == 0 &&
-		len(oac.TokenEndpoint.Host) == 0 &&
-		len(oac.DeviceCodeEndpoint.Host) == 0
+	return oac == OAuthConfig{}
 }
 
 func validateStringParam(param, name string) error {

@@ -86,13 +86,7 @@ type Token struct {
 
 // IsZero returns true if the token object is zero-initialized.
 func (t Token) IsZero() bool {
-	return len(t.AccessToken) == 0 &&
-		len(t.RefreshToken) == 0 &&
-		len(t.ExpiresIn) == 0 &&
-		len(t.ExpiresOn) == 0 &&
-		len(t.NotBefore) == 0 &&
-		len(t.Resource) == 0 &&
-		len(t.Type) == 0
+	return t == Token{}
 }
 
 // Expires returns the time.Time when the Token expires.
