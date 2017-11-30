@@ -138,11 +138,31 @@ func MapToValues(m map[string]interface{}) url.Values {
 	return v
 }
 
+// ToStringSlice method converts interface{} to []string.
+func ToStringSlice(s interface{}) []string {
+
+	v := reflect.ValueOf(s)
+	stringSlice := make([]string, v.Len())
+
+	for i := 0; i < v.Len(); i++ {
+		stringSlice[i] = v.Index(i).String()
+	}
+
+	return stringSlice
+}
+
 // String method converts interface v to string. If interface is a list, it
 // joins list elements using separator.
 func String(v interface{}, sep ...string) string {
 	if len(sep) > 0 {
-		return ensureValueString(strings.Join(v.([]string), sep[0]))
+		stringSlice, ok := v.([]string)
+
+		if ok == false {
+			stringSlice = ToStringSlice(v)
+		}
+		stringValue := strings.Join(stringSlice, strings.Join(sep, ""))
+		return ensureValueString(stringValue)
+
 	}
 	return ensureValueString(v)
 }
