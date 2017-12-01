@@ -289,6 +289,21 @@ func TestServicePrincipalTokenCertficateRefreshSetsBody(t *testing.T) {
 	})
 }
 
+func TestServicePrincipalTokenUsernamePasswordRefreshSetsBody(t *testing.T) {
+	spt := newServicePrincipalTokenUsernamePassword(t)
+	testServicePrincipalTokenRefreshSetsBody(t, spt, func(t *testing.T, b []byte) {
+		body := string(b)
+
+		values, _ := url.ParseQuery(body)
+		if values["client_id"][0] != "id" ||
+			values["grant_type"][0] != "password" ||
+			values["username"][0] != "username" ||
+			values["password"][0] != "password" ||
+			values["resource"][0] != "resource" {
+			t.Fatalf("adal: ServicePrincipalTokenUsernamePassword#Refresh did not correctly set the HTTP Request Body.")
+		}
+	})
+}
 func TestServicePrincipalTokenSecretRefreshSetsBody(t *testing.T) {
 	spt := newServicePrincipalToken()
 	testServicePrincipalTokenRefreshSetsBody(t, spt, func(t *testing.T, b []byte) {
@@ -650,5 +665,10 @@ func newServicePrincipalTokenCertificate(t *testing.T) *ServicePrincipalToken {
 	}
 
 	spt, _ := NewServicePrincipalTokenFromCertificate(TestOAuthConfig, "id", certificate, privateKey, "resource")
+	return spt
+}
+
+func newServicePrincipalTokenUsernamePassword(t *testing.T) *ServicePrincipalToken {
+	spt, _ := NewServicePrincipalTokenFromUsernamePassword(TestOAuthConfig, "id", "username", "password", "resource")
 	return spt
 }
