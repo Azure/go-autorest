@@ -42,6 +42,9 @@ const (
 	// OAuthGrantTypeClientCredentials is the "grant_type" identifier used in credential flows
 	OAuthGrantTypeClientCredentials = "client_credentials"
 
+	// OAuthGrantTypeUserPass is the "grant_type" identifier used in username and password auth flows
+	OAuthGrantTypeUserPass = "password"
+
 	// OAuthGrantTypeRefreshToken is the "grant_type" identifier used in refresh token flows
 	OAuthGrantTypeRefreshToken = "refresh_token"
 
@@ -154,6 +157,19 @@ type ServicePrincipalCertificateSecret struct {
 
 // ServicePrincipalMSISecret implements ServicePrincipalSecret for machines running the MSI Extension.
 type ServicePrincipalMSISecret struct {
+}
+
+// ServicePrincipalUsernamePasswordSecret implements ServicePrincipalSecret for username and password auth
+type ServicePrincipalUsernamePasswordSecret struct {
+	Username string
+	Password string
+}
+
+// SetAuthenticationValues is a method of the interface ServicePrincipalSecret.
+func (secret *ServicePrincipalUsernamePasswordSecret) SetAuthenticationValues(spt *ServicePrincipalToken, v *url.Values) error {
+	v.Set("username", secret.Username)
+	v.Set("password", secret.Password)
+	return nil
 }
 
 // SetAuthenticationValues is a method of the interface ServicePrincipalSecret.
@@ -339,6 +355,35 @@ func NewServicePrincipalTokenFromCertificate(oauthConfig OAuthConfig, clientID s
 	)
 }
 
+// NewServicePrincipalTokenFromUsernamePassword create a ServicePrincipalToken from the username and password
+func NewServicePrincipalTokenFromUsernamePassword(oauthConfig OAuthConfig, clientID string, username string, password string, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+	if err := validateOAuthConfig(oauthConfig); err != nil {
+		return nil, err
+	}
+	if err := validateStringParam(clientID, "clientID"); err != nil {
+		return nil, err
+	}
+	if err := validateStringParam(username, "username"); err != nil {
+		return nil, err
+	}
+	if err := validateStringParam(password, "password"); err != nil {
+		return nil, err
+	}
+	if err := validateStringParam(resource, "resource"); err != nil {
+		return nil, err
+	}
+	return NewServicePrincipalTokenWithSecret(
+		oauthConfig,
+		clientID,
+		resource,
+		&ServicePrincipalUsernamePasswordSecret{
+			Username: username,
+			Password: password,
+		},
+		callbacks...,
+	)
+}
+
 // GetMSIVMEndpoint gets the MSI endpoint on Virtual Machines.
 func GetMSIVMEndpoint() (string, error) {
 	return getMSIVMEndpoint(msiPath)
@@ -439,6 +484,15 @@ func (spt *ServicePrincipalToken) RefreshExchange(resource string) error {
 	return spt.refreshInternal(resource)
 }
 
+func (spt *ServicePrincipalToken) getGrantType() string {
+	switch spt.secret.(type) {
+	case *ServicePrincipalUsernamePasswordSecret:
+		return OAuthGrantTypeUserPass
+	default:
+		return OAuthGrantTypeClientCredentials
+	}
+}
+
 func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
 	v := url.Values{}
 	v.Set("client_id", spt.clientID)
@@ -448,7 +502,7 @@ func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
 		v.Set("grant_type", OAuthGrantTypeRefreshToken)
 		v.Set("refresh_token", spt.RefreshToken)
 	} else {
-		v.Set("grant_type", OAuthGrantTypeClientCredentials)
+		v.Set("grant_type", spt.getGrantType())
 		err := spt.secret.SetAuthenticationValues(spt, &v)
 		if err != nil {
 			return err
