@@ -234,6 +234,24 @@ if (err == nil) {
 }
 ```
 
+#### Authorization code authenticate
+
+``` Go
+spt, err := adal.NewServicePrincipalTokenFromAuthorizationCode(
+	oauthConfig,
+	applicationID,
+	clientSecret,
+      authorizationCode,
+      redirectURI,
+	resource,
+	callbacks...)
+
+err  = spt.Refresh()
+if (err == nil) {
+    token := spt.Token
+}
+```
+
 ### Command Line Tool
 
 A command line tool is available in `cmd/adal.go` that can acquire a token for a given resource. It supports all flows mentioned above.
