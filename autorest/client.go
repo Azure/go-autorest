@@ -166,6 +166,9 @@ type Client struct {
 	UserAgent string
 
 	Jar http.CookieJar
+
+	// Set to true to skip attempted registration of resource providers (false by default).
+	SkipResourceProviderRegistration bool
 }
 
 // NewClientWithUserAgent returns an instance of a Client with the UserAgent set to the passed

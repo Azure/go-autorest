@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## v9.5.0
+
+### New Features
+
+- Added support for username + password, API key, authoriazation code and cognitive services authentication.
+- Added field SkipResourceProviderRegistration to clients to provide a way to skip auto-registration of RPs.
+- Added utility function AsStringSlice() to convert its parameters to a string slice.
+
+### Bug Fixes
+
+- When checking for authentication failures look at the error type not the status code as it could vary.
+
 ## v9.4.2
 
 ### Bug Fixes
