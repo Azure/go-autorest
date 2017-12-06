@@ -25,6 +25,8 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+
+	"github.com/Azure/go-autorest/autorest/adal"
 )
 
 // EncodedAs is a series of constants specifying various data encodings
@@ -226,4 +228,16 @@ func ChangeToGet(req *http.Request) *http.Request {
 	req.ContentLength = 0
 	req.Header.Del("Content-Length")
 	return req
+}
+
+// IsTokenRefreshError returns true if the specified error implements the TokenRefreshError
+// interface.  If err is a DetailedError it will walk the chain of Original errors.
+func IsTokenRefreshError(err error) bool {
+	if _, ok := err.(adal.TokenRefreshError); ok {
+		return true
+	}
+	if de, ok := err.(DetailedError); ok {
+		return IsTokenRefreshError(de.Original)
+	}
+	return false
 }
