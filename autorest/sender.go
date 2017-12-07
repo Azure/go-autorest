@@ -215,7 +215,7 @@ func DoRetryForStatusCodes(attempts int, backoff time.Duration, codes ...int) Se
 			rr := NewRetriableRequest(r)
 			// Increment to add the first call (attempts denotes number of retries)
 			attempts++
-			for attempt := 0; attempt < attempts; attempt++ {
+			for attempt := 0; attempt < attempts; {
 				err = rr.Prepare()
 				if err != nil {
 					return resp, err
@@ -229,6 +229,11 @@ func DoRetryForStatusCodes(attempts int, backoff time.Duration, codes ...int) Se
 				delayed := DelayWithRetryAfter(resp, r.Cancel)
 				if !delayed {
 					DelayForBackoff(backoff, attempt, r.Cancel)
+				}
+				// don't count a 429 against the number of attempts
+				// so that we continue to retry until it succeeds
+				if resp.StatusCode != http.StatusTooManyRequests {
+					attempt++
 				}
 			}
 			return resp, err
