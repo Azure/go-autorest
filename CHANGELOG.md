@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v9.5.1
+
+### Bug Fixes
+
+- Don't count http.StatusTooManyRequests (429) against the retry cap.
+- Use retry logic when SkipResourceProviderRegistration is set to true.
+
 ## v9.5.0
 
 ### New Features

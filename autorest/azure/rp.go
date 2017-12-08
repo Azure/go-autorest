@@ -30,9 +30,6 @@ import (
 func DoRetryWithRegistration(client autorest.Client) autorest.SendDecorator {
 	return func(s autorest.Sender) autorest.Sender {
 		return autorest.SenderFunc(func(r *http.Request) (resp *http.Response, err error) {
-			if client.SkipResourceProviderRegistration {
-				return autorest.SendWithSender(s, r)
-			}
 			rr := autorest.NewRetriableRequest(r)
 			for currentAttempt := 0; currentAttempt < client.RetryAttempts; currentAttempt++ {
 				err = rr.Prepare()
@@ -47,7 +44,7 @@ func DoRetryWithRegistration(client autorest.Client) autorest.SendDecorator {
 					return resp, err
 				}
 
-				if resp.StatusCode != http.StatusConflict {
+				if resp.StatusCode != http.StatusConflict || client.SkipResourceProviderRegistration {
 					return resp, err
 				}
 				var re RequestError
