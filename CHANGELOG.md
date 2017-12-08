@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v9.6.0
+
+### New Features
+
+- Added utility functions for obtaining Authorizer objects.
+
 ## v9.5.1
 
 ### Bug Fixes
@@ -140,7 +146,7 @@ Support for UNIX time.
 - Added telemetry.
 
 ## v7.2.3
-- Fixing bug in calls to `DelayForBackoff` that caused doubling of delay 
+- Fixing bug in calls to `DelayForBackoff` that caused doubling of delay
   duration.
 
 ## v7.2.2
