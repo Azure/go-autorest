@@ -6,6 +6,9 @@
 
 - Added utility functions for obtaining Authorizer objects.
 
+### Bug Fixes
+- Don't remove encoding of existing URL Query parameters when calling autorest.WithQueryParameters.
+
 ## v9.5.2
 
 ### Bug Fixes
