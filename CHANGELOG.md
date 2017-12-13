@@ -15,6 +15,9 @@
 
 - Check for nil *http.Response before dereferencing it.
 
+### Deprecated
+- Function utils.GetAuthorizer has been deprecated. Use auth.GetAuthorizerFromClientCredentials instead.
+
 ## v9.5.1
 
 ### Bug Fixes

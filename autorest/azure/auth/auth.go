@@ -185,12 +185,14 @@ func NewAuthorizerOptionsFromEnvironment() AuthorizerOptions {
 	options.CertificatePassword = os.Getenv("AZURE_CERTIFICATE_PASSWORD")
 
 	envName := os.Getenv("AZURE_ENVIRONMENT")
-	env, err := azure.EnvironmentFromName(envName)
-
-	if err == nil {
-		options.Environment = env
-	} else {
+	if envName == "" {
 		options.Environment = azure.PublicCloud
+	} else {
+		env, err := azure.EnvironmentFromName(envName)
+		if err != nil {
+			panic(err)
+		}
+		options.Environment = env
 	}
 
 	return options
