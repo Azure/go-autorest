@@ -237,6 +237,11 @@ func WithFormData(v url.Values) PrepareDecorator {
 			r, err := p.Prepare(r)
 			if err == nil {
 				s := v.Encode()
+
+				if r.Header == nil {
+					r.Header = make(http.Header)
+				}
+				r.Header.Set(http.CanonicalHeaderKey(headerContentType), mimeTypeFormPost)
 				r.ContentLength = int64(len(s))
 				r.Body = ioutil.NopCloser(strings.NewReader(s))
 			}

@@ -483,7 +483,7 @@ func TestPrepareWithNullRequest(t *testing.T) {
 	}
 }
 
-func TestWithFormDataSetsContentLength(t *testing.T) {
+func TestWithFormData(t *testing.T) {
 	v := url.Values{}
 	v.Add("name", "Rob Pike")
 	v.Add("age", "42")
@@ -506,6 +506,10 @@ func TestWithFormDataSetsContentLength(t *testing.T) {
 
 	if r.ContentLength != int64(len(b)) {
 		t.Fatalf("autorest:WithFormData set Content-Length to %v, expected %v", r.ContentLength, len(b))
+	}
+
+	if expected, got := r.Header.Get(http.CanonicalHeaderKey(headerContentType)), mimeTypeFormPost; expected != got {
+		t.Fatalf("autorest:WithFormData Content Type not set or set to wrong value. Expected %v and got %v", expected, got)
 	}
 }
 

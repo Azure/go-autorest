@@ -8,15 +8,16 @@
 
 ### Bug Fixes
 - Don't remove encoding of existing URL Query parameters when calling autorest.WithQueryParameters.
+- Set correct Content Type when using autorest.WithFormData.
+
+### Deprecated
+- Function utils.GetAuthorizer has been deprecated. Use auth.GetAuthorizerFromClientCredentials instead.
 
 ## v9.5.2
 
 ### Bug Fixes
 
 - Check for nil *http.Response before dereferencing it.
-
-### Deprecated
-- Function utils.GetAuthorizer has been deprecated. Use auth.GetAuthorizerFromClientCredentials instead.
 
 ## v9.5.1
 
