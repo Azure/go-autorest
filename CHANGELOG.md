@@ -6,6 +6,12 @@
 
 - Added utility functions for obtaining Authorizer objects.
 
+## v9.5.2
+
+### Bug Fixes
+
+- Check for nil *http.Response before dereferencing it.
+
 ## v9.5.1
 
 ### Bug Fixes
