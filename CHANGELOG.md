@@ -1,17 +1,10 @@
 # CHANGELOG
 
-## v9.6.0
-
-### New Features
-
-- Added utility functions for obtaining Authorizer objects.
+## v9.5.3
 
 ### Bug Fixes
 - Don't remove encoding of existing URL Query parameters when calling autorest.WithQueryParameters.
 - Set correct Content Type when using autorest.WithFormData.
-
-### Deprecated
-- Function utils.GetAuthorizer has been deprecated. Use auth.GetAuthorizerFromClientCredentials instead.
 
 ## v9.5.2
 
