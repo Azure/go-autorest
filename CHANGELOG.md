@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v9.6.0
+
+### New Features
+
+- Added support for acquiring tokens via MSI with a user assigned identity.
+
 ## v9.5.3
 
 ### Bug Fixes
