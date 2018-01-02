@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v9.6.1
+
+### Bug Fixes
+
+- Ensure Authorization header is added to request when polling for registration status.
+
 ## v9.6.0
 
 ### New Features
