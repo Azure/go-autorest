@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v9.7.0
+
+### New Features
+
+- Added support for application/octet-stream MIME types.
+
 ## v9.6.1
 
 ### Bug Fixes
