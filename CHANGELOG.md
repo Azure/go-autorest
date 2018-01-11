@@ -4,7 +4,7 @@
 
 ### Bug Fixes
 
-- Use correct AAD endpoint for US Gov environment.
+- Use correct AAD and Graph endpoints for US Gov environment.
 
 ## v9.7.0
 

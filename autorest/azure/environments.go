@@ -86,7 +86,7 @@ var (
 		ActiveDirectoryEndpoint:      "https://login.microsoftonline.us/",
 		GalleryEndpoint:              "https://gallery.usgovcloudapi.net/",
 		KeyVaultEndpoint:             "https://vault.usgovcloudapi.net/",
-		GraphEndpoint:                "https://graph.usgovcloudapi.net/",
+		GraphEndpoint:                "https://graph.windows.net/",
 		StorageEndpointSuffix:        "core.usgovcloudapi.net",
 		SQLDatabaseDNSSuffix:         "database.usgovcloudapi.net",
 		TrafficManagerDNSSuffix:      "usgovtrafficmanager.net",
