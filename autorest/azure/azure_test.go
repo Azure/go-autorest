@@ -269,7 +269,7 @@ func TestWithErrorUnlessStatusCode_FoundAzureErrorWithDetails(t *testing.T) {
 	if azErr.ServiceError.Message == "" {
 		t.Fatalf("azure: error message is not unmarshaled properly")
 	}
-	b, _ := json.Marshal(*azErr.ServiceError.Details)
+	b, _ := json.Marshal(azErr.ServiceError.Details)
 	if string(b) != `[{"code":"conflict1","message":"error message1"},{"code":"conflict2","message":"error message2"}]` {
 		t.Fatalf("azure: error details is not unmarshaled properly")
 	}
@@ -398,7 +398,7 @@ func TestWithErrorUnlessStatusCode_UnwrappedError(t *testing.T) {
 	} else if azErr.ServiceError.Details == nil {
 		t.Logf("`ServiceError.Details` was nil when it should have been %q", expectedServiceErrorDetails)
 		t.Fail()
-	} else if details, _ := json.Marshal(*azErr.ServiceError.Details); expectedServiceErrorDetails != string(details) {
+	} else if details, _ := json.Marshal(azErr.ServiceError.Details); expectedServiceErrorDetails != string(details) {
 		t.Logf("Error detaisl was not unmarshaled properly.\n\tgot:  %q\n\twant: %q", string(details), expectedServiceErrorDetails)
 		t.Fail()
 	}
@@ -421,6 +421,35 @@ func TestRequestErrorString_WithError(t *testing.T) {
 			"code": "InternalError",
 			"message": "Conflict",
 			"details": [{"code": "conflict1", "message":"error message1"}]
+		}
+	}`
+	uuid := "71FDB9F4-5E49-4C12-B266-DE7B4FD999A6"
+	r := mocks.NewResponseWithContent(j)
+	mocks.SetResponseHeader(r, HeaderRequestID, uuid)
+	r.Request = mocks.NewRequest()
+	r.StatusCode = http.StatusInternalServerError
+	r.Status = http.StatusText(r.StatusCode)
+
+	err := autorest.Respond(r,
+		WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByClosing())
+
+	if err == nil {
+		t.Fatalf("azure: returned nil error for proper error response")
+	}
+	azErr, _ := err.(*RequestError)
+	expected := "autorest/azure: Service returned an error. Status=500 Code=\"InternalError\" Message=\"Conflict\" Details=[{\"code\":\"conflict1\",\"message\":\"error message1\"}]"
+	if expected != azErr.Error() {
+		t.Fatalf("azure: send wrong RequestError.\nexpected=%v\ngot=%v", expected, azErr.Error())
+	}
+}
+
+func TestRequestErrorString_WithErrorNonConforming(t *testing.T) {
+	j := `{
+		"error": {
+			"code": "InternalError",
+			"message": "Conflict",
+			"details": {"code": "conflict1", "message":"error message1"}
 		}
 	}`
 	uuid := "71FDB9F4-5E49-4C12-B266-DE7B4FD999A6"
