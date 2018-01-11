@@ -83,7 +83,7 @@ var (
 		PublishSettingsURL:           "https://manage.windowsazure.us/publishsettings/index",
 		ServiceManagementEndpoint:    "https://management.core.usgovcloudapi.net/",
 		ResourceManagerEndpoint:      "https://management.usgovcloudapi.net/",
-		ActiveDirectoryEndpoint:      "https://login.microsoftonline.com/",
+		ActiveDirectoryEndpoint:      "https://login.microsoftonline.us/",
 		GalleryEndpoint:              "https://gallery.usgovcloudapi.net/",
 		KeyVaultEndpoint:             "https://vault.usgovcloudapi.net/",
 		GraphEndpoint:                "https://graph.usgovcloudapi.net/",
