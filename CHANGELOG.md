@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v10.0.0
+
+### Breaking Changes
+
+- Make the ServiceError.Details field conform to the OData v4 spec for error responses.
+
+### Bug Fixes
+
+- Fixed unmarshalling of JSON into ServiceError for services that don't conform to the spec.
+
 ## v9.7.0
 
 ### New Features

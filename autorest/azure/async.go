@@ -300,7 +300,9 @@ func (ps provisioningStatus) hasTerminated() bool {
 }
 
 func (ps provisioningStatus) hasProvisioningError() bool {
-	return ps.ProvisioningError != ServiceError{}
+	return len(ps.ProvisioningError.Code) > 0 ||
+		len(ps.ProvisioningError.Message) > 0 ||
+		len(ps.ProvisioningError.Details) > 0
 }
 
 // PollingMethodType defines a type used for enumerating polling mechanisms.

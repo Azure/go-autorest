@@ -1,8 +1,5 @@
-/*
-Package azure provides Azure-specific implementations used with AutoRest.
-
-See the included examples for more detail.
-*/
+// Package azure provides Azure-specific implementations used with AutoRest.
+// See the included examples for more detail.
 package azure
 
 // Copyright 2017 Microsoft Corporation
@@ -43,21 +40,62 @@ const (
 )
 
 // ServiceError encapsulates the error response from an Azure service.
+// It adhears to the OData v4 specification for error responses.
 type ServiceError struct {
-	Code    string         `json:"code"`
-	Message string         `json:"message"`
-	Details *[]interface{} `json:"details"`
+	Code    string                   `json:"code"`
+	Message string                   `json:"message"`
+	Details []map[string]interface{} `json:"details"`
 }
 
 func (se ServiceError) Error() string {
 	if se.Details != nil {
-		d, err := json.Marshal(*(se.Details))
+		d, err := json.Marshal(se.Details)
 		if err != nil {
-			return fmt.Sprintf("Code=%q Message=%q Details=%v", se.Code, se.Message, *se.Details)
+			return fmt.Sprintf("Code=%q Message=%q Details=%v", se.Code, se.Message, se.Details)
 		}
 		return fmt.Sprintf("Code=%q Message=%q Details=%v", se.Code, se.Message, string(d))
 	}
 	return fmt.Sprintf("Code=%q Message=%q", se.Code, se.Message)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface for the ServiceError type.
+func (se *ServiceError) UnmarshalJSON(b []byte) error {
+	// per the OData v4 spec the details field must be an array of JSON objects.
+	// unfortunately not all services adhear to the spec and just return a single
+	// object instead of an array with one object.  so we have to perform some
+	// shenanigans to accommodate both cases.
+	// http://docs.oasis-open.org/odata/odata-json-format/v4.0/os/odata-json-format-v4.0-os.html#_Toc372793091
+
+	type serviceError1 struct {
+		Code    string                   `json:"code"`
+		Message string                   `json:"message"`
+		Details []map[string]interface{} `json:"details"`
+	}
+
+	type serviceError2 struct {
+		Code    string                 `json:"code"`
+		Message string                 `json:"message"`
+		Details map[string]interface{} `json:"details"`
+	}
+
+	se1 := serviceError1{}
+	err := json.Unmarshal(b, &se1)
+	if err == nil {
+		se.Code = se1.Code
+		se.Message = se1.Message
+		se.Details = se1.Details
+		return nil
+	}
+
+	se2 := serviceError2{}
+	err = json.Unmarshal(b, &se2)
+	if err == nil {
+		se.Code = se2.Code
+		se.Message = se2.Message
+		se.Details = append(se.Details, se2.Details)
+		return nil
+	}
+	return err
 }
 
 // RequestError describes an error response returned by Azure service.
