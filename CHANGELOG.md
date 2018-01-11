@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v9.7.1
+
+### Bug Fixes
+
+- Use correct AAD and Graph endpoints for US Gov environment.
+
 ## v9.7.0
 
 ### New Features
