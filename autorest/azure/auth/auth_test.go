@@ -38,26 +38,23 @@ var (
 	}
 )
 
-func TestGetClientSetup(t *testing.T) {
+func TestNewAuthorizerFromFile(t *testing.T) {
 	os.Setenv("AZURE_AUTH_LOCATION", filepath.Join(getCredsPath(), "credsutf16le.json"))
-	setup, err := GetClientSetup("https://management.azure.com")
-	if err != nil {
-		t.Logf("GetClientSetup failed, got error %v", err)
+	authorizer, err := NewAuthorizerFromFile("https://management.azure.com")
+	if err != nil || authorizer == nil {
+		t.Logf("NewAuthorizerFromFile failed, got error %v", err)
 		t.Fail()
 	}
+}
 
-	if setup.BaseURI != "https://management.azure.com/" {
-		t.Logf("auth.BaseURI not set correctly, expected 'https://management.azure.com/', got '%s'", setup.BaseURI)
-		t.Fail()
-	}
+func TestNewAuthorizerFromEnvironment(t *testing.T) {
+	os.Setenv("AZURE_TENANT_ID", expectedFile.TenantID)
+	os.Setenv("AZURE_CLIENT_ID", expectedFile.ClientID)
+	os.Setenv("AZURE_CLIENT_SECRET", expectedFile.ClientSecret)
+	authorizer, err := NewAuthorizerFromEnvironment()
 
-	if !reflect.DeepEqual(expectedFile, setup.File) {
-		t.Logf("auth.File not set correctly, expected %v, got %v", expectedFile, setup.File)
-		t.Fail()
-	}
-
-	if setup.BearerAuthorizer == nil {
-		t.Log("auth.Authorizer not set correctly, got nil")
+	if err != nil || authorizer == nil {
+		t.Logf("NewAuthorizerFromFile failed, got error %v", err)
 		t.Fail()
 	}
 }

@@ -27,7 +27,7 @@ import (
 // This func assumes "AZURE_TENANT_ID", "AZURE_CLIENT_ID",
 // "AZURE_CLIENT_SECRET" are set as environment variables.
 //
-// Deprecated: Use GetAuthorizerFromClientCredentials from the
+// Deprecated: Use ClientCredentialsConfig.Authorizer() from the
 // github.com/Azure/go-autorest/autorest/azure/auth package instead.
 func GetAuthorizer(env azure.Environment) (*autorest.BearerAuthorizer, error) {
 	tenantID := GetEnvVarOrExit("AZURE_TENANT_ID")
