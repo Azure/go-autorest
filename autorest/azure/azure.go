@@ -44,20 +44,37 @@ const (
 
 // ServiceError encapsulates the error response from an Azure service.
 type ServiceError struct {
-	Code    string         `json:"code"`
-	Message string         `json:"message"`
-	Details *[]interface{} `json:"details"`
+	Code       string                 `json:"code"`
+	Message    string                 `json:"message"`
+	Target     *string                `json:"target"`
+	Details    *[]interface{}         `json:"details"`
+	InnerError map[string]interface{} `json:"innererror"`
 }
 
 func (se ServiceError) Error() string {
+	result := fmt.Sprintf("Code=%q Message=%q", se.Code, se.Message)
+
+	if se.Target != nil {
+		result += fmt.Sprintf(" Target=%q", *se.Target)
+	}
+
 	if se.Details != nil {
 		d, err := json.Marshal(*(se.Details))
 		if err != nil {
-			return fmt.Sprintf("Code=%q Message=%q Details=%v", se.Code, se.Message, *se.Details)
+			result += fmt.Sprintf(" Details=%v", *se.Details)
 		}
-		return fmt.Sprintf("Code=%q Message=%q Details=%v", se.Code, se.Message, string(d))
+		result += fmt.Sprintf(" Details=%v", string(d))
 	}
-	return fmt.Sprintf("Code=%q Message=%q", se.Code, se.Message)
+
+	if se.InnerError != nil {
+		d, err := json.Marshal(se.InnerError)
+		if err != nil {
+			result += fmt.Sprintf(" InnerError=%v", se.InnerError)
+		}
+		result += fmt.Sprintf(" InnerError=%v", string(d))
+	}
+
+	return result
 }
 
 // RequestError describes an error response returned by Azure service.
