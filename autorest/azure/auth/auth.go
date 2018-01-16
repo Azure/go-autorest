@@ -57,7 +57,7 @@ func NewAuthorizerFromEnvironment() (autorest.Authorizer, error) {
 		var err error
 		env, err = azure.EnvironmentFromName(envName)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 	}
 
@@ -202,6 +202,7 @@ func getResourceForToken(f File, baseURI string) (string, error) {
 }
 
 // NewClientCredentialsConfig creates an AuthorizerConfig object configured to obtain an Authorizer through Client Credentials.
+// Defaults to Public Cloud and Resource Manager Endpoint.
 func NewClientCredentialsConfig(clientID string, clientSecret string, tenantID string) ClientCredentialsConfig {
 	return ClientCredentialsConfig{
 		ClientID:     clientID,
@@ -213,6 +214,7 @@ func NewClientCredentialsConfig(clientID string, clientSecret string, tenantID s
 }
 
 // NewClientCertificateConfig creates a ClientCertificateConfig object configured to obtain an Authorizer through client certificate.
+// Defaults to Public Cloud and Resource Manager Endpoint.
 func NewClientCertificateConfig(certificatePath string, certificatePassword string, clientID string, tenantID string) ClientCertificateConfig {
 	return ClientCertificateConfig{
 		CertificatePath:     certificatePath,
@@ -225,6 +227,7 @@ func NewClientCertificateConfig(certificatePath string, certificatePassword stri
 }
 
 // NewUsernamePasswordConfig creates an UsernamePasswordConfig object configured to obtain an Authorizer through username and password.
+// Defaults to Public Cloud and Resource Manager Endpoint.
 func NewUsernamePasswordConfig(username string, password string, clientID string, tenantID string) UsernamePasswordConfig {
 	return UsernamePasswordConfig{
 		Username:    username,
@@ -244,6 +247,7 @@ func NewMSIConfig() MSIConfig {
 }
 
 // NewDeviceFlowConfig creates a DeviceFlowConfig object configured to obtain an Authorizer through device flow.
+// Defaults to Public Cloud and Resource Manager Endpoint.
 func NewDeviceFlowConfig(clientID string, tenantID string) DeviceFlowConfig {
 	return DeviceFlowConfig{
 		ClientID:    clientID,
