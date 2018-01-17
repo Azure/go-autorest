@@ -462,18 +462,14 @@ func updatePollingState(resp *http.Response, ps *pollingState) error {
 	// -- Response
 	// -- Otherwise, Unknown
 	if ps.hasFailed() {
-		if ps.PollingMethod == PollingAsyncOperation {
-			or := pt.(*operationResource)
+		if or, ok := pt.(*operationResource); ok {
 			ps.ServiceError = &or.OperationError
+		} else if p, ok := pt.(*provisioningStatus); ok && p.hasProvisioningError() {
+			ps.ServiceError = &p.ProvisioningError
 		} else {
-			p := pt.(*provisioningStatus)
-			if p.hasProvisioningError() {
-				ps.ServiceError = &p.ProvisioningError
-			} else {
-				ps.ServiceError = &ServiceError{
-					Code:    "Unknown",
-					Message: "None",
-				}
+			ps.ServiceError = &ServiceError{
+				Code:    "Unknown",
+				Message: "None",
 			}
 		}
 	}
