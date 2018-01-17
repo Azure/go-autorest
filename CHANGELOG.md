@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v9.8.0
+
+### New Features
+
+- Added type azure.AsyncOpIncompleteError to be returned from a future's Result() method when the operation has not completed.
+
 ## v9.7.1
 
 ### Bug Fixes
