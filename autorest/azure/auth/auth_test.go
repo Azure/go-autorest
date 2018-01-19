@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	expectedFile = File{
+	expectedFile = file{
 		ClientID:                "client-id-123",
 		ClientSecret:            "client-secret-456",
 		SubscriptionID:          "sub-id-789",
@@ -77,7 +77,7 @@ func TestDecodeAndUnmarshal(t *testing.T) {
 			t.Logf("error decoding file '%s': %s", test, err)
 			t.Fail()
 		}
-		var got File
+		var got file
 		err = json.Unmarshal(decoded, &got)
 		if err != nil {
 			t.Logf("error unmarshaling file '%s': %s", test, err)

@@ -118,7 +118,7 @@ func NewAuthorizerFromFile(baseURI string) (autorest.Authorizer, error) {
 		return nil, err
 	}
 
-	file := File{}
+	file := file{}
 	err = json.Unmarshal(decoded, &file)
 	if err != nil {
 		return nil, err
@@ -143,7 +143,7 @@ func NewAuthorizerFromFile(baseURI string) (autorest.Authorizer, error) {
 }
 
 // File represents the authentication file
-type File struct {
+type file struct {
 	ClientID                string `json:"clientId,omitempty"`
 	ClientSecret            string `json:"clientSecret,omitempty"`
 	SubscriptionID          string `json:"subscriptionId,omitempty"`
@@ -178,7 +178,7 @@ func decode(b []byte) ([]byte, error) {
 	return ioutil.ReadAll(reader)
 }
 
-func getResourceForToken(f File, baseURI string) (string, error) {
+func getResourceForToken(f file, baseURI string) (string, error) {
 	// Compare dafault base URI from the SDK to the endpoints from the public cloud
 	// Base URI and token resource are the same string. This func finds the authentication
 	// file field that matches the SDK base URI. The SDK defines the public cloud
