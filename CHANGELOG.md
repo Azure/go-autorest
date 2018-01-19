@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v9.8.1
+
+### Bug Fixes
+
+- Added http.StatusNoContent (204) to the list of expected status codes for long-running operations.
+- Updated runtime version info so it's current.
+
 ## v9.8.0
 
 ### New Features
