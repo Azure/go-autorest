@@ -2417,7 +2417,7 @@ func TestValidate_StructInStruct(t *testing.T) {
 	require.Nil(t, Validate(v))
 }
 
-func TestNewErrorWithValidationError(t *testing.T) {
+func TestNewError(t *testing.T) {
 	p := &Product{}
 	v := []Validation{
 		{p, []Constraint{{"p", Null, true,
@@ -2429,5 +2429,5 @@ func TestNewErrorWithValidationError(t *testing.T) {
 	err := createError(reflect.ValueOf(p.C), v[0].Constraints[0].Chain[0], "value can not be null; required parameter")
 	z := fmt.Sprintf("batch.AccountClient#Create: Invalid input: %s",
 		err.Error())
-	require.Equal(t, NewErrorWithValidationError(err, "batch.AccountClient", "Create").Error(), z)
+	require.Equal(t, NewError("batch.AccountClient", "Create", err.Error()).Error(), z)
 }
