@@ -148,12 +148,13 @@ func EnvironmentFromName(name string) (Environment, error) {
 	// contributions to the providers. Once that is an option, the provider should be updated to
 	// directly call `EnvironmentFromFile`. Until then, we rely on dispatching Azure Stack environment creation
 	// from this method based on the name that is provided to us.
-	if strings.EqualFold(name, "AZURESTACKCLOUD") {
-		return EnvironmentFromFile(os.Getenv(EnvironmentFilepathName))
+	var toUpperName = strings.ToUpper(name)
+
+	if strings.EqualFold(toUpperName, "AZURESTACKCLOUD") {
+		return EnvironmentFromFile(os.Getenv(EnvironmentFilepathName), name)
 	}
 
-	name = strings.ToUpper(name)
-	env, ok := environments[name]
+	env, ok := environments[toUpperName]
 	if !ok {
 		return env, fmt.Errorf("autorest/azure: There is no cloud environment matching the name %q", name)
 	}
@@ -164,13 +165,20 @@ func EnvironmentFromName(name string) (Environment, error) {
 // EnvironmentFromFile loads an Environment from a configuration file available on disk.
 // This function is particularly useful in the Hybrid Cloud model, where one must define their own
 // endpoints.
-func EnvironmentFromFile(location string) (unmarshaled Environment, err error) {
-	fileContents, err := ioutil.ReadFile(location)
-	if err != nil {
-		return
+func EnvironmentFromFile(location string, name string) (Environment, error) {
+	env := Environment{
+		Name: name,
 	}
 
-	err = json.Unmarshal(fileContents, &unmarshaled)
+	fileContents, err := ioutil.ReadFile(location)
+	if err != nil {
+		return env, fmt.Errorf("autorest/azure: Error in opening the env. jason file %q", err.Error())
+	}
 
-	return
+	err = json.Unmarshal(fileContents, &env)
+	if err != nil {
+		return env, fmt.Errorf("autorest/azure: Error parsing the env. jason file %q", err.Error())
+	}
+
+	return env, nil
 }
