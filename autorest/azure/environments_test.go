@@ -46,7 +46,7 @@ var testEnvironment1 = Environment{
 }
 
 func TestEnvironment_EnvironmentFromFile(t *testing.T) {
-	got, err := EnvironmentFromFile(filepath.Join("testdata", "test_environment_1.json"))
+	got, err := EnvironmentFromFile(filepath.Join("testdata", "test_environment_1.json"), "AzureStackCloud")
 	if err != nil {
 		t.Error(err)
 	}
