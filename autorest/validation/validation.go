@@ -387,9 +387,3 @@ func createError(x reflect.Value, v Constraint, err string) error {
 	return fmt.Errorf("autorest/validation: validation failed: parameter=%s constraint=%s value=%#v details: %s",
 		v.Target, v.Name, getInterfaceValue(x), err)
 }
-
-// NewErrorWithValidationError appends package type and method name in
-// validation error.
-func NewErrorWithValidationError(err error, packageType, method string) error {
-	return fmt.Errorf("%s#%s: Invalid input: %v", packageType, method, err)
-}
