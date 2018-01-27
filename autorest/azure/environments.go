@@ -149,7 +149,14 @@ func EnvironmentFromName(name string) (Environment, error) {
 	// directly call `EnvironmentFromFile`. Until then, we rely on dispatching Azure Stack environment creation
 	// from this method based on the name that is provided to us.
 	if strings.EqualFold(name, "AZURESTACKCLOUD") {
-		return EnvironmentFromFile(os.Getenv(EnvironmentFilepathName))
+		unmarshaled, err := EnvironmentFromFile(os.Getenv(EnvironmentFilepathName))
+		if err != nil {
+			return unmarshaled, err
+		}
+		if unmarshaled.Name == "" {
+			unmarshaled.Name = name
+		}
+		return unmarshaled, nil
 	}
 
 	name = strings.ToUpper(name)

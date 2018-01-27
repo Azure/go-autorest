@@ -21,12 +21,33 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"sync"
 	"testing"
 )
 
 // This correlates to the expected contents of ./testdata/test_environment_1.json
 var testEnvironment1 = Environment{
 	Name:                         "--unit-test--",
+	ManagementPortalURL:          "--management-portal-url",
+	PublishSettingsURL:           "--publish-settings-url--",
+	ServiceManagementEndpoint:    "--service-management-endpoint--",
+	ResourceManagerEndpoint:      "--resource-management-endpoint--",
+	ActiveDirectoryEndpoint:      "--active-directory-endpoint--",
+	GalleryEndpoint:              "--gallery-endpoint--",
+	KeyVaultEndpoint:             "--key-vault--endpoint--",
+	GraphEndpoint:                "--graph-endpoint--",
+	StorageEndpointSuffix:        "--storage-endpoint-suffix--",
+	SQLDatabaseDNSSuffix:         "--sql-database-dns-suffix--",
+	TrafficManagerDNSSuffix:      "--traffic-manager-dns-suffix--",
+	KeyVaultDNSSuffix:            "--key-vault-dns-suffix--",
+	ServiceBusEndpointSuffix:     "--service-bus-endpoint-suffix--",
+	ServiceManagementVMDNSSuffix: "--asm-vm-dns-suffix--",
+	ResourceManagerVMDNSSuffix:   "--arm-vm-dns-suffix--",
+	ContainerRegistryDNSSuffix:   "--container-registry-dns-suffix--",
+}
+
+// This correlates to the expected contents of ./testdata/test_environment_1.json
+var testEnvironment2 = Environment{
 	ManagementPortalURL:          "--management-portal-url",
 	PublishSettingsURL:           "--publish-settings-url--",
 	ServiceManagementEndpoint:    "--service-management-endpoint--",
@@ -57,7 +78,11 @@ func TestEnvironment_EnvironmentFromFile(t *testing.T) {
 	}
 }
 
+var stackTests sync.Mutex
+
 func TestEnvironment_EnvironmentFromName_Stack(t *testing.T) {
+	stackTests.Lock()
+	defer stackTests.Unlock()
 	_, currentFile, _, _ := runtime.Caller(0)
 	prevEnvFilepathValue := os.Getenv(EnvironmentFilepathName)
 	os.Setenv(EnvironmentFilepathName, filepath.Join(path.Dir(currentFile), "testdata", "test_environment_1.json"))
@@ -70,6 +95,28 @@ func TestEnvironment_EnvironmentFromName_Stack(t *testing.T) {
 
 	if got != testEnvironment1 {
 		t.Logf("got: %v want: %v", got, testEnvironment1)
+		t.Fail()
+	}
+}
+
+func TestEnvironment_EnvironmentFromName_Stack2(t *testing.T) {
+	stackTests.Lock()
+	defer stackTests.Unlock()
+
+	_, currentFile, _, _ := runtime.Caller(0)
+	prevEnvFilepathValue := os.Getenv(EnvironmentFilepathName)
+	os.Setenv(EnvironmentFilepathName, filepath.Join(path.Dir(currentFile), "testdata", "test_environment_2.json"))
+	defer os.Setenv(EnvironmentFilepathName, prevEnvFilepathValue)
+
+	got, err := EnvironmentFromName("AZURESTACKCLOUD")
+	if err != nil {
+		t.Error(err)
+	}
+
+	testEnvironment2.Name = "AZURESTACKCLOUD"
+
+	if got != testEnvironment2 {
+		t.Logf("got: %v\n\nwant: %v", got, testEnvironment2)
 		t.Fail()
 	}
 }
