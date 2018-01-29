@@ -153,6 +153,12 @@ func EnvironmentFromName(name string) (Environment, error) {
 		if err != nil {
 			return unmarshaled, err
 		}
+
+		// In general, environments can be rehydrated from any file, which is how the `EnironmentFromFile`
+		// method should be used. For Stack, we introduced an environment variable "AZURE_ENVIRONMENT_FILEPATH"
+		// which will be read by default when the environment name "AzureStackCloud" is used.
+		// In the event that the Azure Stack environment was used, and no name was specifed, the clause
+		// below assigns a default name with the casing as it was handed to this function.
 		if unmarshaled.Name == "" {
 			unmarshaled.Name = name
 		}
