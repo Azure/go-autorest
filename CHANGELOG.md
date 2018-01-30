@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v9.9.0
+
+### New Features
+
+- Added EventGridKeyAuthorizer for key authorization with event grid topics.
+
+### Bug Fixes
+
+- Fixed race condition when auto-refreshing service principal tokens.
+
 ## v9.8.1
 
 ### Bug Fixes
