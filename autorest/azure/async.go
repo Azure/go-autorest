@@ -78,7 +78,6 @@ func (f *Future) Done(sender autorest.Sender) (bool, error) {
 	if f.ps.hasTerminated() {
 		return true, f.errorInfo()
 	}
-
 	resp, err := sender.Do(f.req)
 	f.resp = resp
 	if err != nil {
@@ -210,6 +209,12 @@ func (f *Future) UnmarshalJSON(data []byte) error {
 	}
 	f.req, err = newPollingRequest(f.ps)
 	return err
+}
+
+// PollingURL returns the URL used for retrieving the status of the long-running operation.
+// For LROs that use the Location header the final URL value is used to retrieve the result.
+func (f Future) PollingURL() string {
+	return f.ps.URI
 }
 
 // DoPollForAsynchronous returns a SendDecorator that polls if the http.Response is for an Azure
