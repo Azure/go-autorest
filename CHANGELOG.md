@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v10.1.0
+
+### New Features
+
+- Expose the polling URL for futures.
+
+### Bug Fixes
+
+- Add validation.NewErrorWithValidationError back to prevent breaking changes (it is deprecated).
+
 ## v10.0.0
 
 ### New Features
