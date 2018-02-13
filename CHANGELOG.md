@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v10.1.1
+
+- Updated version number to match current release.
+
 ## v10.1.0
 
 ### New Features
