@@ -96,11 +96,7 @@ func NewAuthorizerFromEnvironment() (autorest.Authorizer, error) {
 	return config.Authorizer()
 }
 
-// NewAuthorizerFromFile creates an AuthorizerOptions configured from a configuration file in the order:
-// 1. Client credentials
-// 2. Client certificate
-// 3. Username password
-// 4. MSI provides an authorizer, base URI, subscriptionID and
+// NewAuthorizerFromFile creates an Authorizer configured from a configuration file.
 func NewAuthorizerFromFile(baseURI string) (autorest.Authorizer, error) {
 	fileLocation := os.Getenv("AZURE_AUTH_LOCATION")
 	if fileLocation == "" {
