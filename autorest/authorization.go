@@ -104,10 +104,6 @@ func NewBearerAuthorizer(tp adal.OAuthTokenProvider) *BearerAuthorizer {
 	return &BearerAuthorizer{tokenProvider: tp}
 }
 
-func (ba *BearerAuthorizer) withBearerAuthorization() PrepareDecorator {
-	return WithHeader(headerAuthorization, fmt.Sprintf("Bearer %s", ba.tokenProvider.OAuthToken()))
-}
-
 // WithAuthorization returns a PrepareDecorator that adds an HTTP Authorization header whose
 // value is "Bearer " followed by the token.
 //
