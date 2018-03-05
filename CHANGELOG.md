@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v10.1.3
+
+### Bug Fixes
+
+- In Client.Do() invoke WithInspection() last so that it will inspect WithAuthorization().
+- Fixed authorization methods to invoke p.Prepare() first, aligning them with the other preparers.
+
 ## v10.1.2
 
 - Corrected comment for auth.NewAuthorizerFromFile() function.
