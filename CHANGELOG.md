@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v10.2.0
+
+### New Features
+
+- Added endpoints for batch management.
+
 ## v10.1.3
 
 ### Bug Fixes
