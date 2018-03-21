@@ -93,14 +93,14 @@ type OverrideProperty struct {
 // EnvironmentFromURL loads an Environment from a URL
 // This function is particularly useful in the Hybrid Cloud model, where one may define their own
 // endpoints.
-func EnvironmentFromURL(endpoint string, properties ...OverrideProperty) (environment Environment, err error) {
+func EnvironmentFromURL(resourceManagerEndpoint string, properties ...OverrideProperty) (environment Environment, err error) {
 	var metadataEnvProperties environmentMetadataInfo
 
-	if endpoint == "" {
-		return environment, fmt.Errorf("Metadata environment endpoint is empty")
+	if resourceManagerEndpoint == "" {
+		return environment, fmt.Errorf("Metadata resource manager endpoint is empty")
 	}
 
-	if metadataEnvProperties, err = retrieveMetadataEnvironment(endpoint); err != nil {
+	if metadataEnvProperties, err = retrieveMetadataEnvironment(resourceManagerEndpoint); err != nil {
 		return environment, err
 	}
 
@@ -112,7 +112,7 @@ func EnvironmentFromURL(endpoint string, properties ...OverrideProperty) (enviro
 	}
 	stampDNSSuffix := environment.StorageEndpointSuffix
 	if stampDNSSuffix == "" {
-		stampDNSSuffix = getStampDNSSuffix(endpoint)
+		stampDNSSuffix = strings.TrimSuffix(strings.TrimPrefix(strings.Replace(resourceManagerEndpoint, strings.Split(resourceManagerEndpoint, ".")[0], "", 1), "."), "/")
 		environment.StorageEndpointSuffix = stampDNSSuffix
 	}
 	if environment.KeyVaultDNSSuffix == "" {
@@ -128,7 +128,7 @@ func EnvironmentFromURL(endpoint string, properties ...OverrideProperty) (enviro
 		environment.ActiveDirectoryEndpoint = metadataEnvProperties.Authentication.LoginEndpoint
 	}
 	if environment.ResourceManagerEndpoint == "" {
-		environment.ResourceManagerEndpoint = endpoint
+		environment.ResourceManagerEndpoint = resourceManagerEndpoint
 	}
 	if environment.GalleryEndpoint == "" {
 		environment.GalleryEndpoint = metadataEnvProperties.GalleryEndpoint
@@ -239,10 +239,6 @@ func retrieveMetadataEnvironment(endpoint string) (environment environmentMetada
 	jsonResponse, err := ioutil.ReadAll(response.Body)
 	err = json.Unmarshal(jsonResponse, &environment)
 	return
-}
-
-func getStampDNSSuffix(portalEndpoint string) string {
-	return strings.TrimSuffix(strings.TrimPrefix(strings.Replace(portalEndpoint, strings.Split(portalEndpoint, ".")[0], "", 1), "."), "/")
 }
 
 func userAgent() string {
