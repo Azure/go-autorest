@@ -96,7 +96,7 @@ func TestEnvironment_EnvironmentFromURL_EmptyEndpoint_Failure(t *testing.T) {
 	if err == nil {
 		t.Fail()
 	}
-	if err.Error() != "Metadata environment endpoint is empty" {
+	if err.Error() != "Metadata resource manager endpoint is empty" {
 		t.Fail()
 	}
 }
