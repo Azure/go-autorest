@@ -228,7 +228,7 @@ func overrideProperties(environment *Environment, properties []OverrideProperty)
 }
 
 func retrieveMetadataEnvironment(endpoint string) (environment environmentMetadataInfo, err error) {
-	client := autorest.NewClientWithUserAgent(userAgent())
+	client := autorest.NewClientWithUserAgent("")
 	managementEndpoint := fmt.Sprintf("%s%s", strings.TrimSuffix(endpoint, "/"), "/metadata/endpoints?api-version=1.0")
 	req, _ := http.NewRequest("GET", managementEndpoint, nil)
 	response, err := client.Do(req)
@@ -239,8 +239,4 @@ func retrieveMetadataEnvironment(endpoint string) (environment environmentMetada
 	jsonResponse, err := ioutil.ReadAll(response.Body)
 	err = json.Unmarshal(jsonResponse, &environment)
 	return
-}
-
-func userAgent() string {
-	return "GO-AutoRest service"
 }
