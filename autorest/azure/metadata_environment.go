@@ -237,6 +237,9 @@ func retrieveMetadataEnvironment(endpoint string) (environment environmentMetada
 	}
 	defer response.Body.Close()
 	jsonResponse, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return environment, err
+	}
 	err = json.Unmarshal(jsonResponse, &environment)
-	return
+	return environment, err
 }
