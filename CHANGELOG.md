@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v10.3.0
+
+### New Features
+- Added EnvironmentFromURL method to load an Environment from a given URL. This function is particularly useful in the private and hybrid Cloud model, where one may define their own endpoints
+- Added TokenAudience endpoint to Environment structure. This is useful in private and hybrid cloud models where TokenAudience endpoint can be different from ResourceManagerEndpoint
+
 ## v10.2.0
 
 ### New Features
