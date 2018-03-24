@@ -21,7 +21,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/Azure/go-autorest/autorest"
 )
@@ -145,6 +147,40 @@ func (e RequestError) Error() string {
 func IsAzureError(e error) bool {
 	_, ok := e.(*RequestError)
 	return ok
+}
+
+// Resource contains details about an Azure resource
+type Resource struct {
+	subscription  string
+	resourceGroup string
+	provider      string
+	resourceType  string
+	resourceName  string
+}
+
+// ParseResourceID parses a resource ID into a ResourceDetails struct
+func ParseResourceID(resourceID string) (Resource, error) {
+
+	const resourceIDPatternText = `(?i)subscriptions/(.+)/resourceGroups/(.+)/providers/(.+?)/(.+?)/(.+)`
+	resourceIDPattern := regexp.MustCompile(resourceIDPatternText)
+	match := resourceIDPattern.FindStringSubmatch(resourceID)
+
+	if len(match) == 0 {
+		return Resource{}, fmt.Errorf("parsing failed for %s. Invalid resource Id format", resourceID)
+	}
+
+	v := strings.Split(match[5], "/")
+	resourceName := v[len(v)-1]
+
+	result := Resource{
+		subscription:  match[1],
+		resourceGroup: match[2],
+		provider:      match[3],
+		resourceType:  match[4],
+		resourceName:  resourceName,
+	}
+
+	return result, nil
 }
 
 // NewErrorWithError creates a new Error conforming object from the
