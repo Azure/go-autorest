@@ -508,11 +508,11 @@ func TestParseResourceID_WithValidBasicResourceID(t *testing.T) {
 
 	basicResourceID := "/subscriptions/subid-3-3-4/resourceGroups/regGroupVladdb/providers/Microsoft.Network/LoadBalancer/testResourceName"
 	want := Resource{
-		subscription:  "subid-3-3-4",
-		resourceGroup: "regGroupVladdb",
-		provider:      "Microsoft.Network",
-		resourceType:  "LoadBalancer",
-		resourceName:  "testResourceName",
+		SubscriptionID: "subid-3-3-4",
+		ResourceGroup:  "regGroupVladdb",
+		Provider:       "Microsoft.Network",
+		ResourceType:   "LoadBalancer",
+		ResourceName:   "testResourceName",
 	}
 	got, err := ParseResourceID(basicResourceID)
 
@@ -529,11 +529,11 @@ func TestParseResourceID_WithValidBasicResourceID(t *testing.T) {
 func TestParseResourceID_WithValidSubResourceID(t *testing.T) {
 	subresourceID := "/subscriptions/subid-3-3-4/resourceGroups/regGroupVladdb/providers/Microsoft.Network/LoadBalancer/resource/is/a/subresource/actualresourceName"
 	want := Resource{
-		subscription:  "subid-3-3-4",
-		resourceGroup: "regGroupVladdb",
-		provider:      "Microsoft.Network",
-		resourceType:  "LoadBalancer",
-		resourceName:  "actualresourceName",
+		SubscriptionID: "subid-3-3-4",
+		ResourceGroup:  "regGroupVladdb",
+		Provider:       "Microsoft.Network",
+		ResourceType:   "LoadBalancer",
+		ResourceName:   "actualresourceName",
 	}
 	got, err := ParseResourceID(subresourceID)
 

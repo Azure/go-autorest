@@ -149,16 +149,17 @@ func IsAzureError(e error) bool {
 	return ok
 }
 
-// Resource contains details about an Azure resource
+// Resource contains details about an Azure resource.
 type Resource struct {
-	subscription  string
-	resourceGroup string
-	provider      string
-	resourceType  string
-	resourceName  string
+	SubscriptionID string
+	ResourceGroup  string
+	Provider       string
+	ResourceType   string
+	ResourceName   string
 }
 
-// ParseResourceID parses a resource ID into a ResourceDetails struct
+// ParseResourceID parses a resource ID into a ResourceDetails struct.
+// See https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-template-functions-resource#return-value-4.
 func ParseResourceID(resourceID string) (Resource, error) {
 
 	const resourceIDPatternText = `(?i)subscriptions/(.+)/resourceGroups/(.+)/providers/(.+?)/(.+?)/(.+)`
@@ -173,11 +174,11 @@ func ParseResourceID(resourceID string) (Resource, error) {
 	resourceName := v[len(v)-1]
 
 	result := Resource{
-		subscription:  match[1],
-		resourceGroup: match[2],
-		provider:      match[3],
-		resourceType:  match[4],
-		resourceName:  resourceName,
+		SubscriptionID: match[1],
+		ResourceGroup:  match[2],
+		Provider:       match[3],
+		ResourceType:   match[4],
+		ResourceName:   resourceName,
 	}
 
 	return result, nil
