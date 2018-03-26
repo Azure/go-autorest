@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v10.4.0
+
+### New Features
+- Added helper for parsing Azure Resource ID's.
+- Added deprecation message to utils.GetEnvVarOrExit()
+
 ## v10.3.0
 
 ### New Features
