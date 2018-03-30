@@ -136,14 +136,14 @@ func NewPollingRequest(resp *http.Response, cancel <-chan struct{}) (*http.Reque
 func NewPollingRequestWithContext(ctx context.Context, resp *http.Response) (*http.Request, error) {
 	location := GetLocation(resp)
 	if location == "" {
-		return nil, NewErrorWithResponse("autorest", "NewPollingRequest", resp, "Location header missing from response that requires polling")
+		return nil, NewErrorWithResponse("autorest", "NewPollingRequestWithContext", resp, "Location header missing from response that requires polling")
 	}
 
 	req, err := Prepare((&http.Request{}).WithContext(ctx),
 		AsGet(),
 		WithBaseURL(location))
 	if err != nil {
-		return nil, NewErrorWithError(err, "autorest", "NewPollingRequest", nil, "Failure creating poll request to %s", location)
+		return nil, NewErrorWithError(err, "autorest", "NewPollingRequestWithContext", nil, "Failure creating poll request to %s", location)
 	}
 
 	return req, nil
