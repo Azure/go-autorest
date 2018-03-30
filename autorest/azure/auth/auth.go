@@ -39,7 +39,7 @@ import (
 // 1. Client credentials
 // 2. Client certificate
 // 3. Username password
-// 4. MSI
+// 4. IMDS
 func NewAuthorizerFromEnvironment() (autorest.Authorizer, error) {
 	tenantID := os.Getenv("AZURE_TENANT_ID")
 	clientID := os.Getenv("AZURE_CLIENT_ID")
@@ -90,10 +90,10 @@ func NewAuthorizerFromEnvironment() (autorest.Authorizer, error) {
 		return config.Authorizer()
 	}
 
-	//4. By default return MSI
-	config := NewMSIConfig()
+	// 4. IDMS
+	config := NewIDMSConfig()
 	config.Resource = resource
-
+	config.ClientID = clientID
 	return config.Authorizer()
 }
 
@@ -239,6 +239,13 @@ func NewUsernamePasswordConfig(username string, password string, clientID string
 // NewMSIConfig creates an MSIConfig object configured to obtain an Authorizer through MSI.
 func NewMSIConfig() MSIConfig {
 	return MSIConfig{
+		Resource: azure.PublicCloud.ResourceManagerEndpoint,
+	}
+}
+
+// NewIDMSConfig creates an IDMSConfig object configured to obtain an Authorizer through IDMS.
+func NewIDMSConfig() IDMSConfig {
+	return IDMSConfig{
 		Resource: azure.PublicCloud.ResourceManagerEndpoint,
 	}
 }
@@ -394,15 +401,29 @@ type MSIConfig struct {
 // Authorizer gets the authorizer from MSI.
 func (mc MSIConfig) Authorizer() (autorest.Authorizer, error) {
 	msiEndpoint, err := adal.GetMSIVMEndpoint()
-
 	if err != nil {
 		return nil, err
 	}
 
 	spToken, err := adal.NewServicePrincipalTokenFromMSI(msiEndpoint, mc.Resource)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to get oauth token from MSI: %v", err)
+	}
+
+	return autorest.NewBearerAuthorizer(spToken), nil
+}
+
+// IDMSConfig provides the options to get a bearer authorizer through IDMS.
+type IDMSConfig struct {
+	Resource string
+	ClientID string
+}
+
+// Authorizer gets the authorizer from IDMS.
+func (mc IDMSConfig) Authorizer() (autorest.Authorizer, error) {
+	spToken, err := adal.NewIMDSToken(mc.Resource, mc.ClientID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get oauth token from IDMS: %v", err)
 	}
 
 	return autorest.NewBearerAuthorizer(spToken), nil
