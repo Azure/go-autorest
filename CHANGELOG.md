@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v10.5.0
+
+### New Features
+
+- Added NewPollingRequestWithContext() for use with polling asynchronous operations.
+
+### Bug Fixes
+
+- Make retry logic use the request's context instead of the deprecated Cancel object.
+
 ## v10.4.0
 
 ### New Features
