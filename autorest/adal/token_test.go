@@ -24,7 +24,6 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
-	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -612,26 +611,12 @@ func TestNewServicePrincipalTokenFromMSIWithUserAssignedID(t *testing.T) {
 }
 
 func TestGetVMEndpoint(t *testing.T) {
-	tempSettingsFile, err := ioutil.TempFile("", "ManagedIdentity-Settings")
-	if err != nil {
-		t.Fatal("Couldn't write temp settings file")
-	}
-	defer os.Remove(tempSettingsFile.Name())
-
-	settingsContents := []byte(`{
-		"url": "http://msiendpoint/"
-	}`)
-
-	if _, err := tempSettingsFile.Write(settingsContents); err != nil {
-		t.Fatal("Couldn't fill temp settings file")
-	}
-
-	endpoint, err := getMSIVMEndpoint(tempSettingsFile.Name())
+	endpoint, err := GetMSIVMEndpoint()
 	if err != nil {
 		t.Fatal("Coudn't get VM endpoint")
 	}
 
-	if endpoint != "http://msiendpoint/" {
+	if endpoint != imdsEndpoint {
 		t.Fatal("Didn't get correct endpoint")
 	}
 }

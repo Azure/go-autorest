@@ -57,6 +57,12 @@ const (
 
 	// imdsEndpoint is the well known endpoint for getting MSI authentications tokens
 	imdsEndpoint = "http://169.254.169.254/metadata/identity/oauth2/token"
+
+	// DefaultRetryAttempts is number of attempts for retry status codes (5xx).
+	defaultRetryAttempts = 5
+
+	// DefaultRetryDuration is the duration to wait between retries.
+	defaultRetryDuration = 1 * time.Second
 )
 
 // OAuthTokenProvider is an interface which should be implemented by an access token retriever
@@ -620,7 +626,7 @@ func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
 		req.Header.Set(metadataHeader, "true")
 	}
 
-	resp, err := retry(req, 1*time.Second, 5)
+	resp, err := retry(req, defaultRetryDuration, defaultRetryAttempts)
 	if err != nil {
 		return fmt.Errorf("adal: Failed to execute the refresh request. Error = '%v'", err)
 	}

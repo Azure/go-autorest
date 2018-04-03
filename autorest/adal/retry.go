@@ -74,12 +74,6 @@ func (rr *retriableRequest) prepare() (err error) {
 	return err
 }
 
-func removeRequestBody(req *http.Request) {
-	req.Body = nil
-	req.GetBody = nil
-	req.ContentLength = 0
-}
-
 // newRetriableRequest returns a wrapper around an HTTP request that support retry logic.
 func newRetriableRequest(req *http.Request) *retriableRequest {
 	return &retriableRequest{req: req}
