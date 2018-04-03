@@ -55,7 +55,7 @@ const (
 	// metadataHeader is the header required by MSI extension
 	metadataHeader = "Metadata"
 
-	// imdsEndpoint is the well known endpoint for getting authentications tokens inside Azure virtual machines
+	// imdsEndpoint is the well known endpoint for getting MSI authentications tokens
 	imdsEndpoint = "http://169.254.169.254/metadata/identity/oauth2/token"
 )
 
@@ -444,60 +444,7 @@ func NewServicePrincipalTokenFromAuthorizationCode(oauthConfig OAuthConfig, clie
 
 // GetMSIVMEndpoint gets the MSI endpoint on Virtual Machines.
 func GetMSIVMEndpoint() (string, error) {
-	return getMSIVMEndpoint(msiPath)
-}
-
-func getMSIVMEndpoint(path string) (string, error) {
-	// Read MSI settings
-	bytes, err := ioutil.ReadFile(path)
-	if err != nil {
-		return "", err
-	}
-	msiSettings := struct {
-		URL string `json:"url"`
-	}{}
-	err = json.Unmarshal(bytes, &msiSettings)
-	if err != nil {
-		return "", err
-	}
-
-	return msiSettings.URL, nil
-}
-
-// NewIMDSToken creates a ServicePrincipalToken vis IMDS
-func NewIMDSToken(resource string, clientID string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
-	if err := validateStringParam(resource, "resource"); err != nil {
-		return nil, err
-	}
-	// We set the oauth config token endpoint to be MSI's endpoint
-	msiEndpointURL, err := url.Parse(imdsEndpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	v := url.Values{}
-	v.Set("resource", resource)
-	v.Set("api-version", "2018-02-01")
-	if clientID != "" {
-		v.Set("client_id", clientID)
-	}
-	msiEndpointURL.RawQuery = v.Encode()
-
-	spt := &ServicePrincipalToken{
-		oauthConfig: OAuthConfig{
-			TokenEndpoint: *msiEndpointURL,
-		},
-		secret:           &ServicePrincipalMSISecret{},
-		resource:         resource,
-		autoRefresh:      true,
-		refreshLock:      &sync.RWMutex{},
-		refreshWithin:    defaultRefresh,
-		sender:           &http.Client{},
-		clientID:         clientID,
-		refreshCallbacks: callbacks,
-	}
-
-	return spt, nil
+	return imdsEndpoint, nil
 }
 
 // NewServicePrincipalTokenFromMSI creates a ServicePrincipalToken via the MSI VM Extension.
@@ -525,18 +472,23 @@ func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, userAssignedI
 		}
 	}
 	// We set the oauth config token endpoint to be MSI's endpoint
-	msiEndpointURL, err := url.Parse(msiEndpoint)
+	msiEndpointURL, err := url.Parse(imdsEndpoint)
 	if err != nil {
 		return nil, err
 	}
 
-	oauthConfig, err := NewOAuthConfig(msiEndpointURL.String(), "")
-	if err != nil {
-		return nil, err
+	v := url.Values{}
+	v.Set("resource", resource)
+	v.Set("api-version", "2018-02-01")
+	if userAssignedID != nil {
+		v.Set("client_id", *userAssignedID)
 	}
+	msiEndpointURL.RawQuery = v.Encode()
 
 	spt := &ServicePrincipalToken{
-		oauthConfig:      *oauthConfig,
+		oauthConfig: OAuthConfig{
+			TokenEndpoint: *msiEndpointURL,
+		},
 		secret:           &ServicePrincipalMSISecret{},
 		resource:         resource,
 		autoRefresh:      true,

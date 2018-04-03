@@ -39,7 +39,7 @@ import (
 // 1. Client credentials
 // 2. Client certificate
 // 3. Username password
-// 4. IMDS
+// 4. MSI
 func NewAuthorizerFromEnvironment() (autorest.Authorizer, error) {
 	tenantID := os.Getenv("AZURE_TENANT_ID")
 	clientID := os.Getenv("AZURE_CLIENT_ID")
@@ -90,8 +90,8 @@ func NewAuthorizerFromEnvironment() (autorest.Authorizer, error) {
 		return config.Authorizer()
 	}
 
-	// 4. IDMS
-	config := NewIDMSConfig()
+	// 4. MSI
+	config := NewMSIConfig()
 	config.Resource = resource
 	config.ClientID = clientID
 	return config.Authorizer()
@@ -243,13 +243,6 @@ func NewMSIConfig() MSIConfig {
 	}
 }
 
-// NewIDMSConfig creates an IDMSConfig object configured to obtain an Authorizer through IDMS.
-func NewIDMSConfig() IDMSConfig {
-	return IDMSConfig{
-		Resource: azure.PublicCloud.ResourceManagerEndpoint,
-	}
-}
-
 // NewDeviceFlowConfig creates a DeviceFlowConfig object configured to obtain an Authorizer through device flow.
 // Defaults to Public Cloud and Resource Manager Endpoint.
 func NewDeviceFlowConfig(clientID string, tenantID string) DeviceFlowConfig {
@@ -396,6 +389,7 @@ func (ups UsernamePasswordConfig) Authorizer() (autorest.Authorizer, error) {
 // MSIConfig provides the options to get a bearer authorizer through MSI.
 type MSIConfig struct {
 	Resource string
+	ClientID string
 }
 
 // Authorizer gets the authorizer from MSI.
@@ -408,22 +402,6 @@ func (mc MSIConfig) Authorizer() (autorest.Authorizer, error) {
 	spToken, err := adal.NewServicePrincipalTokenFromMSI(msiEndpoint, mc.Resource)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get oauth token from MSI: %v", err)
-	}
-
-	return autorest.NewBearerAuthorizer(spToken), nil
-}
-
-// IDMSConfig provides the options to get a bearer authorizer through IDMS.
-type IDMSConfig struct {
-	Resource string
-	ClientID string
-}
-
-// Authorizer gets the authorizer from IDMS.
-func (mc IDMSConfig) Authorizer() (autorest.Authorizer, error) {
-	spToken, err := adal.NewIMDSToken(mc.Resource, mc.ClientID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get oauth token from IDMS: %v", err)
 	}
 
 	return autorest.NewBearerAuthorizer(spToken), nil
