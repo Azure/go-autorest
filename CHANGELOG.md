@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v10.5.1
+
+### Bug Fixes
+
+- `DeviceFlowConfig.Authorizer()` now prints the device code message when running `go test`. `-v` flag is required.
+
 ## v10.5.0
 
 ### New Features
