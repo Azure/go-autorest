@@ -2,7 +2,7 @@
 
 ## v10.6.0
 
-- Changed MSI token implementation. Now, the token endpoint is a well known endpoint. It is not longer got from MSI file in VMs.
+- Changed MSI token implementation. Now, the token endpoint is the IMDS endpoint.
 
 ## v10.5.1
 

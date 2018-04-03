@@ -616,7 +616,7 @@ func TestGetVMEndpoint(t *testing.T) {
 		t.Fatal("Coudn't get VM endpoint")
 	}
 
-	if endpoint != imdsEndpoint {
+	if endpoint != msiEndpoint {
 		t.Fatal("Didn't get correct endpoint")
 	}
 }

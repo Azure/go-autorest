@@ -56,8 +56,8 @@ const (
 	// metadataHeader is the header required by MSI extension
 	metadataHeader = "Metadata"
 
-	// imdsEndpoint is the well known endpoint for getting MSI authentications tokens
-	imdsEndpoint = "http://169.254.169.254/metadata/identity/oauth2/token"
+	// msiEndpoint is the well known endpoint for getting MSI authentications tokens
+	msiEndpoint = "http://169.254.169.254/metadata/identity/oauth2/token"
 )
 
 // OAuthTokenProvider is an interface which should be implemented by an access token retriever
@@ -445,7 +445,7 @@ func NewServicePrincipalTokenFromAuthorizationCode(oauthConfig OAuthConfig, clie
 
 // GetMSIVMEndpoint gets the MSI endpoint on Virtual Machines.
 func GetMSIVMEndpoint() (string, error) {
-	return imdsEndpoint, nil
+	return msiEndpoint, nil
 }
 
 // NewServicePrincipalTokenFromMSI creates a ServicePrincipalToken via the MSI VM Extension.
@@ -473,7 +473,7 @@ func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, userAssignedI
 		}
 	}
 	// We set the oauth config token endpoint to be MSI's endpoint
-	msiEndpointURL, err := url.Parse(imdsEndpoint)
+	msiEndpointURL, err := url.Parse(msiEndpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -581,7 +581,7 @@ func (spt *ServicePrincipalToken) getGrantType() string {
 }
 
 func isIMDS(u url.URL) bool {
-	imds, err := url.Parse(imdsEndpoint)
+	imds, err := url.Parse(msiEndpoint)
 	if err != nil {
 		return false
 	}
