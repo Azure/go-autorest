@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"unicode/utf16"
@@ -332,7 +333,7 @@ func (dfc DeviceFlowConfig) Authorizer() (autorest.Authorizer, error) {
 		return nil, fmt.Errorf("failed to start device auth flow: %s", err)
 	}
 
-	fmt.Println(*deviceCode.Message)
+	log.Println(*deviceCode.Message)
 
 	token, err := adal.WaitForUserCompletion(oauthClient, deviceCode)
 	if err != nil {
