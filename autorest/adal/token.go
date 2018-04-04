@@ -31,7 +31,6 @@ import (
 	"time"
 
 	"github.com/Azure/go-autorest/autorest/date"
-	"github.com/Azure/go-autorest/autorest/retriablerequest"
 	"github.com/dgrijalva/jwt-go"
 )
 
@@ -621,7 +620,7 @@ func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
 		req.Header.Set(metadataHeader, "true")
 	}
 
-	resp, err := retriablerequest.Retry(req, retriablerequest.DefaultRetryDuration, retriablerequest.DefaultRetryAttempts)
+	resp, err := spt.sender.Do(req)
 	if err != nil {
 		return fmt.Errorf("adal: Failed to execute the refresh request. Error = '%v'", err)
 	}
