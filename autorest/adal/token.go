@@ -617,6 +617,7 @@ func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
 	}
 
 	if _, ok := spt.secret.(*ServicePrincipalMSISecret); ok {
+		req.Method = http.MethodGet
 		req.Header.Set(metadataHeader, "true")
 	}
 

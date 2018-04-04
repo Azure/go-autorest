@@ -164,8 +164,8 @@ func TestServicePrincipalTokenFromMSIRefreshUsesPOST(t *testing.T) {
 		(func() SendDecorator {
 			return func(s Sender) Sender {
 				return SenderFunc(func(r *http.Request) (*http.Response, error) {
-					if r.Method != "POST" {
-						t.Fatalf("adal: ServicePrincipalToken#Refresh did not correctly set HTTP method -- expected %v, received %v", "POST", r.Method)
+					if r.Method != "GET" {
+						t.Fatalf("adal: ServicePrincipalToken#Refresh did not correctly set HTTP method -- expected %v, received %v", "GET", r.Method)
 					}
 					if h := r.Header.Get("Metadata"); h != "true" {
 						t.Fatalf("adal: ServicePrincipalToken#Refresh did not correctly set Metadata header for MSI")
