@@ -147,7 +147,7 @@ func TestServicePrincipalTokenRefreshUsesPOST(t *testing.T) {
 	}
 }
 
-func TestServicePrincipalTokenFromMSIRefreshUsesPOST(t *testing.T) {
+func TestServicePrincipalTokenFromMSIRefreshUsesGET(t *testing.T) {
 	resource := "https://resource"
 	cb := func(token Token) error { return nil }
 
