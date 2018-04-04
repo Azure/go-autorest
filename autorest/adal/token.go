@@ -588,7 +588,7 @@ func isIMDS(u url.URL) bool {
 }
 
 func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
-	req, err := http.NewRequest(http.MethodGet, spt.oauthConfig.TokenEndpoint.String(), nil)
+	req, err := http.NewRequest(http.MethodPost, spt.oauthConfig.TokenEndpoint.String(), nil)
 	if err != nil {
 		return fmt.Errorf("adal: Failed to build the refresh request. Error = '%v'", err)
 	}
