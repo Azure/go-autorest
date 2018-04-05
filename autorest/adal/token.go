@@ -73,12 +73,6 @@ type OAuthTokenProvider interface {
 	OAuthToken() string
 }
 
-// TokenRefreshError is an interface used by errors returned during token refresh.
-type TokenRefreshError interface {
-	error
-	Response() *http.Response
-}
-
 // Refresher is an interface for token refresh functionality
 type Refresher interface {
 	Refresh() error
@@ -514,23 +508,23 @@ func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, userAssignedI
 	return spt, nil
 }
 
-// internal type that implements TokenRefreshError
+// internal type that implements AuthenticationError
 type tokenRefreshError struct {
 	message string
 	resp    *http.Response
 }
 
-// Error implements the error interface which is part of the TokenRefreshError interface.
+// Error implements the error interface which is part of the AuthenticationError interface.
 func (tre tokenRefreshError) Error() string {
 	return tre.message
 }
 
-// Response implements the TokenRefreshError interface, it returns the raw HTTP response from the refresh operation.
+// Response implements the AuthenticationError interface, it returns the raw HTTP response from the refresh operation.
 func (tre tokenRefreshError) Response() *http.Response {
 	return tre.resp
 }
 
-func newTokenRefreshError(message string, resp *http.Response) TokenRefreshError {
+func newTokenRefreshError(message string, resp *http.Response) autorest.AuthenticationError {
 	return tokenRefreshError{message: message, resp: resp}
 }
 
@@ -708,7 +702,7 @@ func (ba *BearerAuthorizer) WithAuthorization() autorest.PrepareDecorator {
 					err := refresher.EnsureFresh()
 					if err != nil {
 						var resp *http.Response
-						if tokError, ok := err.(TokenRefreshError); ok {
+						if tokError, ok := err.(autorest.AuthenticationError); ok {
 							resp = tokError.Response()
 						}
 						return r, autorest.NewErrorWithError(err, "azure.BearerAuthorizer", "WithAuthorization", resp,

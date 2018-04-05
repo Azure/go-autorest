@@ -1,5 +1,7 @@
 package autorest
 
+import "net/http"
+
 // Copyright 2017 Microsoft Corporation
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,4 +29,23 @@ type NullAuthorizer struct{}
 // WithAuthorization returns a PrepareDecorator that does nothing.
 func (na NullAuthorizer) WithAuthorization() PrepareDecorator {
 	return WithNothing()
+}
+
+// AuthenticationError is an interface used by errors returned by authentication responses.
+// For example, token referesh errors
+type AuthenticationError interface {
+	error
+	Response() *http.Response
+}
+
+// IsAuthenticationError returns true if the specified error implements the TokenRefreshError
+// interface.  If err is a DetailedError it will walk the chain of Original errors.
+func IsAuthenticationError(err error) bool {
+	if _, ok := err.(AuthenticationError); ok {
+		return true
+	}
+	if de, ok := err.(DetailedError); ok {
+		return IsAuthenticationError(de.Original)
+	}
+	return false
 }
