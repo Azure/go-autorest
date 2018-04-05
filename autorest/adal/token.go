@@ -30,6 +30,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/dgrijalva/jwt-go"
 )
@@ -57,7 +58,15 @@ const (
 
 	// msiEndpoint is the well known endpoint for getting MSI authentications tokens
 	msiEndpoint = "http://169.254.169.254/metadata/identity/oauth2/token"
+
+	tenantID              = "tenantID"
+	bearerChallengeHeader = "Www-Authenticate"
+	bearer                = "Bearer"
 )
+
+type bearerChallenge struct {
+	values map[string]string
+}
 
 // OAuthTokenProvider is an interface which should be implemented by an access token retriever
 type OAuthTokenProvider interface {
@@ -681,4 +690,149 @@ func (spt *ServicePrincipalToken) Token() Token {
 	spt.refreshLock.RLock()
 	defer spt.refreshLock.RUnlock()
 	return spt.token
+}
+
+// WithAuthorization returns a PrepareDecorator that adds an HTTP Authorization header whose
+// value is "Bearer " followed by the token.
+//
+// By default, the token will be automatically refreshed through the Refresher interface.
+func (ba *BearerAuthorizer) WithAuthorization() autorest.PrepareDecorator {
+	return func(p autorest.Preparer) autorest.Preparer {
+		return autorest.PreparerFunc(func(r *http.Request) (*http.Request, error) {
+			r, err := p.Prepare(r)
+			if err == nil {
+				refresher, ok := ba.tokenProvider.(Refresher)
+				if ok {
+					err := refresher.EnsureFresh()
+					if err != nil {
+						var resp *http.Response
+						if tokError, ok := err.(TokenRefreshError); ok {
+							resp = tokError.Response()
+						}
+						return r, autorest.NewErrorWithError(err, "azure.BearerAuthorizer", "WithAuthorization", resp,
+							"Failed to refresh the Token for request to %s", r.URL)
+					}
+				}
+				return autorest.Prepare(r, autorest.WithHeader(autorest.HeaderAuthorization, fmt.Sprintf("Bearer %s", ba.tokenProvider.OAuthToken())))
+			}
+			return r, err
+		})
+	}
+}
+
+// NewBearerAuthorizer crates a BearerAuthorizer using the given token provider
+func NewBearerAuthorizer(tp OAuthTokenProvider) *BearerAuthorizer {
+	return &BearerAuthorizer{tokenProvider: tp}
+}
+
+// BearerAuthorizer implements the bearer authorization
+type BearerAuthorizer struct {
+	tokenProvider OAuthTokenProvider
+}
+
+// BearerAuthorizerCallbackFunc is the authentication callback signature.
+type BearerAuthorizerCallbackFunc func(tenantID, resource string) (*BearerAuthorizer, error)
+
+// BearerAuthorizerCallback implements bearer authorization via a callback.
+type BearerAuthorizerCallback struct {
+	sender   Sender
+	callback BearerAuthorizerCallbackFunc
+}
+
+// NewBearerAuthorizerCallback creates a bearer authorization callback.  The callback
+// is invoked when the HTTP request is submitted.
+func NewBearerAuthorizerCallback(sender Sender, callback BearerAuthorizerCallbackFunc) *BearerAuthorizerCallback {
+	if sender == nil {
+		sender = &http.Client{}
+	}
+	return &BearerAuthorizerCallback{sender: sender, callback: callback}
+}
+
+// WithAuthorization returns a PrepareDecorator that adds an HTTP Authorization header whose value
+// is "Bearer " followed by the token.  The BearerAuthorizer is obtained via a user-supplied callback.
+//
+// By default, the token will be automatically refreshed through the Refresher interface.
+func (bacb *BearerAuthorizerCallback) WithAuthorization() autorest.PrepareDecorator {
+	return func(p autorest.Preparer) autorest.Preparer {
+		return autorest.PreparerFunc(func(r *http.Request) (*http.Request, error) {
+			r, err := p.Prepare(r)
+			if err == nil {
+				// make a copy of the request and remove the body as it's not
+				// required and avoids us having to create a copy of it.
+				rCopy := *r
+				autorest.RemoveRequestBody(&rCopy)
+
+				resp, err := bacb.sender.Do(&rCopy)
+				if err == nil && resp.StatusCode == 401 {
+					defer resp.Body.Close()
+					if hasBearerChallenge(resp) {
+						bc, err := newBearerChallenge(resp)
+						if err != nil {
+							return r, err
+						}
+						if bacb.callback != nil {
+							ba, err := bacb.callback(bc.values[tenantID], bc.values["resource"])
+							if err != nil {
+								return r, err
+							}
+							return autorest.Prepare(r, ba.WithAuthorization())
+						}
+					}
+				}
+			}
+			return r, err
+		})
+	}
+}
+
+// returns true if the HTTP response contains a bearer challenge
+func hasBearerChallenge(resp *http.Response) bool {
+	authHeader := resp.Header.Get(bearerChallengeHeader)
+	if len(authHeader) == 0 || strings.Index(authHeader, bearer) < 0 {
+		return false
+	}
+	return true
+}
+
+func newBearerChallenge(resp *http.Response) (bc bearerChallenge, err error) {
+	challenge := strings.TrimSpace(resp.Header.Get(bearerChallengeHeader))
+	trimmedChallenge := challenge[len(bearer)+1:]
+
+	// challenge is a set of key=value pairs that are comma delimited
+	pairs := strings.Split(trimmedChallenge, ",")
+	if len(pairs) < 1 {
+		err = fmt.Errorf("challenge '%s' contains no pairs", challenge)
+		return bc, err
+	}
+
+	bc.values = make(map[string]string)
+	for i := range pairs {
+		trimmedPair := strings.TrimSpace(pairs[i])
+		pair := strings.Split(trimmedPair, "=")
+		if len(pair) == 2 {
+			// remove the enclosing quotes
+			key := strings.Trim(pair[0], "\"")
+			value := strings.Trim(pair[1], "\"")
+
+			switch key {
+			case "authorization", "authorization_uri":
+				// strip the tenant ID from the authorization URL
+				asURL, err := url.Parse(value)
+				if err != nil {
+					return bc, err
+				}
+				bc.values[tenantID] = asURL.Path[1:]
+			default:
+				bc.values[key] = value
+			}
+		}
+	}
+
+	return bc, err
+}
+
+// WithBearerAuthorization returns a PrepareDecorator that adds an HTTP Authorization header whose
+// value is "Bearer " followed by the supplied token.
+func WithBearerAuthorization(token string) autorest.PrepareDecorator {
+	return autorest.WithAuthorization(fmt.Sprintf("Bearer %s", token))
 }

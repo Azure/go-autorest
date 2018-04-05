@@ -212,10 +212,10 @@ func TestClientDoSetsAuthorization(t *testing.T) {
 	c := Client{Authorizer: mockAuthorizer{}, Sender: s}
 
 	c.Do(r)
-	if len(r.Header.Get(http.CanonicalHeaderKey(headerAuthorization))) <= 0 {
+	if len(r.Header.Get(http.CanonicalHeaderKey(HeaderAuthorization))) <= 0 {
 		t.Fatalf("autorest: Client#Send failed to set Authorization header -- %s=%s",
-			http.CanonicalHeaderKey(headerAuthorization),
-			r.Header.Get(http.CanonicalHeaderKey(headerAuthorization)))
+			http.CanonicalHeaderKey(HeaderAuthorization),
+			r.Header.Get(http.CanonicalHeaderKey(HeaderAuthorization)))
 	}
 }
 
@@ -291,7 +291,7 @@ func TestClientWithAuthorizer(t *testing.T) {
 	req, _ := Prepare(&http.Request{},
 		c.WithAuthorization())
 
-	if req.Header.Get(headerAuthorization) == "" {
+	if req.Header.Get(HeaderAuthorization) == "" {
 		t.Fatal("autorest: Client#WithAuthorizer failed to return the WithAuthorizer from the active Authorizer")
 	}
 }
