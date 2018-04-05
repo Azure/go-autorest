@@ -630,7 +630,9 @@ func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
 		req.Header.Set(metadataHeader, "true")
 	}
 
-	resp, err := spt.sender.Do(req)
+	resp, err := autorest.SendWithSender(spt.sender, req,
+		autorest.DoRetryForStatusCodes(autorest.DefaultRetryAttempts, time.Second*1, autorest.StatusCodesForRetry...),
+	)
 	if err != nil {
 		return fmt.Errorf("adal: Failed to execute the refresh request. Error = '%v'", err)
 	}

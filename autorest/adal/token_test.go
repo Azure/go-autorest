@@ -358,6 +358,43 @@ func TestServicePrincipalTokenRefreshClosesRequestBody(t *testing.T) {
 	}
 }
 
+func TestServicePrincipalTokenRefreshRetriesFail(t *testing.T) {
+	spt := newServicePrincipalToken()
+
+	c := mocks.NewSender()
+	c.AppendResponse(mocks.NewResponseWithStatus("408 RequestTimeout", http.StatusRequestTimeout))
+	c.AppendResponse(mocks.NewResponseWithStatus("429 TooManyRequests", http.StatusTooManyRequests))
+	c.AppendResponse(mocks.NewResponseWithStatus("500 InternalServerError", http.StatusInternalServerError))
+	c.AppendResponse(mocks.NewResponseWithStatus("502 BadGateway", http.StatusBadGateway))
+	c.AppendResponse(mocks.NewResponseWithStatus("503 ServiceUnavailable", http.StatusServiceUnavailable))
+	c.AppendResponse(mocks.NewResponseWithStatus("504 GatewayTimeout", http.StatusGatewayTimeout))
+	spt.SetSender(c)
+
+	err := spt.Refresh()
+	if err == nil {
+		t.Fatalf("adal: Failed to return an error when receiving a status code other than HTTP %d", http.StatusOK)
+	}
+}
+
+func TestServicePrincipalTokenRefreshRetries(t *testing.T) {
+	spt := newServicePrincipalToken()
+
+	c := mocks.NewSender()
+	c.AppendResponse(mocks.NewResponseWithStatus("408 RequestTimeout", http.StatusRequestTimeout))
+	c.AppendResponse(mocks.NewResponseWithStatus("429 TooManyRequests", http.StatusTooManyRequests))
+	c.AppendResponse(mocks.NewResponseWithStatus("500 InternalServerError", http.StatusInternalServerError))
+	c.AppendResponse(mocks.NewResponseWithBodyAndStatus(
+		mocks.NewBody(newTokenJSON("test", "test")),
+		http.StatusOK,
+		"200 OK"))
+	spt.SetSender(c)
+
+	err := spt.Refresh()
+	if err != nil {
+		t.Fatalf("adal: Failed to return a nil error when receiving a 200 status code")
+	}
+}
+
 func TestServicePrincipalTokenRefreshRejectsResponsesWithStatusNotOK(t *testing.T) {
 	spt := newServicePrincipalToken()
 

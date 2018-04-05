@@ -33,25 +33,19 @@
 
 [[projects]]
   name = "github.com/stretchr/testify"
-  packages = [
-    "assert",
-    "require"
-  ]
+  packages = ["assert","require"]
   revision = "b91bfb9ebec76498946beb6af7c0230c7cc7ba6c"
   version = "v1.2.0"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = [
-    "pkcs12",
-    "pkcs12/internal/rc2"
-  ]
+  packages = ["pkcs12","pkcs12/internal/rc2"]
   revision = "5f55bce93ad2c89f411e009659bb1fd83da36e7b"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0cc7dbf91385cb641288c28a9a0a7bf38b676e517bd96496790913fdf857ac16"
+  inputs-digest = "ffeca2a12692c1c74addbf6ce6c2671e8d1a9fc5b6f5aaeee09da65eb48e8251"
   solver-name = "gps-cdcl"
   solver-version = 1
