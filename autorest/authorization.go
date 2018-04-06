@@ -49,3 +49,8 @@ func IsAuthenticationError(err error) bool {
 	}
 	return false
 }
+
+// WithAuthorization returns a PrepareDecorator that adds the specified value to the Authorization header
+func WithAuthorization(authorization string) PrepareDecorator {
+	return WithHeader(HeaderAuthorization, authorization)
+}

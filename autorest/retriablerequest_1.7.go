@@ -48,6 +48,7 @@ func (rr *RetriableRequest) Prepare() (err error) {
 	return err
 }
 
+// RemoveRequestBody removes the request's body and sets its content length to 0
 func RemoveRequestBody(req *http.Request) {
 	req.Body = nil
 	req.ContentLength = 0
