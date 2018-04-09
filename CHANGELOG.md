@@ -1,5 +1,46 @@
 # CHANGELOG
 
+## v11.0.0
+
+### New Features
+
+- Added retries for getting OAuth tokens.
+
+### Fixes
+
+- Refactor. Some functions were moved to different packages. `autorest` package no longer depends on `autorest/adal`.
+  - Functions and types moved to `autorest/azure` package:
+    - `APIKeyAuthorizer`
+    - `NewAPIKeyAuthorizerWithHeaders()`
+    - `NewAPIKeyAuthorizerWithQueryParameters()`
+    - `NewAPIKeyAuthorizer()`
+    - `APIKeyAuthorizer.WithAuthorization()`
+    - `CognitiveServicesAuthorizer`
+    - `NewCognitiveServicesAuthorizer()`
+    - `CognitiveServicesAuthorizer.WithAuthorization()`
+    - `EventGridKeyAuthorizer`
+    - `NewEventGridKeyAuthorizer()`
+    - `EventGridKeyAuthorizer.WithAuthorization()`
+  - Functions and types moved to `autorest/adal` package:
+    - `BearerAuthorizer`
+    - `NewBearerAuthorizer()`
+    - `BearerAuthorizer.WithAuthorization()`
+    - `BearerAuthorizerCallbackFunc`
+    - `BearerAuthorizerCallback`
+    - `NewBearerAuthorizerCallback()`
+    - `BearerAuthorizerCallback.WithAuthorization()`
+    - `WithBearerAuthorization()`
+  - Functions and types moved to `autorest` package:
+    - `IsTokenRefreshError()` as `IsAuthenticationError()`
+    - `TokenRefreshError` as `AuthenticationError`
+
+- Deprecated functions were removed:
+  - `autorest/validation`:
+    - `NewErrorWithValidationError()`. Use `NewError()` instead.
+  - `autorest/utils`:
+    - `GetAuthorizer()`. Use `ClientCredentialsConfig.Authorizer()` instead.
+    - `GetEnvVarOrExit()`
+
 ## v10.6.0
 
 - Changed MSI token implementation. Now, the token endpoint is the IMDS endpoint.

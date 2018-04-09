@@ -30,6 +30,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/mocks"
 )
@@ -354,6 +355,43 @@ func TestServicePrincipalTokenRefreshClosesRequestBody(t *testing.T) {
 	}
 	if resp.Body.(*mocks.Body).IsOpen() {
 		t.Fatal("adal: ServicePrincipalToken#Refresh failed to close the HTTP Response Body")
+	}
+}
+
+func TestServicePrincipalTokenRefreshRetriesFail(t *testing.T) {
+	spt := newServicePrincipalToken()
+
+	c := mocks.NewSender()
+	c.AppendResponse(mocks.NewResponseWithStatus("408 RequestTimeout", http.StatusRequestTimeout))
+	c.AppendResponse(mocks.NewResponseWithStatus("429 TooManyRequests", http.StatusTooManyRequests))
+	c.AppendResponse(mocks.NewResponseWithStatus("500 InternalServerError", http.StatusInternalServerError))
+	c.AppendResponse(mocks.NewResponseWithStatus("502 BadGateway", http.StatusBadGateway))
+	c.AppendResponse(mocks.NewResponseWithStatus("503 ServiceUnavailable", http.StatusServiceUnavailable))
+	c.AppendResponse(mocks.NewResponseWithStatus("504 GatewayTimeout", http.StatusGatewayTimeout))
+	spt.SetSender(c)
+
+	err := spt.Refresh()
+	if err == nil {
+		t.Fatalf("adal: Failed to return an error when receiving a status code other than HTTP %d", http.StatusOK)
+	}
+}
+
+func TestServicePrincipalTokenRefreshRetries(t *testing.T) {
+	spt := newServicePrincipalToken()
+
+	c := mocks.NewSender()
+	c.AppendResponse(mocks.NewResponseWithStatus("408 RequestTimeout", http.StatusRequestTimeout))
+	c.AppendResponse(mocks.NewResponseWithStatus("429 TooManyRequests", http.StatusTooManyRequests))
+	c.AppendResponse(mocks.NewResponseWithStatus("500 InternalServerError", http.StatusInternalServerError))
+	c.AppendResponse(mocks.NewResponseWithBodyAndStatus(
+		mocks.NewBody(newTokenJSON("test", "test")),
+		http.StatusOK,
+		"200 OK"))
+	spt.SetSender(c)
+
+	err := spt.Refresh()
+	if err != nil {
+		t.Fatalf("adal: Failed to return a nil error when receiving a 200 status code")
 	}
 }
 
@@ -707,4 +745,159 @@ func newServicePrincipalTokenUsernamePassword(t *testing.T) *ServicePrincipalTok
 func newServicePrincipalTokenAuthorizationCode(t *testing.T) *ServicePrincipalToken {
 	spt, _ := NewServicePrincipalTokenFromAuthorizationCode(TestOAuthConfig, "id", "clientSecret", "code", "http://redirectUri/getToken", "resource")
 	return spt
+}
+
+func TestTokenWithAuthorization(t *testing.T) {
+	token := &Token{
+		AccessToken: "TestToken",
+		Resource:    "https://azure.microsoft.com/",
+		Type:        "Bearer",
+	}
+
+	ba := NewBearerAuthorizer(token)
+	req, err := autorest.Prepare(&http.Request{}, ba.WithAuthorization())
+	if err != nil {
+		t.Fatalf("azure: BearerAuthorizer#WithAuthorization returned an error (%v)", err)
+	} else if req.Header.Get(http.CanonicalHeaderKey("Authorization")) != fmt.Sprintf("Bearer %s", token.AccessToken) {
+		t.Fatal("azure: BearerAuthorizer#WithAuthorization failed to set Authorization header")
+	}
+}
+
+func TestServicePrincipalTokenWithAuthorizationNoRefresh(t *testing.T) {
+	oauthConfig, err := NewOAuthConfig(TestActiveDirectoryEndpoint, TestTenantID)
+	if err != nil {
+		t.Fatalf("azure: BearerAuthorizer#WithAuthorization returned an error (%v)", err)
+	}
+	spt, err := NewServicePrincipalToken(*oauthConfig, "id", "secret", "resource", nil)
+	if err != nil {
+		t.Fatalf("azure: BearerAuthorizer#WithAuthorization returned an error (%v)", err)
+	}
+	spt.SetAutoRefresh(false)
+	s := mocks.NewSender()
+	spt.SetSender(s)
+
+	ba := NewBearerAuthorizer(spt)
+	req, err := autorest.Prepare(mocks.NewRequest(), ba.WithAuthorization())
+	if err != nil {
+		t.Fatalf("azure: BearerAuthorizer#WithAuthorization returned an error (%v)", err)
+	} else if req.Header.Get(http.CanonicalHeaderKey("Authorization")) != fmt.Sprintf("Bearer %s", spt.OAuthToken()) {
+		t.Fatal("azure: BearerAuthorizer#WithAuthorization failed to set Authorization header")
+	}
+}
+
+func TestServicePrincipalTokenWithAuthorizationRefresh(t *testing.T) {
+
+	oauthConfig, err := NewOAuthConfig(TestActiveDirectoryEndpoint, TestTenantID)
+	if err != nil {
+		t.Fatalf("azure: BearerAuthorizer#WithAuthorization returned an error (%v)", err)
+	}
+	refreshed := false
+	spt, err := NewServicePrincipalToken(*oauthConfig, "id", "secret", "resource", func(t Token) error {
+		refreshed = true
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("azure: BearerAuthorizer#WithAuthorization returned an error (%v)", err)
+	}
+
+	jwt := `{
+		"access_token" : "accessToken",
+		"expires_in"   : "3600",
+		"expires_on"   : "test",
+		"not_before"   : "test",
+		"resource"     : "test",
+		"token_type"   : "Bearer"
+	}`
+	body := mocks.NewBody(jwt)
+	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
+	c := mocks.NewSender()
+	s := DecorateSender(c,
+		(func() SendDecorator {
+			return func(s Sender) Sender {
+				return SenderFunc(func(r *http.Request) (*http.Response, error) {
+					return resp, nil
+				})
+			}
+		})())
+	spt.SetSender(s)
+
+	ba := NewBearerAuthorizer(spt)
+	req, err := autorest.Prepare(mocks.NewRequest(), ba.WithAuthorization())
+	if err != nil {
+		t.Fatalf("azure: BearerAuthorizer#WithAuthorization returned an error (%v)", err)
+	} else if req.Header.Get(http.CanonicalHeaderKey("Authorization")) != fmt.Sprintf("Bearer %s", spt.OAuthToken()) {
+		t.Fatal("azure: BearerAuthorizer#WithAuthorization failed to set Authorization header")
+	}
+
+	if !refreshed {
+		t.Fatal("azure: BearerAuthorizer#WithAuthorization must refresh the token")
+	}
+}
+
+func TestServicePrincipalTokenWithAuthorizationReturnsErrorIfConnotRefresh(t *testing.T) {
+	oauthConfig, err := NewOAuthConfig(TestActiveDirectoryEndpoint, TestTenantID)
+	if err != nil {
+		t.Fatalf("azure: BearerAuthorizer#WithAuthorization returned an error (%v)", err)
+	}
+	spt, err := NewServicePrincipalToken(*oauthConfig, "id", "secret", "resource", nil)
+	if err != nil {
+		t.Fatalf("azure: BearerAuthorizer#WithAuthorization returned an error (%v)", err)
+	}
+
+	s := mocks.NewSender()
+	s.AppendResponse(mocks.NewResponseWithStatus("400 Bad Request", http.StatusBadRequest))
+	spt.SetSender(s)
+
+	ba := NewBearerAuthorizer(spt)
+	_, err = autorest.Prepare(mocks.NewRequest(), ba.WithAuthorization())
+	if err == nil {
+		t.Fatal("azure: BearerAuthorizer#WithAuthorization failed to return an error when refresh fails")
+	}
+}
+
+func TestBearerAuthorizerCallback(t *testing.T) {
+	tenantString := "123-tenantID-456"
+	resourceString := "https://fake.resource.net"
+
+	s := mocks.NewSender()
+	resp := mocks.NewResponseWithStatus("401 Unauthorized", http.StatusUnauthorized)
+	mocks.SetResponseHeader(resp, bearerChallengeHeader, bearer+" \"authorization\"=\"https://fake.net/"+tenantString+"\",\"resource\"=\""+resourceString+"\"")
+	s.AppendResponse(resp)
+
+	auth := NewBearerAuthorizerCallback(s, func(tenantID, resource string) (*BearerAuthorizer, error) {
+		if tenantID != tenantString {
+			t.Fatal("BearerAuthorizerCallback: bad tenant ID")
+		}
+		if resource != resourceString {
+			t.Fatal("BearerAuthorizerCallback: bad resource")
+		}
+
+		oauthConfig, err := NewOAuthConfig(TestActiveDirectoryEndpoint, tenantID)
+		if err != nil {
+			t.Fatalf("azure: NewOAuthConfig returned an error (%v)", err)
+		}
+
+		spt, err := NewServicePrincipalToken(*oauthConfig, "id", "secret", resource)
+		if err != nil {
+			t.Fatalf("azure: NewServicePrincipalToken returned an error (%v)", err)
+		}
+
+		spt.SetSender(s)
+		return NewBearerAuthorizer(spt), nil
+	})
+
+	_, err := autorest.Prepare(mocks.NewRequest(), auth.WithAuthorization())
+	if err == nil {
+		t.Fatal("azure: BearerAuthorizerCallback#WithAuthorization failed to return an error when refresh fails")
+	}
+}
+
+func TestWithBearerAuthorization(t *testing.T) {
+	r, err := autorest.Prepare(mocks.NewRequest(), WithBearerAuthorization("SOME-TOKEN"))
+	if err != nil {
+		fmt.Printf("ERROR: %v", err)
+	}
+	if r.Header.Get(autorest.HeaderAuthorization) != "Bearer SOME-TOKEN" {
+		t.Fatalf("autorest: WithBearerAuthorization failed to add header (%s=%s)", autorest.HeaderAuthorization, r.Header.Get(autorest.HeaderAuthorization))
+	}
 }

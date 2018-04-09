@@ -399,16 +399,6 @@ func TestWithNothing(t *testing.T) {
 	}
 }
 
-func TestWithBearerAuthorization(t *testing.T) {
-	r, err := Prepare(mocks.NewRequest(), WithBearerAuthorization("SOME-TOKEN"))
-	if err != nil {
-		fmt.Printf("ERROR: %v", err)
-	}
-	if r.Header.Get(headerAuthorization) != "Bearer SOME-TOKEN" {
-		t.Fatalf("autorest: WithBearerAuthorization failed to add header (%s=%s)", headerAuthorization, r.Header.Get(headerAuthorization))
-	}
-}
-
 func TestWithUserAgent(t *testing.T) {
 	ua := "User Agent Go"
 	r, err := Prepare(mocks.NewRequest(), WithUserAgent(ua))

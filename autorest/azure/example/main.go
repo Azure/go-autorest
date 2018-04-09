@@ -258,7 +258,7 @@ func main() {
 	}
 
 	client := &autorest.Client{}
-	client.Authorizer = autorest.NewBearerAuthorizer(spt)
+	client.Authorizer = adal.NewBearerAuthorizer(spt)
 
 	printResourceGroups(client)
 

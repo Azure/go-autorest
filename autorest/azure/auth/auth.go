@@ -136,7 +136,7 @@ func NewAuthorizerFromFile(baseURI string) (autorest.Authorizer, error) {
 		return nil, err
 	}
 
-	return autorest.NewBearerAuthorizer(spToken), nil
+	return adal.NewBearerAuthorizer(spToken), nil
 }
 
 // File represents the authentication file
@@ -280,7 +280,7 @@ func (ccc ClientCredentialsConfig) Authorizer() (autorest.Authorizer, error) {
 		return nil, fmt.Errorf("failed to get oauth token from client credentials: %v", err)
 	}
 
-	return autorest.NewBearerAuthorizer(spToken), nil
+	return adal.NewBearerAuthorizer(spToken), nil
 }
 
 // ClientCertificateConfig provides the options to get a bearer authorizer from a client certificate.
@@ -313,7 +313,7 @@ func (ccc ClientCertificateConfig) Authorizer() (autorest.Authorizer, error) {
 		return nil, fmt.Errorf("failed to get oauth token from certificate auth: %v", err)
 	}
 
-	return autorest.NewBearerAuthorizer(spToken), nil
+	return adal.NewBearerAuthorizer(spToken), nil
 }
 
 // DeviceFlowConfig provides the options to get a bearer authorizer using device flow authentication.
@@ -345,7 +345,7 @@ func (dfc DeviceFlowConfig) Authorizer() (autorest.Authorizer, error) {
 		return nil, fmt.Errorf("failed to get oauth token from device flow: %v", err)
 	}
 
-	return autorest.NewBearerAuthorizer(spToken), nil
+	return adal.NewBearerAuthorizer(spToken), nil
 }
 
 func decodePkcs12(pkcs []byte, password string) (*x509.Certificate, *rsa.PrivateKey, error) {
@@ -383,7 +383,7 @@ func (ups UsernamePasswordConfig) Authorizer() (autorest.Authorizer, error) {
 		return nil, fmt.Errorf("failed to get oauth token from username and password auth: %v", err)
 	}
 
-	return autorest.NewBearerAuthorizer(spToken), nil
+	return adal.NewBearerAuthorizer(spToken), nil
 }
 
 // MSIConfig provides the options to get a bearer authorizer through MSI.
@@ -404,5 +404,5 @@ func (mc MSIConfig) Authorizer() (autorest.Authorizer, error) {
 		return nil, fmt.Errorf("failed to get oauth token from MSI: %v", err)
 	}
 
-	return autorest.NewBearerAuthorizer(spToken), nil
+	return adal.NewBearerAuthorizer(spToken), nil
 }
