@@ -596,6 +596,7 @@ func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
 		return fmt.Errorf("adal: Failed to build the refresh request. Error = '%v'", err)
 	}
 
+	retries := autorest.StatusCodesForRetry
 	if !isIMDS(spt.oauthConfig.TokenEndpoint) {
 		v := url.Values{}
 		v.Set("client_id", spt.clientID)
@@ -622,10 +623,23 @@ func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
 	if _, ok := spt.secret.(*ServicePrincipalMSISecret); ok {
 		req.Method = http.MethodGet
 		req.Header.Set(metadataHeader, "true")
+		retries = append(retries, http.StatusNotFound,
+			// all 5xx
+			http.StatusInternalServerError,
+			http.StatusNotImplemented,
+			http.StatusBadGateway,
+			http.StatusServiceUnavailable,
+			http.StatusGatewayTimeout,
+			http.StatusHTTPVersionNotSupported,
+			http.StatusVariantAlsoNegotiates,
+			http.StatusInsufficientStorage,
+			http.StatusLoopDetected,
+			http.StatusNotExtended,
+			http.StatusNetworkAuthenticationRequired)
 	}
 
 	resp, err := autorest.SendWithSender(spt.sender, req,
-		autorest.DoRetryForStatusCodes(autorest.DefaultRetryAttempts, time.Second*1, autorest.StatusCodesForRetry...),
+		autorest.DoRetryForStatusCodes(autorest.DefaultRetryAttempts, time.Second*1, retries...),
 	)
 	if err != nil {
 		return fmt.Errorf("adal: Failed to execute the refresh request. Error = '%v'", err)
