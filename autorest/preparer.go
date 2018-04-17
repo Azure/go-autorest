@@ -31,7 +31,8 @@ const (
 	mimeTypeOctetStream = "application/octet-stream"
 	mimeTypeFormPost    = "application/x-www-form-urlencoded"
 
-	headerAuthorization = "Authorization"
+	// HeaderAuthorization is the value an authorization header should have
+	HeaderAuthorization = "Authorization"
 	headerContentType   = "Content-Type"
 	headerUserAgent     = "User-Agent"
 )
@@ -133,12 +134,6 @@ func WithHeaders(headers map[string]interface{}) PrepareDecorator {
 			return r, err
 		})
 	}
-}
-
-// WithBearerAuthorization returns a PrepareDecorator that adds an HTTP Authorization header whose
-// value is "Bearer " followed by the supplied token.
-func WithBearerAuthorization(token string) PrepareDecorator {
-	return WithHeader(headerAuthorization, fmt.Sprintf("Bearer %s", token))
 }
 
 // AsContentType returns a PrepareDecorator that adds an HTTP Content-Type header whose value

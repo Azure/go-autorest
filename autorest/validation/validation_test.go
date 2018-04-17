@@ -2444,7 +2444,7 @@ func TestNewErrorWithValidationError(t *testing.T) {
 	err := createError(reflect.ValueOf(p.C), v[0].Constraints[0].Chain[0], "value can not be null; required parameter")
 	z := fmt.Sprintf("batch.AccountClient#Create: Invalid input: %s",
 		err.Error())
-	valError := NewErrorWithValidationError(err, "batch.AccountClient", "Create")
+	valError := NewError("batch.AccountClient", "Create", err.Error())
 	require.IsType(t, valError, Error{})
 	require.Equal(t, valError.Error(), z)
 }

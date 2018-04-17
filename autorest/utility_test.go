@@ -361,7 +361,7 @@ func doEnsureBodyClosed(t *testing.T) SendDecorator {
 type mockAuthorizer struct{}
 
 func (ma mockAuthorizer) WithAuthorization() PrepareDecorator {
-	return WithHeader(headerAuthorization, mocks.TestAuthorizationHeader)
+	return WithHeader(HeaderAuthorization, mocks.TestAuthorizationHeader)
 }
 
 type mockFailingAuthorizer struct{}
