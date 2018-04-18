@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v10.6.2
+
+- Fixed a bug on device authentication.
+
 ## v10.6.1
 
 - Added retries to MSI token get request.
