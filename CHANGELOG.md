@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v10.6.1
+
+- Added retries to MSI token get request.
+
 ## v10.6.0
 
 - Changed MSI token implementation. Now, the token endpoint is the IMDS endpoint.
