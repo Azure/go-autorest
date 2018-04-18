@@ -696,6 +696,7 @@ func retry(sender Sender, req *http.Request) (resp *http.Response, err error) {
 				delayed = delay(resp, req.Cancel)
 			}
 			if !delayed {
+				time.Sleep(time.Second)
 				attempt++
 			}
 		} else {
