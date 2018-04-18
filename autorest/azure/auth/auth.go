@@ -328,7 +328,7 @@ type DeviceFlowConfig struct {
 func (dfc DeviceFlowConfig) Authorizer() (autorest.Authorizer, error) {
 	oauthClient := &autorest.Client{}
 	oauthConfig, err := adal.NewOAuthConfig(dfc.AADEndpoint, dfc.TenantID)
-	deviceCode, err := adal.InitiateDeviceAuth(oauthClient, *oauthConfig, dfc.ClientID, dfc.AADEndpoint)
+	deviceCode, err := adal.InitiateDeviceAuth(oauthClient, *oauthConfig, dfc.ClientID, dfc.Resource)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start device auth flow: %s", err)
 	}
