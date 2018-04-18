@@ -621,7 +621,12 @@ func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
 		req.Header.Set(metadataHeader, "true")
 	}
 
-	resp, err := spt.sender.Do(req)
+	var resp *http.Response
+	if isIMDS(spt.oauthConfig.TokenEndpoint) {
+		resp, err = retry(spt.sender, req)
+	} else {
+		resp, err = spt.sender.Do(req)
+	}
 	if err != nil {
 		return fmt.Errorf("adal: Failed to execute the refresh request. Error = '%v'", err)
 	}
@@ -651,6 +656,79 @@ func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
 	spt.token = token
 
 	return spt.InvokeRefreshCallbacks(token)
+}
+
+func retry(sender Sender, req *http.Request) (resp *http.Response, err error) {
+	retries := []int{
+		http.StatusRequestTimeout,      // 408
+		http.StatusTooManyRequests,     // 429
+		http.StatusInternalServerError, // 500
+		http.StatusBadGateway,          // 502
+		http.StatusServiceUnavailable,  // 503
+		http.StatusGatewayTimeout,      // 504
+	}
+	// Extra retry status codes requered
+	retries = append(retries, http.StatusNotFound,
+		// all remaining 5xx
+		http.StatusNotImplemented,
+		http.StatusHTTPVersionNotSupported,
+		http.StatusVariantAlsoNegotiates,
+		http.StatusInsufficientStorage,
+		http.StatusLoopDetected,
+		http.StatusNotExtended,
+		http.StatusNetworkAuthenticationRequired)
+
+	attempt := 0
+	maxAttempts := 5
+
+	for attempt < maxAttempts {
+		resp, err = sender.Do(req)
+		if err != nil {
+			return
+		}
+
+		if resp.StatusCode == http.StatusOK {
+			return
+		}
+		if containsInt(retries, resp.StatusCode) {
+			delayed := false
+			if resp.StatusCode == http.StatusTooManyRequests {
+				delayed = delay(resp, req.Cancel)
+			}
+			if !delayed {
+				time.Sleep(time.Second)
+				attempt++
+			}
+		} else {
+			return
+		}
+	}
+	return
+}
+
+func containsInt(ints []int, n int) bool {
+	for _, i := range ints {
+		if i == n {
+			return true
+		}
+	}
+	return false
+}
+
+func delay(resp *http.Response, cancel <-chan struct{}) bool {
+	if resp == nil {
+		return false
+	}
+	retryAfter, _ := strconv.Atoi(resp.Header.Get("Retry-After"))
+	if resp.StatusCode == http.StatusTooManyRequests && retryAfter > 0 {
+		select {
+		case <-time.After(time.Duration(retryAfter) * time.Second):
+			return true
+		case <-cancel:
+			return false
+		}
+	}
+	return false
 }
 
 // SetAutoRefresh enables or disables automatic refreshing of stale tokens.
