@@ -55,7 +55,7 @@ func NewAuthorizerFromEnvironment() (autorest.Authorizer, error) {
 	return getAuth(settings, env)
 }
 
-// NewAuthorizerFromEnvironment creates an Authorizer configured from environment variables in the order:
+// NewKeyvaultAuthorizerFromEnvironment creates a keyvault dataplane Authorizer configured from environment variables in the order:
 // 1. Client credentials
 // 2. Client certificate
 // 3. Username password
