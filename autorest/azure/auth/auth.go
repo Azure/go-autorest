@@ -41,59 +41,105 @@ import (
 // 3. Username password
 // 4. MSI
 func NewAuthorizerFromEnvironment() (autorest.Authorizer, error) {
-	tenantID := os.Getenv("AZURE_TENANT_ID")
-	clientID := os.Getenv("AZURE_CLIENT_ID")
-	clientSecret := os.Getenv("AZURE_CLIENT_SECRET")
-	certificatePath := os.Getenv("AZURE_CERTIFICATE_PATH")
-	certificatePassword := os.Getenv("AZURE_CERTIFICATE_PASSWORD")
-	username := os.Getenv("AZURE_USERNAME")
-	password := os.Getenv("AZURE_PASSWORD")
-	envName := os.Getenv("AZURE_ENVIRONMENT")
-	resource := os.Getenv("AZURE_AD_RESOURCE")
+	settings := getEnvVars()
 
-	var env azure.Environment
+	env, err := getEnv(settings.envName)
+	if err != nil {
+		return nil, err
+	}
+
+	if settings.resource == "" {
+		settings.resource = env.ResourceManagerEndpoint
+	}
+
+	return getAuth(settings, env)
+}
+
+// NewAuthorizerFromEnvironment creates an Authorizer configured from environment variables in the order:
+// 1. Client credentials
+// 2. Client certificate
+// 3. Username password
+// 4. MSI
+func NewKeyvaultAuthorizerFromEnvironment() (autorest.Authorizer, error) {
+	settings := getEnvVars()
+	settings.resource = os.Getenv("AZURE_KEYVAULT_RESOURCE")
+
+	env, err := getEnv(settings.envName)
+	if err != nil {
+		return nil, err
+	}
+
+	if settings.resource == "" {
+		settings.resource = strings.TrimSuffix(env.KeyVaultEndpoint, "/")
+	}
+
+	return getAuth(settings, env)
+}
+
+type envSettings struct {
+	tenantID            string
+	clientID            string
+	clientSecret        string
+	certificatePath     string
+	certificatePassword string
+	username            string
+	password            string
+	envName             string
+	resource            string
+}
+
+func getEnvVars() envSettings {
+	return envSettings{
+		tenantID:            os.Getenv("AZURE_TENANT_ID"),
+		clientID:            os.Getenv("AZURE_CLIENT_ID"),
+		clientSecret:        os.Getenv("AZURE_CLIENT_SECRET"),
+		certificatePath:     os.Getenv("AZURE_CERTIFICATE_PATH"),
+		certificatePassword: os.Getenv("AZURE_CERTIFICATE_PASSWORD"),
+		username:            os.Getenv("AZURE_USERNAME"),
+		password:            os.Getenv("AZURE_PASSWORD"),
+		envName:             os.Getenv("AZURE_ENVIRONMENT"),
+		resource:            os.Getenv("AZURE_AD_RESOURCE"),
+	}
+}
+
+func getEnv(envName string) (env azure.Environment, err error) {
 	if envName == "" {
 		env = azure.PublicCloud
 	} else {
-		var err error
 		env, err = azure.EnvironmentFromName(envName)
-		if err != nil {
-			return nil, err
-		}
 	}
+	return
+}
 
-	if resource == "" {
-		resource = env.ResourceManagerEndpoint
-	}
-
+func getAuth(settings envSettings, env azure.Environment) (autorest.Authorizer, error) {
 	//1.Client Credentials
-	if clientSecret != "" {
-		config := NewClientCredentialsConfig(clientID, clientSecret, tenantID)
+	if settings.clientSecret != "" {
+		config := NewClientCredentialsConfig(settings.clientID, settings.clientSecret, settings.tenantID)
 		config.AADEndpoint = env.ActiveDirectoryEndpoint
-		config.Resource = resource
+		config.Resource = settings.resource
 		return config.Authorizer()
 	}
 
 	//2. Client Certificate
-	if certificatePath != "" {
-		config := NewClientCertificateConfig(certificatePath, certificatePassword, clientID, tenantID)
+	if settings.certificatePath != "" {
+		config := NewClientCertificateConfig(settings.certificatePath, settings.certificatePassword, settings.clientID, settings.tenantID)
 		config.AADEndpoint = env.ActiveDirectoryEndpoint
-		config.Resource = resource
+		config.Resource = settings.resource
 		return config.Authorizer()
 	}
 
 	//3. Username Password
-	if username != "" && password != "" {
-		config := NewUsernamePasswordConfig(username, password, clientID, tenantID)
+	if settings.username != "" && settings.password != "" {
+		config := NewUsernamePasswordConfig(settings.username, settings.password, settings.clientID, settings.tenantID)
 		config.AADEndpoint = env.ActiveDirectoryEndpoint
-		config.Resource = resource
+		config.Resource = settings.resource
 		return config.Authorizer()
 	}
 
 	// 4. MSI
 	config := NewMSIConfig()
-	config.Resource = resource
-	config.ClientID = clientID
+	config.Resource = settings.resource
+	config.ClientID = settings.clientID
 	return config.Authorizer()
 }
 
