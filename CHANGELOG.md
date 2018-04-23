@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v10.7.0
+
+### New Features
+
+- Added *WithContext() methods to ADAL token refresh operations.
+
 ## v10.6.2
 
 - Fixed a bug on device authentication.
