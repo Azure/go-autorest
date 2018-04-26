@@ -49,6 +49,20 @@ func NewAuthorizerFromEnvironment() (autorest.Authorizer, error) {
 	return settings.GetAuth()
 }
 
+// NewAuthorizerFromEnvironmentWithResource creates an Authorizer configured from environment variables in the order:
+// 1. Client credentials
+// 2. Client certificate
+// 3. Username password
+// 4. MSI
+func NewAuthorizerFromEnvironmentWithResource(resource string) (autorest.Authorizer, error) {
+	settings, err := GetAuthSettings()
+	if err != nil {
+		return nil, err
+	}
+	settings.Resource = resource
+	return settings.GetAuth()
+}
+
 // Settings reporesnt settings for authentication
 type Settings struct {
 	tenantID            string
