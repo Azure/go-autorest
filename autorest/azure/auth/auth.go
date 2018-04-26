@@ -41,42 +41,16 @@ import (
 // 3. Username password
 // 4. MSI
 func NewAuthorizerFromEnvironment() (autorest.Authorizer, error) {
-	settings := getEnvVars()
-
-	env, err := getEnv(settings.envName)
+	settings, err := GetAuthSettings()
 	if err != nil {
 		return nil, err
 	}
 
-	if settings.resource == "" {
-		settings.resource = env.ResourceManagerEndpoint
-	}
-
-	return getAuth(settings, env)
+	return settings.GetAuth()
 }
 
-// NewKeyvaultAuthorizerFromEnvironment creates a keyvault dataplane Authorizer configured from environment variables in the order:
-// 1. Client credentials
-// 2. Client certificate
-// 3. Username password
-// 4. MSI
-func NewKeyvaultAuthorizerFromEnvironment() (autorest.Authorizer, error) {
-	settings := getEnvVars()
-	settings.resource = os.Getenv("AZURE_KEYVAULT_RESOURCE")
-
-	env, err := getEnv(settings.envName)
-	if err != nil {
-		return nil, err
-	}
-
-	if settings.resource == "" {
-		settings.resource = strings.TrimSuffix(env.KeyVaultEndpoint, "/")
-	}
-
-	return getAuth(settings, env)
-}
-
-type envSettings struct {
+// Settings reporesnt settings for authentication
+type Settings struct {
 	tenantID            string
 	clientID            string
 	clientSecret        string
@@ -85,11 +59,14 @@ type envSettings struct {
 	username            string
 	password            string
 	envName             string
-	resource            string
+	Resource            string
+	Environment         azure.Environment
 }
 
-func getEnvVars() envSettings {
-	return envSettings{
+// GetAuthSettings gets authentication settings. This is
+// meant to be used later by Settings.GetAuth()
+func GetAuthSettings() (s Settings, err error) {
+	s = Settings{
 		tenantID:            os.Getenv("AZURE_TENANT_ID"),
 		clientID:            os.Getenv("AZURE_CLIENT_ID"),
 		clientSecret:        os.Getenv("AZURE_CLIENT_SECRET"),
@@ -98,47 +75,47 @@ func getEnvVars() envSettings {
 		username:            os.Getenv("AZURE_USERNAME"),
 		password:            os.Getenv("AZURE_PASSWORD"),
 		envName:             os.Getenv("AZURE_ENVIRONMENT"),
-		resource:            os.Getenv("AZURE_AD_RESOURCE"),
+		Resource:            os.Getenv("AZURE_AD_RESOURCE"),
 	}
-}
 
-func getEnv(envName string) (env azure.Environment, err error) {
-	if envName == "" {
-		env = azure.PublicCloud
+	if s.envName == "" {
+		s.Environment = azure.PublicCloud
 	} else {
-		env, err = azure.EnvironmentFromName(envName)
+		s.Environment, err = azure.EnvironmentFromName(s.envName)
 	}
 	return
 }
 
-func getAuth(settings envSettings, env azure.Environment) (autorest.Authorizer, error) {
+// GetAuth gets sn autorest.Authorizer from the provided
+// settings. This is meant to be used after GetAuthSettings()
+func (settings Settings) GetAuth() (autorest.Authorizer, error) {
 	//1.Client Credentials
 	if settings.clientSecret != "" {
 		config := NewClientCredentialsConfig(settings.clientID, settings.clientSecret, settings.tenantID)
-		config.AADEndpoint = env.ActiveDirectoryEndpoint
-		config.Resource = settings.resource
+		config.AADEndpoint = settings.Environment.ActiveDirectoryEndpoint
+		config.Resource = settings.Resource
 		return config.Authorizer()
 	}
 
 	//2. Client Certificate
 	if settings.certificatePath != "" {
 		config := NewClientCertificateConfig(settings.certificatePath, settings.certificatePassword, settings.clientID, settings.tenantID)
-		config.AADEndpoint = env.ActiveDirectoryEndpoint
-		config.Resource = settings.resource
+		config.AADEndpoint = settings.Environment.ActiveDirectoryEndpoint
+		config.Resource = settings.Resource
 		return config.Authorizer()
 	}
 
 	//3. Username Password
 	if settings.username != "" && settings.password != "" {
 		config := NewUsernamePasswordConfig(settings.username, settings.password, settings.clientID, settings.tenantID)
-		config.AADEndpoint = env.ActiveDirectoryEndpoint
-		config.Resource = settings.resource
+		config.AADEndpoint = settings.Environment.ActiveDirectoryEndpoint
+		config.Resource = settings.Resource
 		return config.Authorizer()
 	}
 
 	// 4. MSI
 	config := NewMSIConfig()
-	config.Resource = settings.resource
+	config.Resource = settings.Resource
 	config.ClientID = settings.clientID
 	return config.Authorizer()
 }
