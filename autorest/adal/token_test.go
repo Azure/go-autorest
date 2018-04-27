@@ -15,6 +15,7 @@ package adal
 //  limitations under the License.
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -27,6 +28,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -182,6 +184,39 @@ func TestServicePrincipalTokenFromMSIRefreshUsesGET(t *testing.T) {
 
 	if body.IsOpen() {
 		t.Fatalf("the response was not closed!")
+	}
+}
+
+func TestServicePrincipalTokenFromMSIRefreshCancel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	endpoint, _ := GetMSIVMEndpoint()
+
+	spt, err := NewServicePrincipalTokenFromMSI(endpoint, "https://resource")
+	if err != nil {
+		t.Fatalf("Failed to get MSI SPT: %v", err)
+	}
+
+	c := mocks.NewSender()
+	c.AppendAndRepeatResponse(mocks.NewResponseWithStatus("Internal server error", http.StatusInternalServerError), 5)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	start := time.Now()
+	end := time.Now()
+
+	go func() {
+		spt.SetSender(c)
+		err = spt.RefreshWithContext(ctx)
+		end = time.Now()
+		wg.Done()
+	}()
+
+	cancel()
+	wg.Wait()
+	time.Sleep(5 * time.Millisecond)
+
+	if end.Sub(start) >= time.Second {
+		t.Fatalf("TestServicePrincipalTokenFromMSIRefreshCancel failed to cancel")
 	}
 }
 

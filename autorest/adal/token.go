@@ -15,6 +15,7 @@ package adal
 //  limitations under the License.
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
@@ -75,6 +76,13 @@ type Refresher interface {
 	Refresh() error
 	RefreshExchange(resource string) error
 	EnsureFresh() error
+}
+
+// RefresherWithContext is an interface for token refresh functionality
+type RefresherWithContext interface {
+	RefreshWithContext(ctx context.Context) error
+	RefreshExchangeWithContext(ctx context.Context, resource string) error
+	EnsureFreshWithContext(ctx context.Context) error
 }
 
 // TokenRefreshCallback is the type representing callbacks that will be called after
@@ -528,12 +536,18 @@ func newTokenRefreshError(message string, resp *http.Response) TokenRefreshError
 // EnsureFresh will refresh the token if it will expire within the refresh window (as set by
 // RefreshWithin) and autoRefresh flag is on.  This method is safe for concurrent use.
 func (spt *ServicePrincipalToken) EnsureFresh() error {
+	return spt.EnsureFreshWithContext(context.Background())
+}
+
+// EnsureFreshWithContext will refresh the token if it will expire within the refresh window (as set by
+// RefreshWithin) and autoRefresh flag is on.  This method is safe for concurrent use.
+func (spt *ServicePrincipalToken) EnsureFreshWithContext(ctx context.Context) error {
 	if spt.autoRefresh && spt.token.WillExpireIn(spt.refreshWithin) {
 		// take the write lock then check to see if the token was already refreshed
 		spt.refreshLock.Lock()
 		defer spt.refreshLock.Unlock()
 		if spt.token.WillExpireIn(spt.refreshWithin) {
-			return spt.refreshInternal(spt.resource)
+			return spt.refreshInternal(ctx, spt.resource)
 		}
 	}
 	return nil
@@ -555,17 +569,29 @@ func (spt *ServicePrincipalToken) InvokeRefreshCallbacks(token Token) error {
 // Refresh obtains a fresh token for the Service Principal.
 // This method is not safe for concurrent use and should be syncrhonized.
 func (spt *ServicePrincipalToken) Refresh() error {
+	return spt.RefreshWithContext(context.Background())
+}
+
+// RefreshWithContext obtains a fresh token for the Service Principal.
+// This method is not safe for concurrent use and should be syncrhonized.
+func (spt *ServicePrincipalToken) RefreshWithContext(ctx context.Context) error {
 	spt.refreshLock.Lock()
 	defer spt.refreshLock.Unlock()
-	return spt.refreshInternal(spt.resource)
+	return spt.refreshInternal(ctx, spt.resource)
 }
 
 // RefreshExchange refreshes the token, but for a different resource.
 // This method is not safe for concurrent use and should be syncrhonized.
 func (spt *ServicePrincipalToken) RefreshExchange(resource string) error {
+	return spt.RefreshExchangeWithContext(context.Background(), resource)
+}
+
+// RefreshExchangeWithContext refreshes the token, but for a different resource.
+// This method is not safe for concurrent use and should be syncrhonized.
+func (spt *ServicePrincipalToken) RefreshExchangeWithContext(ctx context.Context, resource string) error {
 	spt.refreshLock.Lock()
 	defer spt.refreshLock.Unlock()
-	return spt.refreshInternal(resource)
+	return spt.refreshInternal(ctx, resource)
 }
 
 func (spt *ServicePrincipalToken) getGrantType() string {
@@ -587,12 +613,12 @@ func isIMDS(u url.URL) bool {
 	return u.Host == imds.Host && u.Path == imds.Path
 }
 
-func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
+func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource string) error {
 	req, err := http.NewRequest(http.MethodPost, spt.oauthConfig.TokenEndpoint.String(), nil)
 	if err != nil {
 		return fmt.Errorf("adal: Failed to build the refresh request. Error = '%v'", err)
 	}
-
+	req = req.WithContext(ctx)
 	if !isIMDS(spt.oauthConfig.TokenEndpoint) {
 		v := url.Values{}
 		v.Set("client_id", spt.clientID)
@@ -683,24 +709,18 @@ func retry(sender Sender, req *http.Request) (resp *http.Response, err error) {
 
 	for attempt < maxAttempts {
 		resp, err = sender.Do(req)
-		if err != nil {
+		if err != nil || resp.StatusCode == http.StatusOK || !containsInt(retries, resp.StatusCode) {
 			return
 		}
 
-		if resp.StatusCode == http.StatusOK {
-			return
-		}
-		if containsInt(retries, resp.StatusCode) {
-			delayed := false
-			if resp.StatusCode == http.StatusTooManyRequests {
-				delayed = delay(resp, req.Cancel)
-			}
-			if !delayed {
-				time.Sleep(time.Second)
+		if !delay(resp, req.Context().Done()) {
+			select {
+			case <-time.After(time.Second):
 				attempt++
+			case <-req.Context().Done():
+				err = req.Context().Err()
+				return
 			}
-		} else {
-			return
 		}
 	}
 	return
