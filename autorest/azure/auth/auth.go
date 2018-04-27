@@ -46,6 +46,10 @@ func NewAuthorizerFromEnvironment() (autorest.Authorizer, error) {
 		return nil, err
 	}
 
+	if settings.Resource == "" {
+		settings.Resource = settings.Environment.ResourceManagerEndpoint
+	}
+
 	return settings.GetAuth()
 }
 
