@@ -41,7 +41,7 @@ import (
 // 3. Username password
 // 4. MSI
 func NewAuthorizerFromEnvironment() (autorest.Authorizer, error) {
-	settings, err := GetAuthSettings()
+	settings, err := GetAuthenticationSettings()
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func NewAuthorizerFromEnvironment() (autorest.Authorizer, error) {
 		settings.Resource = settings.Environment.ResourceManagerEndpoint
 	}
 
-	return settings.GetAuth()
+	return settings.GetAuthorizer()
 }
 
 // NewAuthorizerFromEnvironmentWithResource creates an Authorizer configured from environment variables in the order:
@@ -59,12 +59,12 @@ func NewAuthorizerFromEnvironment() (autorest.Authorizer, error) {
 // 3. Username password
 // 4. MSI
 func NewAuthorizerFromEnvironmentWithResource(resource string) (autorest.Authorizer, error) {
-	settings, err := GetAuthSettings()
+	settings, err := GetAuthenticationSettings()
 	if err != nil {
 		return nil, err
 	}
 	settings.Resource = resource
-	return settings.GetAuth()
+	return settings.GetAuthorizer()
 }
 
 // Settings reporesnt settings for authentication
@@ -81,9 +81,9 @@ type Settings struct {
 	Environment         azure.Environment
 }
 
-// GetAuthSettings gets authentication settings. This is
+// GetAuthenticationSettings gets authentication settings. This is
 // meant to be used later by Settings.GetAuth()
-func GetAuthSettings() (s Settings, err error) {
+func GetAuthenticationSettings() (s Settings, err error) {
 	s = Settings{
 		tenantID:            os.Getenv("AZURE_TENANT_ID"),
 		clientID:            os.Getenv("AZURE_CLIENT_ID"),
@@ -104,9 +104,9 @@ func GetAuthSettings() (s Settings, err error) {
 	return
 }
 
-// GetAuth gets sn autorest.Authorizer from the provided
+// GetAuthorizer gets sn autorest.Authorizer from the provided
 // settings. This is meant to be used after GetAuthSettings()
-func (settings Settings) GetAuth() (autorest.Authorizer, error) {
+func (settings Settings) GetAuthorizer() (autorest.Authorizer, error) {
 	//1.Client Credentials
 	if settings.clientSecret != "" {
 		config := NewClientCredentialsConfig(settings.clientID, settings.clientSecret, settings.tenantID)
