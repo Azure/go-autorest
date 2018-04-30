@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v10.8.0
+
+- Added NewAuthorizerFromEnvironmentWithResource(), GetAuthenticationSettings(), GetAuthorizer() helper functions.
+
 ## v10.7.0
 
 ### New Features
