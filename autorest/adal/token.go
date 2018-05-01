@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -654,7 +655,7 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 		resp, err = spt.sender.Do(req)
 	}
 	if err != nil {
-		return fmt.Errorf("adal: Failed to execute the refresh request. Error = '%v'", err)
+		return newTokenRefreshError(fmt.Sprintf("adal: Failed to execute the refresh request. Error = '%v'", err), nil)
 	}
 
 	defer resp.Body.Close()
@@ -662,10 +663,14 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 
 	if resp.StatusCode != http.StatusOK {
 		if err != nil {
-			return newTokenRefreshError(fmt.Sprintf("adal: Refresh request failed. Status Code = '%d'. Failed reading response body", resp.StatusCode), resp)
+			return newTokenRefreshError(fmt.Sprintf("adal: Refresh request failed. Status Code = '%d'. Failed reading response body: %v", resp.StatusCode, err), resp)
 		}
 		return newTokenRefreshError(fmt.Sprintf("adal: Refresh request failed. Status Code = '%d'. Response body: %s", resp.StatusCode, string(rb)), resp)
 	}
+
+	// for the following error cases don't return a TokenRefreshError.  the operation succeeded
+	// but some transient failure happened during deserialization.  by returning a generic error
+	// the retry logic will kick in (we don't retry on TokenRefreshError).
 
 	if err != nil {
 		return fmt.Errorf("adal: Failed to read a new service principal token during refresh. Error = '%v'", err)
@@ -709,7 +714,8 @@ func retry(sender Sender, req *http.Request) (resp *http.Response, err error) {
 
 	for attempt < maxAttempts {
 		resp, err = sender.Do(req)
-		if err != nil || resp.StatusCode == http.StatusOK || !containsInt(retries, resp.StatusCode) {
+		// retry on temporary network errors, e.g. transient network failures.
+		if (err != nil && !isTemporaryNetworkError(err)) || resp.StatusCode == http.StatusOK || !containsInt(retries, resp.StatusCode) {
 			return
 		}
 
@@ -724,6 +730,13 @@ func retry(sender Sender, req *http.Request) (resp *http.Response, err error) {
 		}
 	}
 	return
+}
+
+func isTemporaryNetworkError(err error) bool {
+	if netErr, ok := err.(net.Error); ok && netErr.Temporary() {
+		return true
+	}
+	return false
 }
 
 func containsInt(ints []int, n int) bool {

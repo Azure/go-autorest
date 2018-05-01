@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v10.8.1
+
+### Bug Fixes
+
+- Return a TokenRefreshError if the sender fails on the initial request.
+- Don't retry on non-temporary network errors.
+
 ## v10.8.0
 
 - Added NewAuthorizerFromEnvironmentWithResource() helper function.

@@ -518,6 +518,23 @@ func TestServicePrincipalTokenEnsureFreshRefreshes(t *testing.T) {
 	}
 }
 
+func TestServicePrincipalTokenEnsureFreshFails(t *testing.T) {
+	spt := newServicePrincipalToken()
+	expireToken(&spt.token)
+
+	c := mocks.NewSender()
+	c.SetError(fmt.Errorf("some failure"))
+
+	spt.SetSender(c)
+	err := spt.EnsureFresh()
+	if err == nil {
+		t.Fatal("adal: ServicePrincipalToken#EnsureFresh didn't return an error")
+	}
+	if _, ok := err.(TokenRefreshError); !ok {
+		t.Fatal("adal: ServicePrincipalToken#EnsureFresh didn't return a TokenRefreshError")
+	}
+}
+
 func TestServicePrincipalTokenEnsureFreshSkipsIfFresh(t *testing.T) {
 	spt := newServicePrincipalToken()
 	setTokenToExpireIn(&spt.token, 1000*time.Second)
