@@ -41,16 +41,16 @@ import (
 // 3. Username password
 // 4. MSI
 func NewAuthorizerFromEnvironment() (autorest.Authorizer, error) {
-	settings, err := GetAuthenticationSettings()
+	settings, err := getAuthenticationSettings()
 	if err != nil {
 		return nil, err
 	}
 
-	if settings.Resource == "" {
-		settings.Resource = settings.Environment.ResourceManagerEndpoint
+	if settings.resource == "" {
+		settings.resource = settings.environment.ResourceManagerEndpoint
 	}
 
-	return settings.GetAuthorizer()
+	return settings.getAuthorizer()
 }
 
 // NewAuthorizerFromEnvironmentWithResource creates an Authorizer configured from environment variables in the order:
@@ -59,16 +59,15 @@ func NewAuthorizerFromEnvironment() (autorest.Authorizer, error) {
 // 3. Username password
 // 4. MSI
 func NewAuthorizerFromEnvironmentWithResource(resource string) (autorest.Authorizer, error) {
-	settings, err := GetAuthenticationSettings()
+	settings, err := getAuthenticationSettings()
 	if err != nil {
 		return nil, err
 	}
-	settings.Resource = resource
-	return settings.GetAuthorizer()
+	settings.resource = resource
+	return settings.getAuthorizer()
 }
 
-// Settings reporesnt settings for authentication
-type Settings struct {
+type settings struct {
 	tenantID            string
 	clientID            string
 	clientSecret        string
@@ -77,14 +76,12 @@ type Settings struct {
 	username            string
 	password            string
 	envName             string
-	Resource            string
-	Environment         azure.Environment
+	resource            string
+	environment         azure.Environment
 }
 
-// GetAuthenticationSettings gets authentication settings. This is
-// meant to be used later by Settings.GetAuth()
-func GetAuthenticationSettings() (s Settings, err error) {
-	s = Settings{
+func getAuthenticationSettings() (s settings, err error) {
+	s = settings{
 		tenantID:            os.Getenv("AZURE_TENANT_ID"),
 		clientID:            os.Getenv("AZURE_CLIENT_ID"),
 		clientSecret:        os.Getenv("AZURE_CLIENT_SECRET"),
@@ -93,47 +90,45 @@ func GetAuthenticationSettings() (s Settings, err error) {
 		username:            os.Getenv("AZURE_USERNAME"),
 		password:            os.Getenv("AZURE_PASSWORD"),
 		envName:             os.Getenv("AZURE_ENVIRONMENT"),
-		Resource:            os.Getenv("AZURE_AD_RESOURCE"),
+		resource:            os.Getenv("AZURE_AD_RESOURCE"),
 	}
 
 	if s.envName == "" {
-		s.Environment = azure.PublicCloud
+		s.environment = azure.PublicCloud
 	} else {
-		s.Environment, err = azure.EnvironmentFromName(s.envName)
+		s.environment, err = azure.EnvironmentFromName(s.envName)
 	}
 	return
 }
 
-// GetAuthorizer gets sn autorest.Authorizer from the provided
-// settings. This is meant to be used after GetAuthSettings()
-func (settings Settings) GetAuthorizer() (autorest.Authorizer, error) {
+func (settings settings) getAuthorizer() (autorest.Authorizer, error) {
 	//1.Client Credentials
 	if settings.clientSecret != "" {
 		config := NewClientCredentialsConfig(settings.clientID, settings.clientSecret, settings.tenantID)
-		config.AADEndpoint = settings.Environment.ActiveDirectoryEndpoint
-		config.Resource = settings.Resource
+		config.AADEndpoint = settings.environment.ActiveDirectoryEndpoint
+		config.Resource = settings.resource
 		return config.Authorizer()
 	}
 
 	//2. Client Certificate
 	if settings.certificatePath != "" {
 		config := NewClientCertificateConfig(settings.certificatePath, settings.certificatePassword, settings.clientID, settings.tenantID)
-		config.AADEndpoint = settings.Environment.ActiveDirectoryEndpoint
-		config.Resource = settings.Resource
+		config.AADEndpoint = settings.environment.ActiveDirectoryEndpoint
+		config.Resource = settings.resource
 		return config.Authorizer()
 	}
 
 	//3. Username Password
 	if settings.username != "" && settings.password != "" {
 		config := NewUsernamePasswordConfig(settings.username, settings.password, settings.clientID, settings.tenantID)
-		config.AADEndpoint = settings.Environment.ActiveDirectoryEndpoint
-		config.Resource = settings.Resource
+		config.AADEndpoint = settings.environment.ActiveDirectoryEndpoint
+		config.Resource = settings.resource
 		return config.Authorizer()
 	}
 
 	// 4. MSI
 	config := NewMSIConfig()
-	config.Resource = settings.Resource
+	config.Resource = settings.resource
 	config.ClientID = settings.clientID
 	return config.Authorizer()
 }
