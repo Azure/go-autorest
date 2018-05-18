@@ -715,7 +715,7 @@ func retry(sender Sender, req *http.Request) (resp *http.Response, err error) {
 	for attempt < maxAttempts {
 		resp, err = sender.Do(req)
 		// retry on temporary network errors, e.g. transient network failures.
-		if (err != nil && !isTemporaryNetworkError(err)) || resp.StatusCode == http.StatusOK || !containsInt(retries, resp.StatusCode) {
+		if (err != nil && !isTemporaryNetworkError(err)) || (err != nil && resp == nil) || resp.StatusCode == http.StatusOK || !containsInt(retries, resp.StatusCode) {
 			return
 		}
 
