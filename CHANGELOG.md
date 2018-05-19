@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v10.8.2
+
+### Bug Fixes
+
+- Add nil-gaurd to token retry logic.
+
 ## v10.8.1
 
 ### Bug Fixes
