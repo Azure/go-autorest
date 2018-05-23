@@ -4,8 +4,10 @@
 
 ### Deprecated Methods
 
-- azure.NewFuture() -> azure.NewFutureFromResponse()
-- Future.WaitForCompletion() -> Future.WaitForCompletionRef()
+| Old Method | New Method |
+|-------------:|:-----------:|
+|azure.NewFuture() | azure.NewFutureFromResponse()|
+|Future.WaitForCompletion() | Future.WaitForCompletionRef()|
 
 ### New Features
 
