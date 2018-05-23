@@ -819,6 +819,39 @@ func TestFuture_WaitForCompletion(t *testing.T) {
 		autorest.ByClosing())
 }
 
+func TestFuture_WaitForCompletionRef(t *testing.T) {
+	r2 := newOperationResourceResponse("busy")
+	r3 := newOperationResourceResponse(operationSucceeded)
+
+	sender := mocks.NewSender()
+	sender.AppendAndRepeatResponse(r2, 2)
+	sender.AppendResponse(r3)
+	client := autorest.Client{
+		PollingDelay:    1 * time.Second,
+		PollingDuration: autorest.DefaultPollingDuration,
+		RetryAttempts:   autorest.DefaultRetryAttempts,
+		RetryDuration:   1 * time.Second,
+		Sender:          sender,
+	}
+
+	future, err := NewFutureFromResponse(newSimpleAsyncResp())
+	if err != nil {
+		t.Fatalf("failed to create future: %v", err)
+	}
+
+	err = future.WaitForCompletionRef(context.Background(), client)
+	if err != nil {
+		t.Fatalf("WaitForCompletion returned non-nil error")
+	}
+
+	if sender.Attempts() < sender.NumResponses() {
+		t.Fatalf("stopped polling before receiving a terminated OperationResource")
+	}
+
+	autorest.Respond(future.Response(),
+		autorest.ByClosing())
+}
+
 func TestFuture_WaitForCompletionTimedOut(t *testing.T) {
 	r2 := newProvisioningStatusResponse("busy")
 
@@ -838,7 +871,7 @@ func TestFuture_WaitForCompletionTimedOut(t *testing.T) {
 		Sender:          sender,
 	}
 
-	err = future.WaitForCompletion(context.Background(), client)
+	err = future.WaitForCompletionRef(context.Background(), client)
 	if err == nil {
 		t.Fatalf("WaitForCompletion returned nil error, should have timed out")
 	}
@@ -864,7 +897,7 @@ func TestFuture_WaitForCompletionRetriesExceeded(t *testing.T) {
 		Sender:          sender,
 	}
 
-	err = future.WaitForCompletion(context.Background(), client)
+	err = future.WaitForCompletionRef(context.Background(), client)
 	if err == nil {
 		t.Fatalf("WaitForCompletion returned nil error, should have errored out")
 	}
@@ -895,7 +928,7 @@ func TestFuture_WaitForCompletionCancelled(t *testing.T) {
 		cancel()
 	}()
 
-	err = future.WaitForCompletion(ctx, client)
+	err = future.WaitForCompletionRef(ctx, client)
 	if err == nil {
 		t.Fatalf("WaitForCompletion returned nil error, should have been cancelled")
 	}
