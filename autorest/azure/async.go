@@ -69,7 +69,7 @@ func (f Future) Response() *http.Response {
 	if f.pt == nil {
 		return nil
 	}
-	return f.pt.lastResponse()
+	return f.pt.latestResponse()
 }
 
 // Status returns the last status message of the operation.
@@ -133,7 +133,7 @@ func (f Future) GetPollingDelay() (time.Duration, bool) {
 	if f.pt == nil {
 		return 0, false
 	}
-	resp := f.pt.lastResponse()
+	resp := f.pt.latestResponse()
 	if resp == nil {
 		return 0, false
 	}
@@ -170,7 +170,7 @@ func (f *Future) WaitForCompletionRef(ctx context.Context, client autorest.Clien
 	done, err := f.Done(client)
 	for attempts := 0; !done; done, err = f.Done(client) {
 		if attempts >= client.RetryAttempts {
-			return autorest.NewErrorWithError(err, "Future", "WaitForCompletion", f.pt.lastResponse(), "the number of retries has been exceeded")
+			return autorest.NewErrorWithError(err, "Future", "WaitForCompletion", f.pt.latestResponse(), "the number of retries has been exceeded")
 		}
 		// we want delayAttempt to be zero in the non-error case so
 		// that DelayForBackoff doesn't perform exponential back-off
@@ -194,7 +194,7 @@ func (f *Future) WaitForCompletionRef(ctx context.Context, client autorest.Clien
 		// wait until the delay elapses or the context is cancelled
 		delayElapsed := autorest.DelayForBackoff(delay, delayAttempt, ctx.Done())
 		if !delayElapsed {
-			return autorest.NewErrorWithError(ctx.Err(), "Future", "WaitForCompletion", f.pt.lastResponse(), "context has been cancelled")
+			return autorest.NewErrorWithError(ctx.Err(), "Future", "WaitForCompletion", f.pt.latestResponse(), "context has been cancelled")
 		}
 	}
 	return err
@@ -301,8 +301,8 @@ type pollingTracker interface {
 	// returns true if the LRO is in a successful terminal state
 	hasSucceeded() bool
 
-	// returns the last HTTP response after a call to pollForStatus(), can be nil
-	lastResponse() *http.Response
+	// returns the cached HTTP response after a call to pollForStatus(), can be nil
+	latestResponse() *http.Response
 }
 
 type pollingTrackerBase struct {
@@ -514,7 +514,7 @@ func (pt pollingTrackerBase) hasSucceeded() bool {
 	return strings.EqualFold(pt.State, operationSucceeded)
 }
 
-func (pt pollingTrackerBase) lastResponse() *http.Response {
+func (pt pollingTrackerBase) latestResponse() *http.Response {
 	return pt.resp
 }
 

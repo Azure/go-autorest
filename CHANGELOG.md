@@ -2,6 +2,11 @@
 
 ## v10.9.0
 
+### Deprecated Methods
+
+- azure.NewFuture() -> azure.NewFutureFromResponse()
+- Future.WaitForCompletion() -> Future.WaitForCompletionRef()
+
 ### New Features
 
 - Added azure.NewFutureFromResponse() for creating a Future from the initial response from an async operation.
