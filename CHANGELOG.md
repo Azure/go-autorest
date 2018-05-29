@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## v10.9.0
+
+### Deprecated Methods
+
+| Old Method | New Method |
+|-------------:|:-----------:|
+|azure.NewFuture() | azure.NewFutureFromResponse()|
+|Future.WaitForCompletion() | Future.WaitForCompletionRef()|
+
+### New Features
+
+- Added azure.NewFutureFromResponse() for creating a Future from the initial response from an async operation.
+- Added Future.GetResult() for making the final GET call to retrieve the result from an async operation.
+
+### Bug Fixes
+
+- Some futures failed to return their results, this should now be fixed.
+
 ## v10.8.2
 
 ### Bug Fixes
