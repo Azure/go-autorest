@@ -716,8 +716,7 @@ func retry(sender Sender, req *http.Request) (resp *http.Response, err error) {
 	// see https://docs.microsoft.com/en-us/azure/active-directory/managed-service-identity/how-to-use-vm-token#retry-guidance
 
 	const maxAttempts int = 5
-	const deltaDelay int = 2          // seconds
-	const maxDelay time.Duration = 60 // seconds
+	const maxDelay time.Duration = 60 * time.Second
 
 	attempt := 0
 	delay := time.Duration(0)
@@ -732,13 +731,14 @@ func retry(sender Sender, req *http.Request) (resp *http.Response, err error) {
 		// perform exponential backoff with a cap.
 		// must increment attempt before calculating delay.
 		attempt++
-		delay += time.Duration(math.Pow(float64(deltaDelay), float64(attempt)))
+		// the base value of 2 is the "delta backoff" as specified in the guidance doc
+		delay += (time.Duration(math.Pow(2, float64(attempt))) * time.Second)
 		if delay > maxDelay {
 			delay = maxDelay
 		}
 
 		select {
-		case <-time.After(delay * time.Second):
+		case <-time.After(delay):
 			// intentionally left blank
 		case <-req.Context().Done():
 			err = req.Context().Err()
