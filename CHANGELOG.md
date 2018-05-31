@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v10.9.1
+
+### Bug Fixes
+
+- The retry logic for MSI token requests now uses exponential backoff per the guidelines.
+- IsTemporaryNetworkError() will return true for errors that don't implement the net.Error interface.
+
 ## v10.9.0
 
 ### Deprecated Methods

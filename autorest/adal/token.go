@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net"
 	"net/http"
 	"net/url"
@@ -690,6 +691,7 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 }
 
 func retry(sender Sender, req *http.Request) (resp *http.Response, err error) {
+	// copied from client.go due to circular dependency
 	retries := []int{
 		http.StatusRequestTimeout,      // 408
 		http.StatusTooManyRequests,     // 429
@@ -698,8 +700,10 @@ func retry(sender Sender, req *http.Request) (resp *http.Response, err error) {
 		http.StatusServiceUnavailable,  // 503
 		http.StatusGatewayTimeout,      // 504
 	}
-	// Extra retry status codes requered
-	retries = append(retries, http.StatusNotFound,
+	// extra retry status codes specific to IMDS
+	retries = append(retries,
+		http.StatusNotFound,
+		http.StatusGone,
 		// all remaining 5xx
 		http.StatusNotImplemented,
 		http.StatusHTTPVersionNotSupported,
@@ -709,56 +713,55 @@ func retry(sender Sender, req *http.Request) (resp *http.Response, err error) {
 		http.StatusNotExtended,
 		http.StatusNetworkAuthenticationRequired)
 
+	// see https://docs.microsoft.com/en-us/azure/active-directory/managed-service-identity/how-to-use-vm-token#retry-guidance
+
+	const maxAttempts int = 5
+	const maxDelay time.Duration = 60 * time.Second
+
 	attempt := 0
-	maxAttempts := 5
+	delay := time.Duration(0)
 
 	for attempt < maxAttempts {
 		resp, err = sender.Do(req)
 		// retry on temporary network errors, e.g. transient network failures.
-		if (err != nil && !isTemporaryNetworkError(err)) || (err != nil && resp == nil) || resp.StatusCode == http.StatusOK || !containsInt(retries, resp.StatusCode) {
+		if (err != nil && !isTemporaryNetworkError(err)) || resp.StatusCode == http.StatusOK || !containsInt(retries, resp.StatusCode) {
 			return
 		}
 
-		if !delay(resp, req.Context().Done()) {
-			select {
-			case <-time.After(time.Second):
-				attempt++
-			case <-req.Context().Done():
-				err = req.Context().Err()
-				return
-			}
+		// perform exponential backoff with a cap.
+		// must increment attempt before calculating delay.
+		attempt++
+		// the base value of 2 is the "delta backoff" as specified in the guidance doc
+		delay += (time.Duration(math.Pow(2, float64(attempt))) * time.Second)
+		if delay > maxDelay {
+			delay = maxDelay
+		}
+
+		select {
+		case <-time.After(delay):
+			// intentionally left blank
+		case <-req.Context().Done():
+			err = req.Context().Err()
+			return
 		}
 	}
 	return
 }
 
+// returns true if the specified error is a temporary network error or false if it's not.
+// if the error doesn't implement the net.Error interface the return value is true.
 func isTemporaryNetworkError(err error) bool {
-	if netErr, ok := err.(net.Error); ok && netErr.Temporary() {
+	if netErr, ok := err.(net.Error); !ok || (ok && netErr.Temporary()) {
 		return true
 	}
 	return false
 }
 
+// returns true if slice ints contains the value n
 func containsInt(ints []int, n int) bool {
 	for _, i := range ints {
 		if i == n {
 			return true
-		}
-	}
-	return false
-}
-
-func delay(resp *http.Response, cancel <-chan struct{}) bool {
-	if resp == nil {
-		return false
-	}
-	retryAfter, _ := strconv.Atoi(resp.Header.Get("Retry-After"))
-	if resp.StatusCode == http.StatusTooManyRequests && retryAfter > 0 {
-		select {
-		case <-time.After(time.Duration(retryAfter) * time.Second):
-			return true
-		case <-cancel:
-			return false
 		}
 	}
 	return false
