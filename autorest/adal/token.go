@@ -629,6 +629,14 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 		if spt.token.RefreshToken != "" {
 			v.Set("grant_type", OAuthGrantTypeRefreshToken)
 			v.Set("refresh_token", spt.token.RefreshToken)
+			// web apps must specify client_secret when refreshing tokens
+			// see https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-protocols-oauth-code#refreshing-the-access-tokens
+			if spt.getGrantType() == OAuthGrantTypeAuthorizationCode {
+				err := spt.secret.SetAuthenticationValues(spt, &v)
+				if err != nil {
+					return err
+				}
+			}
 		} else {
 			v.Set("grant_type", spt.getGrantType())
 			err := spt.secret.SetAuthenticationValues(spt, &v)

@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v10.9.2
+
+### Bug Fixes
+
+- Refreshing a refresh token obtained from a web app authorization code now works.
+
 ## v10.9.1
 
 ### Bug Fixes

@@ -354,6 +354,19 @@ func TestServicePrincipalTokenAuthorizationCodeRefreshSetsBody(t *testing.T) {
 			t.Fatalf("adal: ServicePrincipalTokenAuthorizationCode#Refresh did not correctly set the HTTP Request Body.")
 		}
 	})
+	testServicePrincipalTokenRefreshSetsBody(t, spt, func(t *testing.T, b []byte) {
+		body := string(b)
+
+		values, _ := url.ParseQuery(body)
+		if values["client_id"][0] != "id" ||
+			values["grant_type"][0] != OAuthGrantTypeRefreshToken ||
+			values["code"][0] != "code" ||
+			values["client_secret"][0] != "clientSecret" ||
+			values["redirect_uri"][0] != "http://redirectUri/getToken" ||
+			values["resource"][0] != "resource" {
+			t.Fatalf("adal: ServicePrincipalTokenAuthorizationCode#Refresh did not correctly set the HTTP Request Body.")
+		}
+	})
 }
 
 func TestServicePrincipalTokenSecretRefreshSetsBody(t *testing.T) {
@@ -688,7 +701,8 @@ func newTokenJSON(expiresOn string, resource string) string {
 		"expires_on"   : "%s",
 		"not_before"   : "%s",
 		"resource"     : "%s",
-		"token_type"   : "Bearer"
+		"token_type"   : "Bearer",
+		"refresh_token": "ABC123"
 		}`,
 		expiresOn, expiresOn, resource)
 }
