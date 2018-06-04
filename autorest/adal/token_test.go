@@ -676,6 +676,29 @@ func TestNewServicePrincipalTokenFromMSIWithUserAssignedID(t *testing.T) {
 	}
 }
 
+func TestNewServicePrincipalTokenFromManualTokenSecret(t *testing.T) {
+	token := newToken()
+	secret := &ServicePrincipalAuthorizationCodeSecret{
+		ClientSecret:      "clientSecret",
+		AuthorizationCode: "code123",
+		RedirectURI:       "redirect",
+	}
+
+	spt, err := NewServicePrincipalTokenFromManualTokenSecret(TestOAuthConfig, "id", "resource", *token, secret, nil)
+	if err != nil {
+		t.Fatalf("Failed creating new SPT: %s", err)
+	}
+
+	if !reflect.DeepEqual(*token, spt.inner.Token) {
+		t.Fatalf("Tokens do not match: %s, %s", *token, spt.inner.Token)
+	}
+
+	if !reflect.DeepEqual(secret, spt.inner.Secret) {
+		t.Fatalf("Secrets do not match: %s, %s", secret, spt.inner.Secret)
+	}
+
+}
+
 func TestGetVMEndpoint(t *testing.T) {
 	endpoint, err := GetMSIVMEndpoint()
 	if err != nil {
@@ -777,6 +800,36 @@ func TestMarshalServicePrincipalAuthorizationCodeSecret(t *testing.T) {
 	}
 	if !reflect.DeepEqual(spt, spt2) {
 		t.Fatal("tokens don't match")
+	}
+}
+
+func TestMarshalInnerToken(t *testing.T) {
+	spt := newServicePrincipalTokenManual()
+	tokenJSON, err := spt.MarshalTokenJSON()
+	if err != nil {
+		t.Fatalf("failed to marshal token: %+v", err)
+	}
+
+	testToken := newToken()
+	testToken.RefreshToken = "refreshtoken"
+
+	testTokenJSON, err := json.Marshal(testToken)
+	if err != nil {
+		t.Fatalf("failed to marshal test token: %+v", err)
+	}
+
+	if !reflect.DeepEqual(tokenJSON, testTokenJSON) {
+		t.Fatalf("tokens don't match: %s, %s", tokenJSON, testTokenJSON)
+	}
+
+	var t1 *Token
+	err = json.Unmarshal(tokenJSON, &t1)
+	if err != nil {
+		t.Fatalf("failed to unmarshal token: %+v", err)
+	}
+
+	if !reflect.DeepEqual(t1, testToken) {
+		t.Fatalf("tokens don't match: %s, %s", t1, testToken)
 	}
 }
 
