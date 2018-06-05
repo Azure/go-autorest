@@ -137,6 +137,12 @@ func (t *Token) OAuthToken() string {
 	return t.AccessToken
 }
 
+// ServicePrincipalSecret is an interface that allows various secret mechanism to fill the form
+// that is submitted when acquiring an oAuth token.
+type ServicePrincipalSecret interface {
+	SetAuthenticationValues(spt *ServicePrincipalToken, values *url.Values) error
+}
+
 // ServicePrincipalNoSecret represents a secret type that contains no secret
 // meaning it is not valid for fetching a fresh token. This is used by Manual
 type ServicePrincipalNoSecret struct {
@@ -146,12 +152,6 @@ type ServicePrincipalNoSecret struct {
 // It only returns an error for the ServicePrincipalNoSecret type
 func (noSecret *ServicePrincipalNoSecret) SetAuthenticationValues(spt *ServicePrincipalToken, v *url.Values) error {
 	return fmt.Errorf("Manually created ServicePrincipalToken does not contain secret material to retrieve a new access token")
-}
-
-// ServicePrincipalSecret is an interface that allows various secret mechanism to fill the form
-// that is submitted when acquiring an oAuth token.
-type ServicePrincipalSecret interface {
-	SetAuthenticationValues(spt *ServicePrincipalToken, values *url.Values) error
 }
 
 // ServicePrincipalTokenSecret implements ServicePrincipalSecret for client_secret type authorization.
@@ -170,43 +170,6 @@ func (tokenSecret *ServicePrincipalTokenSecret) SetAuthenticationValues(spt *Ser
 type ServicePrincipalCertificateSecret struct {
 	Certificate *x509.Certificate
 	PrivateKey  *rsa.PrivateKey
-}
-
-// ServicePrincipalMSISecret implements ServicePrincipalSecret for machines running the MSI Extension.
-type ServicePrincipalMSISecret struct {
-}
-
-// ServicePrincipalUsernamePasswordSecret implements ServicePrincipalSecret for username and password auth.
-type ServicePrincipalUsernamePasswordSecret struct {
-	Username string
-	Password string
-}
-
-// ServicePrincipalAuthorizationCodeSecret implements ServicePrincipalSecret for authorization code auth.
-type ServicePrincipalAuthorizationCodeSecret struct {
-	ClientSecret      string
-	AuthorizationCode string
-	RedirectURI       string
-}
-
-// SetAuthenticationValues is a method of the interface ServicePrincipalSecret.
-func (secret *ServicePrincipalAuthorizationCodeSecret) SetAuthenticationValues(spt *ServicePrincipalToken, v *url.Values) error {
-	v.Set("code", secret.AuthorizationCode)
-	v.Set("client_secret", secret.ClientSecret)
-	v.Set("redirect_uri", secret.RedirectURI)
-	return nil
-}
-
-// SetAuthenticationValues is a method of the interface ServicePrincipalSecret.
-func (secret *ServicePrincipalUsernamePasswordSecret) SetAuthenticationValues(spt *ServicePrincipalToken, v *url.Values) error {
-	v.Set("username", secret.Username)
-	v.Set("password", secret.Password)
-	return nil
-}
-
-// SetAuthenticationValues is a method of the interface ServicePrincipalSecret.
-func (msiSecret *ServicePrincipalMSISecret) SetAuthenticationValues(spt *ServicePrincipalToken, v *url.Values) error {
-	return nil
 }
 
 // SignJwt returns the JWT signed with the certificate's private key.
@@ -251,6 +214,43 @@ func (secret *ServicePrincipalCertificateSecret) SetAuthenticationValues(spt *Se
 
 	v.Set("client_assertion", jwt)
 	v.Set("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
+	return nil
+}
+
+// ServicePrincipalMSISecret implements ServicePrincipalSecret for machines running the MSI Extension.
+type ServicePrincipalMSISecret struct {
+}
+
+// SetAuthenticationValues is a method of the interface ServicePrincipalSecret.
+func (msiSecret *ServicePrincipalMSISecret) SetAuthenticationValues(spt *ServicePrincipalToken, v *url.Values) error {
+	return nil
+}
+
+// ServicePrincipalUsernamePasswordSecret implements ServicePrincipalSecret for username and password auth.
+type ServicePrincipalUsernamePasswordSecret struct {
+	Username string
+	Password string
+}
+
+// SetAuthenticationValues is a method of the interface ServicePrincipalSecret.
+func (secret *ServicePrincipalUsernamePasswordSecret) SetAuthenticationValues(spt *ServicePrincipalToken, v *url.Values) error {
+	v.Set("username", secret.Username)
+	v.Set("password", secret.Password)
+	return nil
+}
+
+// ServicePrincipalAuthorizationCodeSecret implements ServicePrincipalSecret for authorization code auth.
+type ServicePrincipalAuthorizationCodeSecret struct {
+	ClientSecret      string
+	AuthorizationCode string
+	RedirectURI       string
+}
+
+// SetAuthenticationValues is a method of the interface ServicePrincipalSecret.
+func (secret *ServicePrincipalAuthorizationCodeSecret) SetAuthenticationValues(spt *ServicePrincipalToken, v *url.Values) error {
+	v.Set("code", secret.AuthorizationCode)
+	v.Set("client_secret", secret.ClientSecret)
+	v.Set("redirect_uri", secret.RedirectURI)
 	return nil
 }
 
