@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v10.10.0
+
+### New Features
+
+- Most ServicePrincipalTokens can now be marshalled/unmarshall to/from JSON (ServicePrincipalCertificateSecret and ServicePrincipalMSISecret are not supported).
+- Added method ServicePrincipalToken.SetRefreshCallbacks().
+
 ## v10.9.2
 
 ### Bug Fixes
