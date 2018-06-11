@@ -325,6 +325,11 @@ type ServicePrincipalToken struct {
 	refreshCallbacks []TokenRefreshCallback
 }
 
+// MarshalTokenJSON returns the marshalled inner token.
+func (spt ServicePrincipalToken) MarshalTokenJSON() ([]byte, error) {
+	return json.Marshal(spt.inner.Token)
+}
+
 // SetRefreshCallbacks replaces any existing refresh callbacks with the specified callbacks.
 func (spt *ServicePrincipalToken) SetRefreshCallbacks(callbacks []TokenRefreshCallback) {
 	spt.refreshCallbacks = callbacks
@@ -436,6 +441,38 @@ func NewServicePrincipalTokenFromManualToken(oauthConfig OAuthConfig, clientID s
 		clientID,
 		resource,
 		&ServicePrincipalNoSecret{},
+		callbacks...)
+	if err != nil {
+		return nil, err
+	}
+
+	spt.inner.Token = token
+
+	return spt, nil
+}
+
+// NewServicePrincipalTokenFromManualTokenSecret creates a ServicePrincipalToken using the supplied token and secret
+func NewServicePrincipalTokenFromManualTokenSecret(oauthConfig OAuthConfig, clientID string, resource string, token Token, secret ServicePrincipalSecret, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+	if err := validateOAuthConfig(oauthConfig); err != nil {
+		return nil, err
+	}
+	if err := validateStringParam(clientID, "clientID"); err != nil {
+		return nil, err
+	}
+	if err := validateStringParam(resource, "resource"); err != nil {
+		return nil, err
+	}
+	if secret == nil {
+		return nil, fmt.Errorf("parameter 'secret' cannot be nil")
+	}
+	if token.IsZero() {
+		return nil, fmt.Errorf("parameter 'token' cannot be zero-initialized")
+	}
+	spt, err := NewServicePrincipalTokenWithSecret(
+		oauthConfig,
+		clientID,
+		resource,
+		secret,
 		callbacks...)
 	if err != nil {
 		return nil, err

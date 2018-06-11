@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v10.11.0
+
+### New Features
+
+- Added NewServicePrincipalTokenFromManualTokenSecret for creating a new SPT using a manual token and secret
+- Added method ServicePrincipalToken.MarshalTokenJSON() to marshall the inner Token
+
 ## v10.10.0
 
 ### New Features
