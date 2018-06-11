@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v10.11.1
+
+### Bug Fixes
+
+- Adding User information to authorization config as parsed from CLI cache.
+
 ## v10.11.0
 
 ### New Features
