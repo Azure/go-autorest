@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v10.11.2
+
+### Bug Fixes
+
+- Validation for integers handles int and int64 types.
+
 ## v10.11.1
 
 ### Bug Fixes
