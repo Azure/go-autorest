@@ -247,8 +247,8 @@ func (f Future) GetResult(sender autorest.Sender) (*http.Response, error) {
 	if f.pt.finalGetURL() == "" {
 		// we can end up in this situation if the async operation returns a 200
 		// with no polling URLs.  in that case return the response which should
-		// contain the JSON payload.
-		if lr := f.pt.latestResponse(); lr != nil {
+		// contain the JSON payload (only do this for successful terminal cases).
+		if lr := f.pt.latestResponse(); lr != nil && f.pt.hasSucceeded() {
 			return lr, nil
 		}
 		return nil, autorest.NewError("Future", "GetResult", "missing URL for retrieving result")

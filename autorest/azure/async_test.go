@@ -959,6 +959,22 @@ func TestFuture_GetResultFromNonAsyncOperation(t *testing.T) {
 	}
 }
 
+func TestFuture_GetResultNonTerminal(t *testing.T) {
+	resp := newAsyncResp(newAsyncReq(http.MethodDelete, nil), http.StatusAccepted, mocks.NewBody(fmt.Sprintf(operationResourceFormat, operationInProgress)))
+	mocks.SetResponseHeader(resp, headerAsyncOperation, mocks.TestAzureAsyncURL)
+	future, err := NewFutureFromResponse(resp)
+	if err != nil {
+		t.Fatalf("failed to create future: %v", err)
+	}
+	res, err := future.GetResult(nil)
+	if err == nil {
+		t.Fatal("expected non-nil error")
+	}
+	if res != nil {
+		t.Fatal("expected nil result")
+	}
+}
+
 const (
 	operationResourceIllegal = `
 	This is not JSON and should fail...badly.
