@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v10.11.4
+
+### Bug Fixes
+
+- If an LRO returns http.StatusOK on the initial response with no async headers return the response body from Future.GetResult().
+- If there is no "final GET URL" return an error from Future.GetResult().
+
 ## v10.11.3
 
 ### Bug Fixes

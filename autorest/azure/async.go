@@ -245,7 +245,13 @@ func (f Future) PollingURL() string {
 // It makes the final GET call to retrieve the resultant payload.
 func (f Future) GetResult(sender autorest.Sender) (*http.Response, error) {
 	if f.pt.finalGetURL() == "" {
-		return nil, nil
+		// we can end up in this situation if the async operation returns a 200
+		// with no polling URLs.  in that case return the response which should
+		// contain the JSON payload.
+		if lr := f.pt.latestResponse(); lr != nil {
+			return lr, nil
+		}
+		return nil, autorest.NewError("Future", "GetResult", "missing URL for retrieving result")
 	}
 	req, err := http.NewRequest(http.MethodGet, f.pt.finalGetURL(), nil)
 	if err != nil {
