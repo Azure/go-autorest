@@ -323,6 +323,8 @@ type ServicePrincipalToken struct {
 	refreshLock      *sync.RWMutex
 	sender           Sender
 	refreshCallbacks []TokenRefreshCallback
+	// MaxMSIRefreshAttempts is the maximum number of attempts to refresh an MSI token.  The default is five.
+	MaxMSIRefreshAttempts int
 }
 
 // MarshalTokenJSON returns the marshalled inner token.
@@ -655,9 +657,10 @@ func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, userAssignedI
 			AutoRefresh:   true,
 			RefreshWithin: defaultRefresh,
 		},
-		refreshLock:      &sync.RWMutex{},
-		sender:           &http.Client{},
-		refreshCallbacks: callbacks,
+		refreshLock:           &sync.RWMutex{},
+		sender:                &http.Client{},
+		refreshCallbacks:      callbacks,
+		MaxMSIRefreshAttempts: 5,
 	}
 
 	if userAssignedID != nil {
@@ -811,7 +814,7 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 
 	var resp *http.Response
 	if isIMDS(spt.inner.OauthConfig.TokenEndpoint) {
-		resp, err = retryForIMDS(spt.sender, req)
+		resp, err = retryForIMDS(spt.sender, req, spt.MaxMSIRefreshAttempts)
 	} else {
 		resp, err = spt.sender.Do(req)
 	}
@@ -851,7 +854,7 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 }
 
 // retry logic specific to retrieving a token from the IMDS endpoint
-func retryForIMDS(sender Sender, req *http.Request) (resp *http.Response, err error) {
+func retryForIMDS(sender Sender, req *http.Request, maxAttempts int) (resp *http.Response, err error) {
 	// copied from client.go due to circular dependency
 	retries := []int{
 		http.StatusRequestTimeout,      // 408
@@ -876,7 +879,6 @@ func retryForIMDS(sender Sender, req *http.Request) (resp *http.Response, err er
 
 	// see https://docs.microsoft.com/en-us/azure/active-directory/managed-service-identity/how-to-use-vm-token#retry-guidance
 
-	const maxAttempts int = 5
 	const maxDelay time.Duration = 60 * time.Second
 
 	attempt := 0
