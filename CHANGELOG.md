@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v10.12.0
+
+### New Features
+
+- Added field ServicePrincipalToken.MaxMSIRefreshAttempts to configure the maximun number of attempts to refresh an MSI token.
+
 ## v10.11.4
 
 ### Bug Fixes
