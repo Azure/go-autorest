@@ -4,7 +4,7 @@
 
 ### New Features
 
-- Added field ServicePrincipalToken.MaxMSIRefreshAttempts to configure the maximun number of attempts to refresh an MSI token (default is five).
+- Added field ServicePrincipalToken.MaxMSIRefreshAttempts to configure the maximun number of attempts to refresh an MSI token.
 
 ## v10.11.4
 

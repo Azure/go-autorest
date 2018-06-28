@@ -61,6 +61,9 @@ const (
 
 	// msiEndpoint is the well known endpoint for getting MSI authentications tokens
 	msiEndpoint = "http://169.254.169.254/metadata/identity/oauth2/token"
+
+	// the default number of attempts to refresh an MSI authentication token
+	defaultMaxMSIRefreshAttempts = 5
 )
 
 // OAuthTokenProvider is an interface which should be implemented by an access token retriever
@@ -323,7 +326,7 @@ type ServicePrincipalToken struct {
 	refreshLock      *sync.RWMutex
 	sender           Sender
 	refreshCallbacks []TokenRefreshCallback
-	// MaxMSIRefreshAttempts is the maximum number of attempts to refresh an MSI token.  The default is five.
+	// MaxMSIRefreshAttempts is the maximum number of attempts to refresh an MSI token.
 	MaxMSIRefreshAttempts int
 }
 
@@ -660,7 +663,7 @@ func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, userAssignedI
 		refreshLock:           &sync.RWMutex{},
 		sender:                &http.Client{},
 		refreshCallbacks:      callbacks,
-		MaxMSIRefreshAttempts: 5,
+		MaxMSIRefreshAttempts: defaultMaxMSIRefreshAttempts,
 	}
 
 	if userAssignedID != nil {
