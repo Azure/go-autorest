@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v10.13.0
+
+- Added support for additionalInfo in ServiceError type.
+
 ## v10.12.0
 
 ### New Features
