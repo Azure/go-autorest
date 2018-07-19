@@ -1,6 +1,4 @@
-package autorest
-
-import "github.com/Azure/go-autorest/version"
+package version
 
 // Copyright 2017 Microsoft Corporation
 //
@@ -16,7 +14,21 @@ import "github.com/Azure/go-autorest/version"
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-// Version returns the semantic version (see http://semver.org).
-func Version() string {
-	return version.Number
-}
+import (
+	"fmt"
+	"runtime"
+)
+
+// Number contains the semantic version of this SDK.
+const Number = "v10.14.0"
+
+var (
+	// UserAgent builds a string containing the Go version, system archityecture and OS,
+	// and the go-autorest version.
+	UserAgent = fmt.Sprintf("Go/%s (%s-%s) go-autorest/%s",
+		runtime.Version(),
+		runtime.GOARCH,
+		runtime.GOOS,
+		Number,
+	)
+)
