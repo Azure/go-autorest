@@ -22,7 +22,11 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path"
 	"reflect"
+	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -400,4 +404,144 @@ func randomString(n int) string {
 		s[i] = chars[r.Intn(len(chars))]
 	}
 	return string(s)
+}
+
+const (
+	reqURL                = "https://fakething/dot/com"
+	reqHeaderKey          = "x-header"
+	reqHeaderVal          = "value"
+	reqBody               = "the request body"
+	respHeaderKey         = "response-header"
+	respHeaderVal         = "something"
+	respBody              = "the response body"
+	logFileTimeStampRegex = `\(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{7}(-\d{2}:\d{2}|Z)\)`
+)
+
+func TestLoggingBasic(t *testing.T) {
+	err := os.Setenv("AZURE_GO_AUTOREST_LOG_LEVEL", "basic")
+	if err != nil {
+		t.Fatalf("failed to set log level: %v", err)
+	}
+	lf := path.Join(os.TempDir(), "testloggingbasic.log")
+	err = os.Setenv("AZURE_GO_AUTOREST_LOG_FILE", lf)
+	if err != nil {
+		t.Fatalf("failed to set log file: %v", err)
+	}
+	logger.init()
+	if logger.logLevel != logLevelBasic {
+		t.Fatalf("wrong log level: %d", logger.logLevel)
+	}
+	// create mock request and response for logging
+	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
+	if err != nil {
+		t.Fatalf("failed to create mock request: %v", err)
+	}
+	req.Header.Add(reqHeaderKey, reqHeaderVal)
+	_, err = Prepare(req, logger.withLogging())
+	if err != nil {
+		t.Fatalf("failed to prepare request: %v", err)
+	}
+	resp := &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Proto:      "HTTP/1.0",
+		ProtoMajor: 1,
+		ProtoMinor: 0,
+		Request:    req,
+		Header:     http.Header{},
+	}
+	resp.Header.Add(respHeaderKey, respHeaderVal)
+	err = Respond(resp, logger.byLogging())
+	if err != nil {
+		t.Fatalf("failed to respond: %v", err)
+	}
+	logger.logFile.Close()
+	// parse log file to ensure contents match
+	b, err := ioutil.ReadFile(lf)
+	if err != nil {
+		t.Fatalf("failed to read log file: %v", err)
+	}
+	parts := strings.Split(string(b), "\n")
+	reqMatch := fmt.Sprintf("%s REQUEST: %s %s", logFileTimeStampRegex, req.Method, req.URL.String())
+	respMatch := fmt.Sprintf("%s RESPONSE: %d %s", logFileTimeStampRegex, resp.StatusCode, resp.Request.URL.String())
+	matchRegex(t, reqMatch, parts[0])
+	matchRegex(t, fmt.Sprintf("(?i)%s: %s", reqHeaderKey, reqHeaderVal), parts[1])
+	matchRegex(t, respMatch, parts[2])
+	matchRegex(t, fmt.Sprintf("(?i)%s: %s", respHeaderKey, respHeaderVal), parts[3])
+	// disable logging
+	err = os.Setenv("AZURE_GO_AUTOREST_LOG_LEVEL", "")
+	if err != nil {
+		t.Fatalf("failed to clear log level: %v", err)
+	}
+}
+
+func TestLoggingFull(t *testing.T) {
+	err := os.Setenv("AZURE_GO_AUTOREST_LOG_LEVEL", "full")
+	if err != nil {
+		t.Fatalf("failed to set log level: %v", err)
+	}
+	lf := path.Join(os.TempDir(), "testloggingfull.log")
+	err = os.Setenv("AZURE_GO_AUTOREST_LOG_FILE", lf)
+	if err != nil {
+		t.Fatalf("failed to set log file: %v", err)
+	}
+	logger.init()
+	if logger.logLevel != logLevelFull {
+		t.Fatalf("wrong log level: %d", logger.logLevel)
+	}
+	// create mock request and response for logging
+	req, err := http.NewRequest(http.MethodGet, reqURL, strings.NewReader(reqBody))
+	if err != nil {
+		t.Fatalf("failed to create mock request: %v", err)
+	}
+	req.Header.Add(reqHeaderKey, reqHeaderVal)
+	_, err = Prepare(req, logger.withLogging())
+	if err != nil {
+		t.Fatalf("failed to prepare request: %v", err)
+	}
+	resp := &http.Response{
+		Status:     "200 OK",
+		StatusCode: 200,
+		Proto:      "HTTP/1.0",
+		ProtoMajor: 1,
+		ProtoMinor: 0,
+		Request:    req,
+		Header:     http.Header{},
+		Body:       ioutil.NopCloser(strings.NewReader(respBody)),
+	}
+	resp.Header.Add(respHeaderKey, respHeaderVal)
+	err = Respond(resp, logger.byLogging())
+	if err != nil {
+		t.Fatalf("failed to respond: %v", err)
+	}
+	logger.logFile.Close()
+	// parse log file to ensure contents match
+	b, err := ioutil.ReadFile(lf)
+	if err != nil {
+		t.Fatalf("failed to read log file: %v", err)
+	}
+	parts := strings.Split(string(b), "\n")
+	reqMatch := fmt.Sprintf("%s REQUEST: %s %s", logFileTimeStampRegex, req.Method, req.URL.String())
+	respMatch := fmt.Sprintf("%s RESPONSE: %d %s", logFileTimeStampRegex, resp.StatusCode, resp.Request.URL.String())
+	matchRegex(t, reqMatch, parts[0])
+	matchRegex(t, fmt.Sprintf("(?i)%s: %s", reqHeaderKey, reqHeaderVal), parts[1])
+	matchRegex(t, reqBody, parts[2])
+	matchRegex(t, respMatch, parts[3])
+	matchRegex(t, fmt.Sprintf("(?i)%s: %s", respHeaderKey, respHeaderVal), parts[4])
+	matchRegex(t, respBody, parts[5])
+	// disable logging
+	err = os.Setenv("AZURE_GO_AUTOREST_LOG_LEVEL", "")
+	if err != nil {
+		t.Fatalf("failed to clear log level: %v", err)
+	}
+}
+
+func matchRegex(t *testing.T, pattern, s string) {
+	match, err := regexp.MatchString(pattern, s)
+	if err != nil {
+		t.Fatalf("regexp failure: %v", err)
+	}
+	if !match {
+		t.Fatalf("'%s' doesn't match pattern '%s'", s, pattern)
+	}
 }

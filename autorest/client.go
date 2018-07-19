@@ -22,8 +22,11 @@ import (
 	"log"
 	"net/http"
 	"net/http/cookiejar"
+	"os"
+	"strings"
 	"time"
 
+	"github.com/Azure/go-autorest/autorest/logger"
 	"github.com/Azure/go-autorest/version"
 )
 
@@ -63,6 +66,36 @@ const (
 ===================================================== HTTP Response End
 `
 )
+
+var logWriter logger.Writer
+
+func init() {
+	llStr := strings.ToLower(os.Getenv("AZURE_GO_AUTOREST_LOG_LEVEL"))
+	if llStr == "" {
+		return
+	}
+	ll, err := logger.ParseLevel(llStr)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to parse log level: %s\n", err.Error())
+		return
+	}
+	if ll > logger.LogNone {
+		// default to stderr
+		dest := os.Stderr
+		lfStr := os.Getenv("AZURE_GO_AUTOREST_LOG_FILE")
+		if strings.EqualFold(lfStr, "stdout") {
+			dest = os.Stdout
+		} else if lfStr != "" {
+			lf, err := os.Create(lfStr)
+			if err == nil {
+				dest = lf
+			} else {
+				fmt.Fprintf(os.Stderr, "Failed to create log file, using stderr: %s\n", err.Error())
+			}
+		}
+		logWriter = logger.NewFileLogger(ll, dest)
+	}
+}
 
 // Response serves as the base for all responses from generated clients. It provides access to the
 // last http.Response.
@@ -208,8 +241,9 @@ func (c Client) Do(r *http.Request) (*http.Response, error) {
 		}
 		return resp, NewErrorWithError(err, "autorest/Client", "Do", nil, "Preparing request failed")
 	}
-
+	logWriter.WriteRequest(r)
 	resp, err := SendWithSender(c.sender(), r)
+	logWriter.WriteResponse(resp)
 	Respond(resp, c.ByInspecting())
 	return resp, err
 }
