@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## v10.14.0
+
+### New Features
+
+- Added package version that contains version constants and user-agent data.
+
+### Bug Fixes
+
+- Add the user-agent to token requests.
+
+## v10.13.0
+
+- Added support for additionalInfo in ServiceError type.
+
 ## v10.12.0
 
 ### New Features
