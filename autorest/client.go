@@ -171,7 +171,7 @@ func NewClientWithUserAgent(ua string) Client {
 		PollingDuration: DefaultPollingDuration,
 		RetryAttempts:   DefaultRetryAttempts,
 		RetryDuration:   DefaultRetryDuration,
-		UserAgent:       version.UserAgent,
+		UserAgent:       version.UserAgent(),
 	}
 	c.Sender = c.sender()
 	c.AddToUserAgent(ua)

@@ -23,12 +23,15 @@ import (
 const Number = "v10.14.0"
 
 var (
-	// UserAgent builds a string containing the Go version, system archityecture and OS,
-	// and the go-autorest version.
-	UserAgent = fmt.Sprintf("Go/%s (%s-%s) go-autorest/%s",
+	userAgent = fmt.Sprintf("Go/%s (%s-%s) go-autorest/%s",
 		runtime.Version(),
 		runtime.GOARCH,
 		runtime.GOOS,
 		Number,
 	)
 )
+
+// UserAgent returns a string containing the Go version, system archityecture and OS, and the go-autorest version.
+func UserAgent() string {
+	return userAgent
+}
