@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## v10.15.0
+
+### New Features
+
+- Add initial support for request/response logging via setting environment variables.
+  Setting ```AZURE_GO_SDK_LOG_LEVEL``` to ```LogInfo``` will log request/response
+  without their bodies.  To include the bodies set the log level to ```LogDebug```.
+  By default the logger writes to strerr, however it can also write to stdout or a file
+  if specified in ```AZURE_GO_SDK_LOG_FILE```.  Note that if the specified file
+  already exists it will be truncated.
+  IMPORTANT: by default the logger will redact the Authorization and Ocp-Apim-Subscription-Key
+  headers.  Any other secrets will *not* be redacted.
+
 ## v10.14.0
 
 ### New Features
