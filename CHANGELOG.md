@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v10.15.1
+
+### Bug Fixes
+
+- If an LRO API returns a ```Failed``` provisioning state in the initial response return an error at that point so the caller doesn't have to poll.
+- For failed LROs without an OData v4 error include the response body in the error's ```AdditionalInfo``` field to aid in diagnosing the failure.
+
 ## v10.15.0
 
 ### New Features
