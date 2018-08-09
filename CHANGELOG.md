@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v10.15.2
+
+### Bug Fixes
+
+- Use fmt.Fprint when printing request/response so that any escape sequences aren't treated as format specifiers.
+
 ## v10.15.1
 
 ### Bug Fixes
