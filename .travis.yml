@@ -27,7 +27,7 @@ install:
 
 script:
   - grep -L -r --include *.go --exclude-dir vendor -P "Copyright (\d{4}|\(c\)) Microsoft" ./ | tee /dev/stderr | test -z "$(< /dev/stdin)"
-  - test -z "$(gofmt -s -l -w ./autorest/. | tee /dev/stderr)"
+  - if [[ $TRAVIS_GO_VERSION == 1.11* ]]; then test -z "$(gofmt -s -l -w ./autorest/. | tee /dev/stderr)"; fi
   - test -z "$(golint ./autorest/... |  tee /dev/stderr)"
   - go vet ./autorest/...
   - test -z "$(gas ./autorest/... | tee /dev/stderr | grep Error)"
