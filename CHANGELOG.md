@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v10.15.3
+
+### Bug Fixes
+
+- Initialize the polling URL and method for an LRO tracker on each iteration, favoring the Azure-AsyncOperation header.
+
 ## v10.15.2
 
 ### Bug Fixes
