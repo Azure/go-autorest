@@ -119,6 +119,9 @@ func (f *Future) Done(sender autorest.Sender) (bool, error) {
 	if err := f.pt.updatePollingState(f.pt.provisioningStateApplicable()); err != nil {
 		return false, err
 	}
+	if err := f.pt.initHeaders(); err != nil {
+		return false, err
+	}
 	if err := f.pt.updateHeaders(); err != nil {
 		return false, err
 	}
@@ -274,6 +277,10 @@ type pollingTracker interface {
 
 	// methods common to all trackers
 
+	// initializes a tracker's polling URL and method, called for each iteration.
+	// these values can be overridden by each polling tracker as required.
+	initHeaders() error
+
 	// initializes the tracker's internal state, call this when the tracker is created
 	initializeState() error
 
@@ -370,7 +377,7 @@ func (pt *pollingTrackerBase) initializeState() error {
 		pt.updateErrorFromResponse()
 		return pt.pollingError()
 	}
-	return nil
+	return pt.initHeaders()
 }
 
 func (pt pollingTrackerBase) getProvisioningState() *string {
@@ -549,6 +556,26 @@ func (pt pollingTrackerBase) baseCheckForErrors() error {
 			return autorest.NewError("pollingTrackerBase", "baseCheckForErrors", "missing status property in Azure-AsyncOperation response body")
 		}
 	}
+	return nil
+}
+
+// default initialization of polling URL/method.  each verb tracker will update this as required.
+func (pt *pollingTrackerBase) initHeaders() error {
+	if ao, err := getURLFromAsyncOpHeader(pt.resp); err != nil {
+		return err
+	} else if ao != "" {
+		pt.URI = ao
+		pt.Pm = PollingAsyncOperation
+		return nil
+	}
+	if lh, err := getURLFromLocationHeader(pt.resp); err != nil {
+		return err
+	} else if lh != "" {
+		pt.URI = lh
+		pt.Pm = PollingLocation
+		return nil
+	}
+	// it's ok if we didn't find a polling header, this will be handled elsewhere
 	return nil
 }
 
