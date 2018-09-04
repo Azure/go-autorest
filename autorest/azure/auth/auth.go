@@ -135,6 +135,39 @@ func (settings settings) getAuthorizer() (autorest.Authorizer, error) {
 
 // NewAuthorizerFromFile creates an Authorizer configured from a configuration file.
 func NewAuthorizerFromFile(baseURI string) (autorest.Authorizer, error) {
+	file, err := getAuthFile()
+	if err != nil {
+		return nil, err
+	}
+
+	resource, err := getResourceForToken(*file, baseURI)
+	if err != nil {
+		return nil, err
+	}
+	return NewAuthorizerFromFileWithResource(resource)
+}
+
+// NewAuthorizerFromFileWithResource creates an Authorizer configured from a configuration file.
+func NewAuthorizerFromFileWithResource(resource string) (autorest.Authorizer, error) {
+	file, err := getAuthFile()
+	if err != nil {
+		return nil, err
+	}
+
+	config, err := adal.NewOAuthConfig(file.ActiveDirectoryEndpoint, file.TenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	spToken, err := adal.NewServicePrincipalToken(*config, file.ClientID, file.ClientSecret, resource)
+	if err != nil {
+		return nil, err
+	}
+
+	return autorest.NewBearerAuthorizer(spToken), nil
+}
+
+func getAuthFile() (*file, error) {
 	fileLocation := os.Getenv("AZURE_AUTH_LOCATION")
 	if fileLocation == "" {
 		return nil, errors.New("auth file not found. Environment variable AZURE_AUTH_LOCATION is not set")
@@ -151,28 +184,13 @@ func NewAuthorizerFromFile(baseURI string) (autorest.Authorizer, error) {
 		return nil, err
 	}
 
-	file := file{}
-	err = json.Unmarshal(decoded, &file)
+	authFile := file{}
+	err = json.Unmarshal(decoded, &authFile)
 	if err != nil {
 		return nil, err
 	}
 
-	resource, err := getResourceForToken(file, baseURI)
-	if err != nil {
-		return nil, err
-	}
-
-	config, err := adal.NewOAuthConfig(file.ActiveDirectoryEndpoint, file.TenantID)
-	if err != nil {
-		return nil, err
-	}
-
-	spToken, err := adal.NewServicePrincipalToken(*config, file.ClientID, file.ClientSecret, resource)
-	if err != nil {
-		return nil, err
-	}
-
-	return autorest.NewBearerAuthorizer(spToken), nil
+	return &authFile, nil
 }
 
 // File represents the authentication file
