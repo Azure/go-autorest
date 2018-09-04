@@ -153,7 +153,8 @@ type Client struct {
 	PollingDelay time.Duration
 
 	// PollingDuration sets the maximum polling time after which an error is returned.
-	PollingDuration time.Duration
+	// if nil, the timeout from the Context is used
+	PollingDuration *time.Duration
 
 	// RetryAttempts sets the default number of retry attempts for client.
 	RetryAttempts int
@@ -174,9 +175,10 @@ type Client struct {
 // NewClientWithUserAgent returns an instance of a Client with the UserAgent set to the passed
 // string.
 func NewClientWithUserAgent(ua string) Client {
+	pollingDuration := DefaultPollingDuration
 	c := Client{
 		PollingDelay:    DefaultPollingDelay,
-		PollingDuration: DefaultPollingDuration,
+		PollingDuration: &pollingDuration,
 		RetryAttempts:   DefaultRetryAttempts,
 		RetryDuration:   DefaultRetryDuration,
 		UserAgent:       defaultUserAgent,
