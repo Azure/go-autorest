@@ -167,9 +167,9 @@ func (f Future) WaitForCompletion(ctx context.Context, client autorest.Client) e
 func (f *Future) WaitForCompletionRef(inputCtx context.Context, client autorest.Client) error {
 
 	var ctx context.Context
-	if d := client.PollingDuration; d != nil {
+	if d := client.PollingDuration; d != 0 {
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(inputCtx, *d)
+		ctx, cancel = context.WithTimeout(inputCtx, d)
 		defer cancel()
 	} else {
 		ctx = inputCtx
