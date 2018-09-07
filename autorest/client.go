@@ -175,10 +175,9 @@ type Client struct {
 // NewClientWithUserAgent returns an instance of a Client with the UserAgent set to the passed
 // string.
 func NewClientWithUserAgent(ua string) Client {
-	pollingDuration := DefaultPollingDuration
 	c := Client{
 		PollingDelay:    DefaultPollingDelay,
-		PollingDuration: &pollingDuration,
+		PollingDuration: DefaultPollingDuration,
 		RetryAttempts:   DefaultRetryAttempts,
 		RetryDuration:   DefaultRetryDuration,
 		UserAgent:       defaultUserAgent,

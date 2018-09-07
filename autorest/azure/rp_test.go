@@ -59,11 +59,10 @@ func TestDoRetryWithRegistration(t *testing.T) {
 
 	req := mocks.NewRequestForURL("https://lol/subscriptions/rofl")
 	req.Body = mocks.NewBody("lolol")
-	pollingDuration := time.Second * 10
 	r, err := autorest.SendWithSender(client, req,
 		DoRetryWithRegistration(autorest.Client{
 			PollingDelay:    time.Second,
-			PollingDuration: &pollingDuration,
+			PollingDuration: time.Second * 10,
 			RetryAttempts:   5,
 			RetryDuration:   time.Second,
 			Sender:          client,
@@ -104,11 +103,10 @@ func TestDoRetrySkipRegistration(t *testing.T) {
 
 	req := mocks.NewRequestForURL("https://lol/subscriptions/rofl")
 	req.Body = mocks.NewBody("lolol")
-	pollingDuration := time.Second * 10
 	r, err := autorest.SendWithSender(client, req,
 		DoRetryWithRegistration(autorest.Client{
 			PollingDelay:    time.Second,
-			PollingDuration: &pollingDuration,
+			PollingDuration: time.Second * 10,
 			RetryAttempts:   5,
 			RetryDuration:   time.Second,
 			Sender:          client,
@@ -149,7 +147,7 @@ func TestDoRetryWithRegistration_CanBeCancelled(t *testing.T) {
 		_, err = autorest.SendWithSender(client, req,
 			DoRetryWithRegistration(autorest.Client{
 				PollingDelay:    time.Second,
-				PollingDuration: &delay,
+				PollingDuration: delay,
 				RetryAttempts:   5,
 				RetryDuration:   time.Second,
 				Sender:          client,
