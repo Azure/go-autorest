@@ -527,8 +527,8 @@ func TestAsyncPollingReturnsWrappedError(t *testing.T) {
 	sender := mocks.NewSender()
 	sender.AppendResponse(newOperationResourceErrorResponse("Failed"))
 	err = pt.pollForStatus(sender)
-	if err != nil {
-		t.Fatalf("failed to poll for status: %v", err)
+	if err == nil {
+		t.Fatal("unexpected nil polling error")
 	}
 	err = pt.pollingError()
 	if err == nil {
@@ -552,8 +552,8 @@ func TestLocationPollingReturnsWrappedError(t *testing.T) {
 	sender := mocks.NewSender()
 	sender.AppendResponse(newProvisioningStatusErrorResponse("Failed"))
 	err = pt.pollForStatus(sender)
-	if err != nil {
-		t.Fatalf("failed to poll for status: %v", err)
+	if err == nil {
+		t.Fatal("unexpected nil polling error")
 	}
 	err = pt.pollingError()
 	if err == nil {
@@ -577,8 +577,8 @@ func TestLocationPollingReturnsUnwrappedError(t *testing.T) {
 	sender := mocks.NewSender()
 	sender.AppendResponse(newProvisioningStatusUnwrappedErrorResponse("Failed"))
 	err = pt.pollForStatus(sender)
-	if err != nil {
-		t.Fatalf("failed to poll for status: %v", err)
+	if err == nil {
+		t.Fatal("unexpected nil polling error")
 	}
 	err = pt.pollingError()
 	if err == nil {
