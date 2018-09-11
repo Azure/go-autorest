@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v10.15.4
+
+### Bug Fixes
+
+- If a polling operation returns a failure status code return the associated error.
+
 ## v10.15.3
 
 ### Bug Fixes
