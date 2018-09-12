@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v10.15.5
+
+- Pin utfbom and go-homedir dependencies to v1.0.0 and remove the explicit dependency on x/crypto master.
+
 ## v10.15.4
 
 ### Bug Fixes
