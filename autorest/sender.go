@@ -236,11 +236,6 @@ func DoRetryForStatusCodes(attempts int, backoff time.Duration, codes ...int) Se
 				if !delayed && !DelayForBackoff(backoff, attempt, r.Context().Done()) {
 					return nil, r.Context().Err()
 				}
-				// don't count a 429 against the number of attempts
-				// so that we continue to retry until it succeeds
-				if resp == nil || resp.StatusCode != http.StatusTooManyRequests {
-					attempt++
-				}
 			}
 			return resp, err
 		})
