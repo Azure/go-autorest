@@ -217,7 +217,7 @@ func DoRetryForStatusCodes(attempts int, backoff time.Duration, codes ...int) Se
 			rr := NewRetriableRequest(r)
 			// Increment to add the first call (attempts denotes number of retries)
 			attempts++
-			for attempt := 0; attempt < attempts; {
+			for attempt := 0; attempt < attempts; attempt++ {
 				err = rr.Prepare()
 				if err != nil {
 					return resp, err
