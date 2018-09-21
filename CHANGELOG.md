@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v10.15.5
+
+### Bug Fixes
+- REVERT: Don't count http.StatusTooManyRequests (429) against the retry cap, 
+  since this needs to be decided by upstream caller based on response status code.
+
 ## v10.15.4
 
 ### Bug Fixes
