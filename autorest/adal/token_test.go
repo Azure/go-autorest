@@ -495,8 +495,8 @@ func TestServicePrincipalTokenRefreshUnmarshals(t *testing.T) {
 		t.Fatalf("adal: ServicePrincipalToken#Refresh returned an unexpected error (%v)", err)
 	} else if spt.inner.Token.AccessToken != "accessToken" ||
 		spt.inner.Token.ExpiresIn != "3600" ||
-		spt.inner.Token.ExpiresOn != expiresOn ||
-		spt.inner.Token.NotBefore != expiresOn ||
+		spt.inner.Token.ExpiresOn != json.Number(expiresOn) ||
+		spt.inner.Token.NotBefore != json.Number(expiresOn) ||
 		spt.inner.Token.Resource != "resource" ||
 		spt.inner.Token.Type != "Bearer" {
 		t.Fatalf("adal: ServicePrincipalToken#Refresh failed correctly unmarshal the JSON -- expected %v, received %v",
@@ -684,13 +684,13 @@ func TestNewServicePrincipalTokenFromManualTokenSecret(t *testing.T) {
 		RedirectURI:       "redirect",
 	}
 
-	spt, err := NewServicePrincipalTokenFromManualTokenSecret(TestOAuthConfig, "id", "resource", *token, secret, nil)
+	spt, err := NewServicePrincipalTokenFromManualTokenSecret(TestOAuthConfig, "id", "resource", token, secret, nil)
 	if err != nil {
 		t.Fatalf("Failed creating new SPT: %s", err)
 	}
 
-	if !reflect.DeepEqual(*token, spt.inner.Token) {
-		t.Fatalf("Tokens do not match: %s, %s", *token, spt.inner.Token)
+	if !reflect.DeepEqual(token, spt.inner.Token) {
+		t.Fatalf("Tokens do not match: %s, %s", token, spt.inner.Token)
 	}
 
 	if !reflect.DeepEqual(secret, spt.inner.Secret) {
@@ -822,7 +822,7 @@ func TestMarshalInnerToken(t *testing.T) {
 		t.Fatalf("tokens don't match: %s, %s", tokenJSON, testTokenJSON)
 	}
 
-	var t1 *Token
+	var t1 Token
 	err = json.Unmarshal(tokenJSON, &t1)
 	if err != nil {
 		t.Fatalf("failed to unmarshal token: %+v", err)
@@ -830,14 +830,6 @@ func TestMarshalInnerToken(t *testing.T) {
 
 	if !reflect.DeepEqual(t1, testToken) {
 		t.Fatalf("tokens don't match: %s, %s", t1, testToken)
-	}
-}
-
-func newToken() *Token {
-	return &Token{
-		AccessToken: "ASECRETVALUE",
-		Resource:    "https://azure.microsoft.com/",
-		Type:        "Bearer",
 	}
 }
 
@@ -855,11 +847,13 @@ func newTokenJSON(expiresOn string, resource string) string {
 }
 
 func newTokenExpiresIn(expireIn time.Duration) *Token {
-	return setTokenToExpireIn(newToken(), expireIn)
+	t := newToken()
+	return setTokenToExpireIn(&t, expireIn)
 }
 
 func newTokenExpiresAt(expireAt time.Time) *Token {
-	return setTokenToExpireAt(newToken(), expireAt)
+	t := newToken()
+	return setTokenToExpireAt(&t, expireAt)
 }
 
 func expireToken(t *Token) *Token {
@@ -868,7 +862,7 @@ func expireToken(t *Token) *Token {
 
 func setTokenToExpireAt(t *Token, expireAt time.Time) *Token {
 	t.ExpiresIn = "3600"
-	t.ExpiresOn = strconv.Itoa(int(expireAt.Sub(date.UnixEpoch()).Seconds()))
+	t.ExpiresOn = json.Number(strconv.FormatInt(int64(expireAt.Sub(date.UnixEpoch())/time.Second), 10))
 	t.NotBefore = t.ExpiresOn
 	return t
 }
@@ -885,7 +879,7 @@ func newServicePrincipalToken(callbacks ...TokenRefreshCallback) *ServicePrincip
 func newServicePrincipalTokenManual() *ServicePrincipalToken {
 	token := newToken()
 	token.RefreshToken = "refreshtoken"
-	spt, _ := NewServicePrincipalTokenFromManualToken(TestOAuthConfig, "id", "resource", *token)
+	spt, _ := NewServicePrincipalTokenFromManualToken(TestOAuthConfig, "id", "resource", token)
 	return spt
 }
 

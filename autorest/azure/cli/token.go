@@ -54,7 +54,7 @@ func (t Token) ToADALToken() (converted adal.Token, err error) {
 		AccessToken:  t.AccessToken,
 		Type:         t.TokenType,
 		ExpiresIn:    "3600",
-		ExpiresOn:    strconv.Itoa(int(difference.Seconds())),
+		ExpiresOn:    json.Number(strconv.Itoa(int(difference.Seconds()))),
 		RefreshToken: t.RefreshToken,
 		Resource:     t.Resource,
 	}
