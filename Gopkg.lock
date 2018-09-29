@@ -18,20 +18,20 @@
   version = "v3.2.0"
 
 [[projects]]
-  branch = "master"
   digest = "1:7f175a633086a933d1940a7e7dc2154a0070a7c25fb4a2f671f3eef1a34d1fd7"
   name = "github.com/dimchansky/utfbom"
   packages = ["."]
   pruneopts = ""
   revision = "5448fe645cb1964ba70ac8f9f2ffe975e61a536c"
+  version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
   digest = "1:096a8a9182648da3d00ff243b88407838902b6703fc12657f76890e08d1899bf"
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
   pruneopts = ""
   revision = "ae18d6b8b3205b561c79e8e5f69bff09736185f4"
+  version = "v1.0.0"
 
 [[projects]]
   digest = "1:256484dbbcd271f9ecebc6795b2df8cad4c458dd0f5fd82a8c2fa0c29f233411"
@@ -54,14 +54,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:793a79198b755828dec284c6f1325e24e09186f1b7ba818b65c7c35104ed86eb"
+  digest = "1:d10ba2393047dc9ba61df4d36c849a03017175edfa3ee4da23c3a12e10326443"
   name = "golang.org/x/crypto"
   packages = [
     "pkcs12",
     "pkcs12/internal/rc2",
   ]
   pruneopts = ""
-  revision = "614d502a4dac94afa3a6ce146bd1736da82514c6"
+  revision = "5295e8364332db77d75fce11f1d19c053919a9c9"
 
 [solve-meta]
   analyzer-name = "dep"

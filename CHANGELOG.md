@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## v11.0.0
+
+### Breaking Changes
+
+- To handle differences between ADFS and AAD the following fields have had their types changed from `string` to `json.Number`
+  - ExpiresIn
+  - ExpiresOn
+  - NotBefore
+
+### New Features
+
+- Added `auth.NewAuthorizerFromFileWithResource` to create an authorizer from the config file with the specified resource.
+- Setting a client's `PollingDuration` to zero will use the provided context to control a LRO's polling duration.
+
 ## v10.15.5
 
 ### Bug Fixes
