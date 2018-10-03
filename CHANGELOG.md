@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v11.0.1
+
+### New Features
+
+- Added `x5c` header to client assertion for certificate Issuer+Subject Name authentication.
+
 ## v11.0.0
 
 ### Breaking Changes
