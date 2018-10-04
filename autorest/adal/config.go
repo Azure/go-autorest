@@ -79,3 +79,50 @@ func NewOAuthConfig(activeDirectoryEndpoint, tenantID string) (*OAuthConfig, err
 		DeviceCodeEndpoint: *deviceCodeURL,
 	}, nil
 }
+
+// NewOAuthConfigWithAPIVersion returns an OAuthConfig with tenant specific urls.
+// If apiVersion is not nil the "api-version" query parameter will be appended to the endpoint URLs with the specified value.
+func NewOAuthConfigWithAPIVersion(activeDirectoryEndpoint, tenantID string, apiVersion *string) (*OAuthConfig, error) {
+	if err := validateStringParam(activeDirectoryEndpoint, "activeDirectoryEndpoint"); err != nil {
+		return nil, err
+	}
+	// it's legal for tenantID to be empty so don't validate it
+	if apiVersion != nil {
+		if err := validateStringParam(*apiVersion, "apiVersion"); err != nil {
+			return nil, err
+		}
+		*apiVersion = fmt.Sprintf("?api-version=%s", *apiVersion)
+	} else {
+		// set it to empty string to simplify building the URLs below
+		empty := ""
+		apiVersion = &empty
+	}
+	const activeDirectoryEndpointTemplate = "%s/oauth2/%s%s"
+	u, err := url.Parse(activeDirectoryEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	authorityURL, err := u.Parse(tenantID)
+	if err != nil {
+		return nil, err
+	}
+	authorizeURL, err := u.Parse(fmt.Sprintf(activeDirectoryEndpointTemplate, tenantID, "authorize", *apiVersion))
+	if err != nil {
+		return nil, err
+	}
+	tokenURL, err := u.Parse(fmt.Sprintf(activeDirectoryEndpointTemplate, tenantID, "token", *apiVersion))
+	if err != nil {
+		return nil, err
+	}
+	deviceCodeURL, err := u.Parse(fmt.Sprintf(activeDirectoryEndpointTemplate, tenantID, "devicecode", *apiVersion))
+	if err != nil {
+		return nil, err
+	}
+
+	return &OAuthConfig{
+		AuthorityEndpoint:  *authorityURL,
+		AuthorizeEndpoint:  *authorizeURL,
+		TokenEndpoint:      *tokenURL,
+		DeviceCodeEndpoint: *deviceCodeURL,
+	}, nil
+}
