@@ -35,6 +35,7 @@ import (
 
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/mocks"
+	jwt "github.com/dgrijalva/jwt-go"
 )
 
 const (
@@ -320,6 +321,17 @@ func TestServicePrincipalTokenCertficateRefreshSetsBody(t *testing.T) {
 			values["grant_type"][0] != "client_credentials" ||
 			values["resource"][0] != "resource" {
 			t.Fatalf("adal: ServicePrincipalTokenCertificate#Refresh did not correctly set the HTTP Request Body.")
+		}
+
+		tok, _ := jwt.Parse(values["client_assertion"][0], nil)
+		if tok == nil {
+			t.Fatalf("adal: ServicePrincipalTokenCertificate#Expected client_assertion to be a JWT")
+		}
+		if _, ok := tok.Header["x5t"]; !ok {
+			t.Fatalf("adal: ServicePrincipalTokenCertificate#Expected client_assertion to have an x5t header")
+		}
+		if _, ok := tok.Header["x5c"]; !ok {
+			t.Fatalf("adal: ServicePrincipalTokenCertificate#Expected client_assertion to have an x5c header")
 		}
 	})
 }
