@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v11.1.0
+
+### New Features
+
+- Added `auth.NewAuthorizerFromCLI` to create an authorizer configured from the Azure 2.0 CLI.
+- Added `adal.NewOAuthConfigWithAPIVersion` to create an OAuthConfig with the specified API version.
+
 ## v11.0.1
 
 ### New Features
