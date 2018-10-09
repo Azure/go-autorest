@@ -200,7 +200,7 @@ func NewAuthorizerFromCLIWithResource(resource string) (autorest.Authorizer, err
 func getAuthFile() (*file, error) {
 	fileLocation := os.Getenv("AZURE_AUTH_LOCATION")
 	if fileLocation == "" {
-		return nil, errors.New("auth file not found. Environment variable AZURE_AUTH_LOCATION is not set")
+		return nil, errors.New("environment variable AZURE_AUTH_LOCATION is not set")
 	}
 
 	contents, err := ioutil.ReadFile(fileLocation)
