@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v11.1.1
+
+### Bug Fixes
+
+- When creating a future always include the polling tracker even if there's a failure; this allows the underlying response to be obtained by the caller.
+
 ## v11.1.0
 
 ### New Features
