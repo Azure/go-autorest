@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"github.com/Azure/go-autorest/autorest/adal"
-	"github.com/Azure/go-autorest/autorest/tracing"
+	"github.com/Azure/go-autorest/tracing"
 )
 
 const (

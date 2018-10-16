@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Azure/go-autorest/autorest/tracing"
+	"github.com/Azure/go-autorest/tracing"
 )
 
 // Sender is the interface that wraps the Do method to send HTTP requests.

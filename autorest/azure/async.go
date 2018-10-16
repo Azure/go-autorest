@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Azure/go-autorest/autorest/tracing"
+	"github.com/Azure/go-autorest/tracing"
 
 	"github.com/Azure/go-autorest/autorest"
 )
