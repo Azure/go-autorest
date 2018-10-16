@@ -95,11 +95,9 @@ func initStats() (err error) {
 		ochttp.ClientReceivedBytesDistribution,
 		ochttp.ClientSentBytesDistribution,
 	}
-
 	if err = view.Register(clientViews...); err != nil {
 		return err
 	}
-
 	return
 }
 

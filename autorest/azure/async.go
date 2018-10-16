@@ -96,7 +96,14 @@ func (f *Future) Done(sender autorest.Sender) (bool, error) {
 // DoneWithContext queries the service to see if the operation has completed.
 func (f *Future) DoneWithContext(ctx context.Context, sender autorest.Sender) (done bool, err error) {
 	ctx = tracing.StartSpan(ctx, "github.com/Azure/go-autorest/autorest/azure/async.DoneWithContext")
-	defer func() { tracing.EndSpan(ctx, f.Response().StatusCode, err) }()
+	defer func() {
+		sc := -1
+		resp := f.Response()
+		if resp != nil {
+			sc = resp.StatusCode
+		}
+		tracing.EndSpan(ctx, sc, err)
+	}()
 
 	// support for legacy Future implementation
 	if f.req != nil {
@@ -177,7 +184,14 @@ func (f Future) WaitForCompletion(ctx context.Context, client autorest.Client) e
 // the retry value defined in the client up to the maximum retry attempts.
 func (f *Future) WaitForCompletionRef(ctx context.Context, client autorest.Client) (err error) {
 	ctx = tracing.StartSpan(ctx, "github.com/Azure/go-autorest/autorest/azure/async.WaitForCompletionRef")
-	defer func() { tracing.EndSpan(ctx, f.Response().StatusCode, err) }()
+	defer func() {
+		sc := -1
+		resp := f.Response()
+		if resp != nil {
+			sc = resp.StatusCode
+		}
+		tracing.EndSpan(ctx, sc, err)
+	}()
 	cancelCtx := ctx
 	if d := client.PollingDuration; d != 0 {
 		var cancel context.CancelFunc
