@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Azure/go-autorest/autorest/tracing"
 	"github.com/Azure/go-autorest/logger"
 	"github.com/Azure/go-autorest/version"
 )
@@ -230,8 +231,10 @@ func (c Client) Do(r *http.Request) (*http.Response, error) {
 func (c Client) sender() Sender {
 	if c.Sender == nil {
 		j, _ := cookiejar.New(nil)
-		return &http.Client{Jar: j}
+		client := &http.Client{Jar: j, Transport: tracing.Transport}
+		return client
 	}
+
 	return c.Sender
 }
 
