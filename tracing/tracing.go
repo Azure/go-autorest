@@ -20,12 +20,10 @@ import (
 	"os"
 
 	"contrib.go.opencensus.io/exporter/ocagent"
-	"go.opencensus.io/stats/view"
-
-	"go.opencensus.io/trace"
-
 	"go.opencensus.io/plugin/ochttp"
 	"go.opencensus.io/plugin/ochttp/propagation/tracecontext"
+	"go.opencensus.io/stats/view"
+	"go.opencensus.io/trace"
 )
 
 var (
@@ -108,7 +106,7 @@ func StartSpan(ctx context.Context, name string) context.Context {
 }
 
 // EndSpan ends a previously started span stored in the context
-func EndSpan(ctx context.Context, statusCode int, err error) {
+func EndSpan(ctx context.Context, httpStatusCode int, err error) {
 	span := trace.FromContext(ctx)
 
 	if span == nil {
@@ -116,7 +114,36 @@ func EndSpan(ctx context.Context, statusCode int, err error) {
 	}
 
 	if err != nil {
-		span.SetStatus(trace.Status{Message: err.Error(), Code: int32(statusCode)})
+		span.SetStatus(trace.Status{Message: err.Error(), Code: toTraceStatusCode(httpStatusCode)})
 	}
 	span.End()
+}
+
+// toTraceStatusCode converts HTTP Codes to OpenCensus codes as defined
+// at https://github.com/census-instrumentation/opencensus-specs/blob/master/trace/HTTP.md#status
+func toTraceStatusCode(httpStatusCode int) int32 {
+	switch {
+	case http.StatusOK <= httpStatusCode && httpStatusCode < http.StatusBadRequest:
+		return trace.StatusCodeOK
+	case httpStatusCode == http.StatusBadRequest:
+		return trace.StatusCodeInvalidArgument
+	case httpStatusCode == http.StatusUnauthorized: // 401 is actually unauthenticated.
+		return trace.StatusCodeUnauthenticated
+	case httpStatusCode == http.StatusForbidden:
+		return trace.StatusCodePermissionDenied
+	case httpStatusCode == http.StatusNotFound:
+		return trace.StatusCodeNotFound
+	case httpStatusCode == http.StatusTooManyRequests:
+		return trace.StatusCodeResourceExhausted
+	case httpStatusCode == 499:
+		return trace.StatusCodeCancelled
+	case httpStatusCode == http.StatusNotImplemented:
+		return trace.StatusCodeUnimplemented
+	case httpStatusCode == http.StatusServiceUnavailable:
+		return trace.StatusCodeUnavailable
+	case httpStatusCode == http.StatusGatewayTimeout:
+		return trace.StatusCodeDeadlineExceeded
+	default:
+		return trace.StatusCodeUnknown
+	}
 }
