@@ -21,15 +21,13 @@ import (
 	"os"
 	"testing"
 
-	"go.opencensus.io/trace"
-
 	"contrib.go.opencensus.io/exporter/ocagent"
-
 	"go.opencensus.io/plugin/ochttp"
+	"go.opencensus.io/trace"
 )
 
 func TestNoTracingByDefault(t *testing.T) {
-	if expected, got := false, Enabled; expected != got {
+	if expected, got := false, IsEnabled(); expected != got {
 		t.Fatalf("By default expected %t, got %t", expected, got)
 	}
 
@@ -48,8 +46,8 @@ func TestEnableTracing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Enable failed, got error %v", err)
 	}
-	if !Enabled {
-		t.Fatalf("Enable failed, Enabled is %t", Enabled)
+	if !IsEnabled() {
+		t.Fatalf("Enable failed, IsEnabled() is %t", IsEnabled())
 	}
 	if sampler != nil {
 		t.Fatalf("Enable failed, expected nil sampler, got %v", sampler)
@@ -63,8 +61,8 @@ func TestEnableTracing(t *testing.T) {
 func TestTracingByEnv(t *testing.T) {
 	os.Setenv("AZURE_SDK_TRACING_ENABELD", "")
 	enableFromEnv()
-	if !Enabled {
-		t.Fatalf("Enable failed, Enabled is %t", Enabled)
+	if !IsEnabled() {
+		t.Fatalf("Enable failed, IsEnabled() is %t", IsEnabled())
 	}
 	if sampler != nil {
 		t.Fatalf("Enable failed, expected nil sampler, got %v", sampler)
@@ -78,8 +76,8 @@ func TestTracingByEnv(t *testing.T) {
 func TestEnableTracingWithAIError(t *testing.T) {
 	agentEndpoint := fmt.Sprintf("%s:%d", ocagent.DefaultAgentHost, ocagent.DefaultAgentPort)
 	err := EnableWithAIForwarding(agentEndpoint)
-	if !Enabled {
-		t.Fatalf("Enable failed, Enabled is %t", Enabled)
+	if !IsEnabled() {
+		t.Fatalf("Enable failed, IsEnabled() is %t", IsEnabled())
 	}
 	if sampler != nil {
 		t.Fatalf("Enable failed, expected nil sampler, got %v", sampler)

@@ -31,8 +31,8 @@ var (
 	// the default RoundTripper is used which provides no instrumentation.
 	Transport = http.DefaultTransport
 
-	// Enabled is the flag for marking if tracing is enabled.
-	Enabled = false
+	// enabled is the flag for marking if tracing is enabled.
+	enabled = false
 
 	// Sampler is the tracing sampler. If tracing is disabled it will never sample. Otherwise
 	// it will be using the parent sampler or the default.
@@ -56,9 +56,14 @@ func enableFromEnv() {
 	}
 }
 
+// IsEnabled returns true if monitoring is enabled for the sdk.
+func IsEnabled() bool {
+	return enabled
+}
+
 // Enable will start instrumentation for metrics and traces.
 func Enable() (err error) {
-	Enabled = true
+	enabled = true
 	sampler = nil
 	Transport = &ochttp.Transport{Propagation: &tracecontext.HTTPFormat{}}
 
