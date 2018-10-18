@@ -19,10 +19,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"reflect"
 	"testing"
 
 	"contrib.go.opencensus.io/exporter/ocagent"
-	"go.opencensus.io/plugin/ochttp"
+	"go.opencensus.io/stats/view"
 	"go.opencensus.io/trace"
 )
 
@@ -35,8 +36,15 @@ func TestNoTracingByDefault(t *testing.T) {
 		t.Fatal("By default expected non nil sampler")
 	}
 
-	if expected, got := http.DefaultTransport, Transport; expected != got {
-		t.Fatalf("By default expected %t, got %t", expected, got)
+	if Transport.GetStartOptions(&http.Request{}).Sampler == nil {
+		t.Fatalf("By default expected configured Sampler to be non-nil")
+	}
+
+	for n := range views {
+		v := view.Find(n)
+		if v != nil {
+			t.Fatalf("By default expected no registered views, found %s", v.Name)
+		}
 	}
 }
 
@@ -53,8 +61,15 @@ func TestEnableTracing(t *testing.T) {
 		t.Fatalf("Enable failed, expected nil sampler, got %v", sampler)
 	}
 
-	if _, ok := Transport.(*ochttp.Transport); !ok {
-		t.Fatalf("Enable failed, expected ochttp.Transport, got %v", Transport)
+	if Transport.GetStartOptions(&http.Request{}).Sampler != nil {
+		t.Fatalf("Enable failed, expected Transport.GetStartOptions.Sampler to be nil")
+	}
+
+	for n, v := range views {
+		fv := view.Find(n)
+		if fv == nil || !reflect.DeepEqual(v, fv) {
+			t.Fatalf("Enable failed, view %s was not registered", n)
+		}
 	}
 }
 
@@ -68,8 +83,15 @@ func TestTracingByEnv(t *testing.T) {
 		t.Fatalf("Enable failed, expected nil sampler, got %v", sampler)
 	}
 
-	if _, ok := Transport.(*ochttp.Transport); !ok {
-		t.Fatalf("Enable failed, expected ochttp.Transport, got %v", Transport)
+	if Transport.GetStartOptions(&http.Request{}).Sampler != nil {
+		t.Fatalf("Enable failed, expected Transport.GetStartOptions.Sampler to be nil")
+	}
+
+	for n, v := range views {
+		fv := view.Find(n)
+		if fv == nil || !reflect.DeepEqual(v, fv) {
+			t.Fatalf("Enable failed, view %s was not registered", n)
+		}
 	}
 }
 
@@ -83,12 +105,42 @@ func TestEnableTracingWithAIError(t *testing.T) {
 		t.Fatalf("Enable failed, expected nil sampler, got %v", sampler)
 	}
 
-	if _, ok := Transport.(*ochttp.Transport); !ok {
-		t.Fatalf("Enable failed, expected ochttp.Transport, got %v", Transport)
+	if Transport.GetStartOptions(&http.Request{}).Sampler != nil {
+		t.Fatalf("Enable failed, expected Transport.GetStartOptions.Sampler to be nil")
+	}
+
+	for n, v := range views {
+		fv := view.Find(n)
+		if fv == nil || !reflect.DeepEqual(v, fv) {
+			t.Fatalf("Enable failed, view %s was not registered", n)
+		}
 	}
 
 	if err == nil {
 		t.Fatal("Expected error on no agent running, got nil")
+	}
+}
+
+func TestDisableTracing(t *testing.T) {
+	Enable()
+	Disable()
+	if expected, got := false, IsEnabled(); expected != got {
+		t.Fatalf("By default expected %t, got %t", expected, got)
+	}
+
+	if sampler == nil {
+		t.Fatal("By default expected non nil sampler")
+	}
+
+	if Transport.GetStartOptions(&http.Request{}).Sampler == nil {
+		t.Fatalf("By default expected configured Sampler to be non-nil")
+	}
+
+	for n := range views {
+		v := view.Find(n)
+		if v != nil {
+			t.Fatalf("By default expected no registered views, found %s", v.Name)
+		}
 	}
 }
 

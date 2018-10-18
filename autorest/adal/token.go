@@ -386,8 +386,13 @@ func (spt *ServicePrincipalToken) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	spt.refreshLock = &sync.RWMutex{}
-	spt.sender = &http.Client{Transport: tracing.Transport}
+	// Don't override the refreshLock or the sender if those have been already set.
+	if spt.refreshLock == nil {
+		spt.refreshLock = &sync.RWMutex{}
+	}
+	if spt.sender == nil {
+		spt.sender = &http.Client{Transport: tracing.Transport}
+	}
 	return nil
 }
 

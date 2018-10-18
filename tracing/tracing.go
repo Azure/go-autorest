@@ -16,6 +16,7 @@ package tracing
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 
@@ -27,9 +28,12 @@ import (
 )
 
 var (
-	// Transport is the default tracing RoundTripper. If tracing is disabled
-	// the default RoundTripper is used which provides no instrumentation.
-	Transport = http.DefaultTransport
+	// Transport is the default tracing RoundTripper. The custom options setter will control
+	// if traces are being emitted or not.
+	Transport = &ochttp.Transport{
+		Propagation:     &tracecontext.HTTPFormat{},
+		GetStartOptions: getStartOptions,
+	}
 
 	// enabled is the flag for marking if tracing is enabled.
 	enabled = false
@@ -37,6 +41,12 @@ var (
 	// Sampler is the tracing sampler. If tracing is disabled it will never sample. Otherwise
 	// it will be using the parent sampler or the default.
 	sampler = trace.NeverSample()
+
+	// Views for metric instrumentation.
+	views = map[string]*view.View{}
+
+	// the trace exporter
+	traceExporter trace.Exporter
 )
 
 func init() {
@@ -62,16 +72,22 @@ func IsEnabled() bool {
 }
 
 // Enable will start instrumentation for metrics and traces.
-func Enable() (err error) {
+func Enable() error {
 	enabled = true
 	sampler = nil
-	Transport = &ochttp.Transport{Propagation: &tracecontext.HTTPFormat{}}
 
-	if err != nil {
-		return
+	err := initStats()
+	return err
+}
+
+// Disable will disable instrumentation for metrics and traces.
+func Disable() {
+	disableStats()
+	sampler = trace.NeverSample()
+	if traceExporter != nil {
+		trace.UnregisterExporter(traceExporter)
 	}
-	err = initStats()
-	return
+	enabled = false
 }
 
 // EnableWithAIForwarding will start instrumentation and will connect to app insights forwarder
@@ -82,12 +98,19 @@ func EnableWithAIForwarding(agentEndpoint string) (err error) {
 		return err
 	}
 
-	exporter, err := ocagent.NewExporter(ocagent.WithInsecure(), ocagent.WithAddress(agentEndpoint))
+	traceExporter, err := ocagent.NewExporter(ocagent.WithInsecure(), ocagent.WithAddress(agentEndpoint))
 	if err != nil {
 		return err
 	}
-	trace.RegisterExporter(exporter)
+	trace.RegisterExporter(traceExporter)
 	return
+}
+
+// getStartOptions is the custom options setter for the ochttp package.
+func getStartOptions(*http.Request) trace.StartOptions {
+	return trace.StartOptions{
+		Sampler: sampler,
+	}
 }
 
 // initStats registers the views for the http metrics
@@ -98,10 +121,22 @@ func initStats() (err error) {
 		ochttp.ClientReceivedBytesDistribution,
 		ochttp.ClientSentBytesDistribution,
 	}
-	if err = view.Register(clientViews...); err != nil {
-		return err
+	for _, cv := range clientViews {
+		vn := fmt.Sprintf("Azure/go-autorest/tracing-%s", cv.Name)
+		views[vn] = cv.WithName(vn)
+		err = view.Register(views[vn])
+		if err != nil {
+			return err
+		}
 	}
 	return
+}
+
+// disableStats will unregister the previously registered metrics
+func disableStats() {
+	for _, v := range views {
+		view.Unregister(v)
+	}
 }
 
 // StartSpan starts a trace span

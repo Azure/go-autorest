@@ -11,12 +11,15 @@
   calling `tracing.EnableWithAIForwarding` will start the instrumentation and connect to an
   App Insights Local Forwarder that is needs to be running. Note that if the
   AI Local Forwarder is not running tracking will still be enabled.
-  By default, instrumentation is disabled.
+  By default, instrumentation is disabled. Once enabled, instrumentation can also
+  be programatically disabled by calling `Disable`.
 - Added `DoneWithContext` call for checking LRO status. `Done` has been deprecated.
 
 ### Bug Fixes
 
 - Don't use the initial request's context for LRO polling.
+- Don't override the `refreshLock` and the `http.Client` when unmarshalling `ServicePrincipalToken` if
+  it is already set.
 
 ## v11.1.1
 
