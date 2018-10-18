@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/Azure/go-autorest/autorest/adal"
+	"github.com/Azure/go-autorest/tracing"
 )
 
 const (
@@ -147,7 +148,7 @@ type BearerAuthorizerCallback struct {
 // is invoked when the HTTP request is submitted.
 func NewBearerAuthorizerCallback(sender Sender, callback BearerAuthorizerCallbackFunc) *BearerAuthorizerCallback {
 	if sender == nil {
-		sender = &http.Client{}
+		sender = &http.Client{Transport: tracing.Transport}
 	}
 	return &BearerAuthorizerCallback{sender: sender, callback: callback}
 }
