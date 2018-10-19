@@ -483,9 +483,17 @@ func (mc MSIConfig) Authorizer() (autorest.Authorizer, error) {
 		return nil, err
 	}
 
-	spToken, err := adal.NewServicePrincipalTokenFromMSI(msiEndpoint, mc.Resource)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get oauth token from MSI: %v", err)
+	var spToken *adal.ServicePrincipalToken
+	if mc.ClientID == "" {
+		spToken, err = adal.NewServicePrincipalTokenFromMSI(msiEndpoint, mc.Resource)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get oauth token from MSI: %v", err)
+		}
+	} else {
+		spToken, err = adal.NewServicePrincipalTokenFromMSIWithUserAssignedID(msiEndpoint, mc.Resource, mc.ClientID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get oauth token from MSI for user assigned identity: %v", err)
+		}
 	}
 
 	return autorest.NewBearerAuthorizer(spToken), nil
