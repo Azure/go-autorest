@@ -35,3 +35,11 @@
 [[constraint]]
   name = "github.com/stretchr/testify"
   version = "1.2.0"
+
+[[constraint]]
+  name = "go.opencensus.io"
+  branch = "master"
+
+[[constraint]]
+  name = "contrib.go.opencensus.io/exporter/ocagent"
+  version = "0.2.0"

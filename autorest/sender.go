@@ -21,6 +21,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/Azure/go-autorest/tracing"
 )
 
 // Sender is the interface that wraps the Do method to send HTTP requests.
@@ -68,7 +70,7 @@ func DecorateSender(s Sender, decorators ...SendDecorator) Sender {
 //
 // Send will not poll or retry requests.
 func Send(r *http.Request, decorators ...SendDecorator) (*http.Response, error) {
-	return SendWithSender(&http.Client{}, r, decorators...)
+	return SendWithSender(&http.Client{Transport: tracing.Transport}, r, decorators...)
 }
 
 // SendWithSender sends the passed http.Request, through the provided Sender, returning the
