@@ -926,6 +926,6 @@ func TestDoRetryForStatusCodes_Cancel429(t *testing.T) {
 		t.Fatalf("expected status code 429, got: %d", r.StatusCode)
 	}
 	if client.Attempts() >= retries {
-		t.Fatalf("too many attemps: %d", client.Attempts())
+		t.Fatalf("too many attempts: %d", client.Attempts())
 	}
 }
