@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v11.2.1
+
+NOTE: Versions of Go prior to 1.10 have been removed from CI as they no
+      longer work with golint.
+
+### Bug Fixes
+
+- Method `MSIConfig.Authorizer` now supports user-assigned identities.
+- The adal package now reports its own user-agent string.
+
 ## v11.2.0
 
 ### New Features
