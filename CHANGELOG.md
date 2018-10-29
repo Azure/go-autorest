@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v11.2.5
+
+### Bug Fixes
+
+- Removed race condition in `autorest.DoRetryForStatusCodes`.
+
 ## v11.2.4
 
 ### Bug Fixes
