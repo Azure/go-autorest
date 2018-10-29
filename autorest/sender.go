@@ -218,8 +218,7 @@ func DoRetryForStatusCodes(attempts int, backoff time.Duration, codes ...int) Se
 		return SenderFunc(func(r *http.Request) (resp *http.Response, err error) {
 			rr := NewRetriableRequest(r)
 			// Increment to add the first call (attempts denotes number of retries)
-			attempts++
-			for attempt := 0; attempt < attempts; {
+			for attempt := 0; attempt < attempts+1; {
 				err = rr.Prepare()
 				if err != nil {
 					return resp, err
