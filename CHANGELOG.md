@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v11.2.4
+
+### Bug Fixes
+
+- Function `cli.ProfilePath` now respects environment `AZURE_CONFIG_DIR` if available.
+
 ## v11.2.1
 
 NOTE: Versions of Go prior to 1.10 have been removed from CI as they no
