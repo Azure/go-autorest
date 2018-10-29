@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v11.2.6
+
+### Bug Fixes
+
+- If zero bytes are read from a polling response body don't attempt to unmarshal them.
+
 ## v11.2.5
 
 ### Bug Fixes
