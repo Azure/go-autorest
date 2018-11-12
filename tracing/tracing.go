@@ -54,8 +54,9 @@ func init() {
 }
 
 func enableFromEnv() {
-	_, ok := os.LookupEnv("AZURE_SDK_TRACING_ENABELD")
-	if ok {
+	_, ok := os.LookupEnv("AZURE_SDK_TRACING_ENABLED")
+	_, legacyOk := os.LookupEnv("AZURE_SDK_TRACING_ENABELD")
+	if ok || legacyOk {
 		agentEndpoint, ok := os.LookupEnv("OCAGENT_TRACE_EXPORTER_ENDPOINT")
 
 		if ok {
