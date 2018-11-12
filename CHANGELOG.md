@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v11.2.7
+
+### Bug Fixes
+
+- Fix environment variable name for enabling tracing from `AZURE_SDK_TRACING_ENABELD` to `AZURE_SDK_TRACING_ENABLED`.
+  Note that for backward compatibility reasons, both will work until the next major version release of the package.
+
 ## v11.2.6
 
 ### Bug Fixes
@@ -21,7 +28,7 @@
 ## v11.2.1
 
 NOTE: Versions of Go prior to 1.10 have been removed from CI as they no
-      longer work with golint.
+longer work with golint.
 
 ### Bug Fixes
 
@@ -33,7 +40,7 @@ NOTE: Versions of Go prior to 1.10 have been removed from CI as they no
 ### New Features
 
 - Added `tracing` package that enables instrumentation of HTTP and API calls.
-  Setting the env variable `AZURE_SDK_TRACING_ENABELD` or calling `tracing.Enable`
+  Setting the env variable `AZURE_SDK_TRACING_ENABLED` or calling `tracing.Enable`
   will start instrumenting the code for metrics and traces.
   Additionally, setting the env variable `OCAGENT_TRACE_EXPORTER_ENDPOINT` or
   calling `tracing.EnableWithAIForwarding` will start the instrumentation and connect to an
