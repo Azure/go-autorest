@@ -28,7 +28,6 @@ import (
 
 	"github.com/Azure/go-autorest/autorest/mocks"
 	"github.com/Azure/go-autorest/tracing"
-	"github.com/Azure/go-autorest/version"
 )
 
 func TestLoggingInspectorWithInspection(t *testing.T) {
@@ -128,7 +127,7 @@ func TestLoggingInspectorByInspectingRestoresBody(t *testing.T) {
 func TestNewClientWithUserAgent(t *testing.T) {
 	ua := "UserAgent"
 	c := NewClientWithUserAgent(ua)
-	completeUA := fmt.Sprintf("%s %s", version.UserAgent(), ua)
+	completeUA := fmt.Sprintf("%s %s", UserAgent(), ua)
 
 	if c.UserAgent != completeUA {
 		t.Fatalf("autorest: NewClientWithUserAgent failed to set the UserAgent -- expected %s, received %s",
@@ -144,7 +143,7 @@ func TestAddToUserAgent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("autorest: AddToUserAgent returned error -- expected nil, received %s", err)
 	}
-	completeUA := fmt.Sprintf("%s %s %s", version.UserAgent(), ua, ext)
+	completeUA := fmt.Sprintf("%s %s %s", UserAgent(), ua, ext)
 
 	if c.UserAgent != completeUA {
 		t.Fatalf("autorest: AddToUserAgent failed to add an extension to the UserAgent -- expected %s, received %s",
