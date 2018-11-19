@@ -21,7 +21,7 @@ import (
 
 // Deprecated: please use autorest.Version() instead.
 // Number contains the semantic version of this SDK.
-const Number = "v11.2.7"
+const Number = "v11.2.8"
 
 var (
 	userAgent = fmt.Sprintf("Go/%s (%s-%s) go-autorest/%s",
