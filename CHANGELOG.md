@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v11.2.8
+
+### Bug Fixes
+
+- Deprecate content in the `version` package.  The functionality has been superseded by content in the `autorest` package.
+
 ## v11.2.7
 
 ### Bug Fixes
