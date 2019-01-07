@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v11.3.0
+
+### New Features
+
+- Added method `ServicePrincipalToken()` to `DeviceFlowConfig` type.
+
 ## v11.2.8
 
 ### Bug Fixes
