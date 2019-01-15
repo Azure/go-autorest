@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v11.3.1
+
+### Bug Fixes
+
+- For an LRO PUT operation the final GET URL was incorrectly set to the Location polling header in some cases.
+
 ## v11.3.0
 
 ### New Features
