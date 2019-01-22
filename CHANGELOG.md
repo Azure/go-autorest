@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v11.3.2
+
+### Bug Fixes
+
+- In `Future.WaitForCompletionRef()` if the provided context has a deadline don't add the default deadline.
+
 ## v11.3.1
 
 ### Bug Fixes
