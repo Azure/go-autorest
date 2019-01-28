@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v11.4.0
+
+### New Features
+
+- Added `adal.AddToUserAgent()` so callers can append custom data to the user-agent header used for ADAL requests.
+- Exported `adal.UserAgent()` for parity with `autorest.Client`.
+
 ## v11.3.2
 
 ### Bug Fixes
