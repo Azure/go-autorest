@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v11.5.0
+
+### New Features
+
+- The `auth` package has been refactored so that the environment and file settings are now available.
+- The methods used in `auth.NewAuthorizerFromEnvironment()` are now exported so that custom authorization chains can be created.
+- Added support for certificate authorization for file-based config.
+
 ## v11.4.0
 
 ### New Features
