@@ -220,22 +220,38 @@ func (settings EnvironmentSettings) GetAuthorizer() (autorest.Authorizer, error)
 	return settings.GetMSI().Authorizer()
 }
 
-// NewAuthorizerFromFile creates an Authorizer configured from a configuration file.
+// NewAuthorizerFromFile creates an Authorizer configured from a configuration file in the following order.
+// 1. Client credentials
+// 2. Client certificate
 func NewAuthorizerFromFile(baseURI string) (autorest.Authorizer, error) {
 	settings, err := GetSettingsFromFile()
 	if err != nil {
 		return nil, err
 	}
-	return settings.ClientCredentialsAuthorizer(baseURI)
+	if a, err := settings.ClientCredentialsAuthorizer(baseURI); err == nil {
+		return a, err
+	}
+	if a, err := settings.ClientCertificateAuthorizer(baseURI); err == nil {
+		return a, err
+	}
+	return nil, errors.New("auth file missing client and certificate credentials")
 }
 
-// NewAuthorizerFromFileWithResource creates an Authorizer configured from a configuration file.
+// NewAuthorizerFromFileWithResource creates an Authorizer configured from a configuration file in the following order.
+// 1. Client credentials
+// 2. Client certificate
 func NewAuthorizerFromFileWithResource(resource string) (autorest.Authorizer, error) {
 	s, err := GetSettingsFromFile()
 	if err != nil {
 		return nil, err
 	}
-	return s.ClientCredentialsAuthorizerWithResource(resource)
+	if a, err := s.ClientCredentialsAuthorizerWithResource(resource); err == nil {
+		return a, err
+	}
+	if a, err := s.ClientCertificateAuthorizerWithResource(resource); err == nil {
+		return a, err
+	}
+	return nil, errors.New("auth file missing client and certificate credentials")
 }
 
 // NewAuthorizerFromCLI creates an Authorizer configured from Azure CLI 2.0 for local development scenarios.
