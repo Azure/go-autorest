@@ -15,6 +15,7 @@ package autorest
 //  limitations under the License.
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -31,6 +32,8 @@ const (
 	apiKeyAuthorizerHeader      = "Ocp-Apim-Subscription-Key"
 	bingAPISdkHeader            = "X-BingApis-SDK-Client"
 	golangBingAPISdkHeaderValue = "Go-SDK"
+	authorization               = "Authorization"
+	basic                       = "Basic"
 )
 
 // Authorizer is the interface that provides a PrepareDecorator used to supply request
@@ -257,4 +260,26 @@ func (egta EventGridKeyAuthorizer) WithAuthorization() PrepareDecorator {
 		"aeg-sas-key": egta.topicKey,
 	}
 	return NewAPIKeyAuthorizerWithHeaders(headers).WithAuthorization()
+}
+
+// BasicAuthorizer implements authorization for Basic authentication.
+type BasicAuthorizer struct {
+	token string
+}
+
+// NewBasicAuthorizer is
+func NewBasicAuthorizer(token string) *BasicAuthorizer {
+	return &BasicAuthorizer{token: token}
+}
+
+// WithAuthorization is
+func (ba *BasicAuthorizer) WithAuthorization() PrepareDecorator {
+	headers := make(map[string]interface{})
+	headers[authorization] = basic + " " + basicAuth(":"+ba.token)
+
+	return NewAPIKeyAuthorizerWithHeaders(headers).WithAuthorization()
+}
+
+func basicAuth(token string) string {
+	return base64.StdEncoding.EncodeToString([]byte(token))
 }
