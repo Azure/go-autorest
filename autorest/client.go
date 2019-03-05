@@ -233,8 +233,7 @@ func (c Client) sender() Sender {
 		j, _ := cookiejar.New(nil)
 		tracing.Transport.Base = &http.Transport{
 			TLSClientConfig: &tls.Config{
-				MinVersion:               tls.VersionTLS12,
-				PreferServerCipherSuites: true,
+				MinVersion: tls.VersionTLS12,
 			},
 		}
 		client := &http.Client{Jar: j, Transport: tracing.Transport}
