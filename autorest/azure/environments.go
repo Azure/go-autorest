@@ -43,6 +43,7 @@ type Environment struct {
 	ActiveDirectoryEndpoint      string `json:"activeDirectoryEndpoint"`
 	GalleryEndpoint              string `json:"galleryEndpoint"`
 	KeyVaultEndpoint             string `json:"keyVaultEndpoint"`
+	KeyVaultResourceID           string `json:"keyVaultResourceID"`
 	GraphEndpoint                string `json:"graphEndpoint"`
 	ServiceBusEndpoint           string `json:"serviceBusEndpoint"`
 	BatchManagementEndpoint      string `json:"batchManagementEndpoint"`
@@ -69,6 +70,7 @@ var (
 		ActiveDirectoryEndpoint:      "https://login.microsoftonline.com/",
 		GalleryEndpoint:              "https://gallery.azure.com/",
 		KeyVaultEndpoint:             "https://vault.azure.net/",
+		KeyVaultResourceID:           "https://vault.azure.net",
 		GraphEndpoint:                "https://graph.windows.net/",
 		ServiceBusEndpoint:           "https://servicebus.windows.net/",
 		BatchManagementEndpoint:      "https://batch.core.windows.net/",
@@ -94,6 +96,7 @@ var (
 		ActiveDirectoryEndpoint:      "https://login.microsoftonline.us/",
 		GalleryEndpoint:              "https://gallery.usgovcloudapi.net/",
 		KeyVaultEndpoint:             "https://vault.usgovcloudapi.net/",
+		KeyVaultResourceID:           "https://vault.usgovcloudapi.net",
 		GraphEndpoint:                "https://graph.windows.net/",
 		ServiceBusEndpoint:           "https://servicebus.usgovcloudapi.net/",
 		BatchManagementEndpoint:      "https://batch.core.usgovcloudapi.net/",
@@ -119,6 +122,7 @@ var (
 		ActiveDirectoryEndpoint:      "https://login.chinacloudapi.cn/",
 		GalleryEndpoint:              "https://gallery.chinacloudapi.cn/",
 		KeyVaultEndpoint:             "https://vault.azure.cn/",
+		KeyVaultResourceID:           "https://vault.azure.cn",
 		GraphEndpoint:                "https://graph.chinacloudapi.cn/",
 		ServiceBusEndpoint:           "https://servicebus.chinacloudapi.cn/",
 		BatchManagementEndpoint:      "https://batch.chinacloudapi.cn/",
@@ -144,6 +148,7 @@ var (
 		ActiveDirectoryEndpoint:      "https://login.microsoftonline.de/",
 		GalleryEndpoint:              "https://gallery.cloudapi.de/",
 		KeyVaultEndpoint:             "https://vault.microsoftazure.de/",
+		KeyVaultResourceID:           "https://vault.microsoftazure.de",
 		GraphEndpoint:                "https://graph.cloudapi.de/",
 		ServiceBusEndpoint:           "https://servicebus.cloudapi.de/",
 		BatchManagementEndpoint:      "https://batch.cloudapi.de/",
