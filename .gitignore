@@ -28,4 +28,5 @@ _testmain.go
 *.prof
 
 # go-autorest specific
+vendor/
 autorest/azure/example/example

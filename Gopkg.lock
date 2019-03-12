@@ -124,6 +124,17 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:395763139fd6f101dd123c1b124d8c4ae614f37b09690a8675e9d523dbb2557f"
+  name = "golang.org/x/lint"
+  packages = [
+    ".",
+    "golint",
+  ]
+  pruneopts = "UT"
+  revision = "5614ed5bae6fb75893070bdc0996a68765fdd275"
+
+[[projects]]
+  branch = "master"
   digest = "1:505dbee0833715a72a529bb57c354826ad42a4496fad787fa143699b4de1a6d0"
   name = "golang.org/x/net"
   packages = [
@@ -176,6 +187,19 @@
   pruneopts = "UT"
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
   version = "v0.3.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:003313a2b3fc801360f6c6e437d1200199959370ca6e16816846d4664c33735b"
+  name = "golang.org/x/tools"
+  packages = [
+    "go/ast/astutil",
+    "go/gcexportdata",
+    "go/internal/gcimporter",
+    "go/types/typeutil",
+  ]
+  pruneopts = "UT"
+  revision = "e65039ee4138194d75ebaa2da35887260d5e15b2"
 
 [[projects]]
   branch = "master"
@@ -242,6 +266,7 @@
     "go.opencensus.io/stats/view",
     "go.opencensus.io/trace",
     "golang.org/x/crypto/pkcs12",
+    "golang.org/x/lint/golint",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
