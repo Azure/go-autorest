@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v11.5.2
+
+### Bug Fixes
+
+- Fixed `GetTokenFromCLI` did not work with zsh.
+
 ## v11.5.1
 
 ### Bug Fixes
