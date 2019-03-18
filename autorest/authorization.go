@@ -267,19 +267,15 @@ type BasicAuthorizer struct {
 	token string
 }
 
-// NewBasicAuthorizer is
+// NewBasicAuthorizer creates a new BasicAuthorizer with the specified token.
 func NewBasicAuthorizer(token string) *BasicAuthorizer {
 	return &BasicAuthorizer{token: token}
 }
 
-// WithAuthorization is
+// WithAuthorization returns a PrepareDecorator that adds the Basic authentication header.
 func (ba *BasicAuthorizer) WithAuthorization() PrepareDecorator {
 	headers := make(map[string]interface{})
-	headers[authorization] = basic + " " + basicAuth(":"+ba.token)
+	headers[authorization] = basic + " " + base64.StdEncoding.EncodeToString([]byte(":"+ba.token))
 
 	return NewAPIKeyAuthorizerWithHeaders(headers).WithAuthorization()
-}
-
-func basicAuth(token string) string {
-	return base64.StdEncoding.EncodeToString([]byte(token))
 }

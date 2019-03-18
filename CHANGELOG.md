@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v11.6.0
+
+### New Features
+
+- Added type `autorest.BasicAuthorizer` to support Basic authentication.
+
 ## v11.5.2
 
 ### Bug Fixes
