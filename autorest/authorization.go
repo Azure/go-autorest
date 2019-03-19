@@ -262,17 +262,19 @@ func (egta EventGridKeyAuthorizer) WithAuthorization() PrepareDecorator {
 	return NewAPIKeyAuthorizerWithHeaders(headers).WithAuthorization()
 }
 
-// BasicAuthorizer implements authorization for Basic authentication.
+// BasicAuthorizer implements authorization by adding the Authorization HTTP header
+// with the value "Basic <TOKEN>" where <TOKEN> is a base64-encoded personal access token.
 type BasicAuthorizer struct {
 	token string
 }
 
-// NewBasicAuthorizer creates a new BasicAuthorizer with the specified token.
+// NewBasicAuthorizer creates a new BasicAuthorizer with the specified personal access token.
 func NewBasicAuthorizer(token string) *BasicAuthorizer {
 	return &BasicAuthorizer{token: token}
 }
 
-// WithAuthorization returns a PrepareDecorator that adds the Basic authentication header.
+// WithAuthorization returns a PrepareDecorator that adds an HTTP Authorization header whose
+// value is "Basic " followed by the base64-encoded personal access token.
 func (ba *BasicAuthorizer) WithAuthorization() PrepareDecorator {
 	headers := make(map[string]interface{})
 	headers[authorization] = basic + " " + base64.StdEncoding.EncodeToString([]byte(":"+ba.token))
