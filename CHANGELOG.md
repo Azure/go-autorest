@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v11.6.1
+
+Update dependencies to resolve build breaks in OpenCensus.
+
 ## v11.6.0
 
 ### New Features
