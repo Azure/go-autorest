@@ -4,8 +4,9 @@
 
 ### Bug Fixes
 
- - Fix ACR DNS endpoint for government clouds.
- - Add Cosmos DB DNS endpoints.
+- Fix ACR DNS endpoint for government clouds.
+- Add Cosmos DB DNS endpoints.
+- Update dependencies to resolve build breaks in OpenCensus.
 
 ## v11.6.0
 
@@ -62,7 +63,7 @@
 
 ### Bug Fixes
 
-- Deprecate content in the `version` package.  The functionality has been superseded by content in the `autorest` package.
+- Deprecate content in the `version` package. The functionality has been superseded by content in the `autorest` package.
 
 ## v11.2.7
 
