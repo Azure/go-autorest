@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## v11.6.0
+
+### New Features
+
+- Added type `autorest.BasicAuthorizer` to support Basic authentication.
+
+## v11.5.2
+
+### Bug Fixes
+
+- Fixed `GetTokenFromCLI` did not work with zsh.
+
+## v11.5.1
+
+### Bug Fixes
+
+- In `Client.sender()` set the minimum TLS version on HTTP clients to 1.2.
+
 ## v11.5.0
 
 ### New Features

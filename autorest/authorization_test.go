@@ -230,8 +230,18 @@ func TestCognitivesServicesAuthorization(t *testing.T) {
 }
 
 func TestBasicAuthorization(t *testing.T) {
-	token := "dummyKey"
-	ba := NewBasicAuthorizer(token)
+	ba := NewBasicAuthorizer("Aladdin", "open sesame")
+	req, err := Prepare(mocks.NewRequest(), ba.WithAuthorization())
+
+	if err != nil {
+		t.Fatalf("BasicAuthorizer#WithAuthorization returned an error (%v)", err)
+	} else if req.Header.Get(http.CanonicalHeaderKey(authorization)) != basic+" QWxhZGRpbjpvcGVuIHNlc2FtZQ==" {
+		t.Fatalf("BasicAuthorizer#WithAuthorization failed to set %s header", authorization)
+	}
+}
+
+func TestBasicAuthorizationPasswordOnly(t *testing.T) {
+	ba := NewBasicAuthorizer("", "dummyKey")
 	req, err := Prepare(mocks.NewRequest(), ba.WithAuthorization())
 
 	if err != nil {
