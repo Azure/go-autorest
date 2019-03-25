@@ -154,8 +154,9 @@ var (
 		ServiceBusEndpointSuffix:     "servicebus.cloudapi.de",
 		ServiceManagementVMDNSSuffix: "azurecloudapp.de",
 		ResourceManagerVMDNSSuffix:   "cloudapp.microsoftazure.de",
-		CosmosDBDNSSuffix:            "documents.microsoftazure.de",
-		TokenAudience:                "https://management.microsoftazure.de/",
+		// ContainerRegistryDNSSuffix:   "", ACR not present yet in the German Cloud
+		CosmosDBDNSSuffix: "documents.microsoftazure.de",
+		TokenAudience:     "https://management.microsoftazure.de/",
 	}
 )
 
