@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v11.6.1
+
+### Bug Fixes
+
+ - Fix ACR DNS endpoint for government clouds.
+ - Add Cosmos DB DNS endpoints.
+
 ## v11.6.0
 
 ### New Features
