@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v11.7.0
+
+## New Features
+
+- Added methods to obtain a ServicePrincipalToken on the various credential configuration types in the `auth` package.
+
 ## v11.6.1
 
 ### Bug Fixes
