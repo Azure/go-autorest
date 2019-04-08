@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## v12.0.0
+
+### Breaking Changes
+
+In preparation for modules the following deprecated content has been removed.
+
+  - async.NewFuture()
+  - async.Future.Done()
+  - async.Future.WaitForCompletion()
+  - async.DoPollForAsynchronous()
+  - The `utils` package
+  - validation.NewErrorWithValidationError()
+  - The `version` package
+
 ## v11.9.0
 
 ### New Features
