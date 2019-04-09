@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v11.7.1
+
+### Bug Fixes
+
+- Fix missing support for http(s) proxy when using the default sender.
+
 ## v11.7.0
 
 ## New Features
