@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v11.9.0
+
+### New Features
+
+- Add `ResourceIdentifiers` field to `azure.Environment` containing resource IDs for public and sovereign clouds.
+
 ## v11.8.0
 
 ### New Features
