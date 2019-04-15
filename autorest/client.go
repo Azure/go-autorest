@@ -241,7 +241,7 @@ func (c Client) sender() Sender {
 			TLSHandshakeTimeout:   defaultTransport.TLSHandshakeTimeout,
 			ExpectContinueTimeout: defaultTransport.ExpectContinueTimeout,
 			TLSClientConfig: &tls.Config{
-				MinVersion: tls.VersionTLS12,
+				MinVersion:    tls.VersionTLS12,
 				Renegotiation: tls.RenegotiateFreelyAsClient,
 			},
 		}
