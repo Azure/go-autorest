@@ -170,6 +170,16 @@ type Client struct {
 // NewClientWithUserAgent returns an instance of a Client with the UserAgent set to the passed
 // string.
 func NewClientWithUserAgent(ua string) Client {
+	return newClient(ua, tls.RenegotiateNever)
+}
+
+// NewClientWithUserAgentTLSRenegotiation returns an instance of a Client with the UserAgent set to
+// the passed string and enables client-side TLS renegotiation.
+func NewClientWithUserAgentTLSRenegotiation(ua string) Client {
+	return newClient(ua, tls.RenegotiateFreelyAsClient)
+}
+
+func newClient(ua string, renegotiation tls.RenegotiationSupport) Client {
 	c := Client{
 		PollingDelay:    DefaultPollingDelay,
 		PollingDuration: DefaultPollingDuration,
@@ -177,7 +187,7 @@ func NewClientWithUserAgent(ua string) Client {
 		RetryDuration:   DefaultRetryDuration,
 		UserAgent:       UserAgent(),
 	}
-	c.Sender = c.sender()
+	c.Sender = c.sender(renegotiation)
 	c.AddToUserAgent(ua)
 	return c
 }
@@ -221,18 +231,17 @@ func (c Client) Do(r *http.Request) (*http.Response, error) {
 			return true, v
 		},
 	})
-	resp, err := SendWithSender(c.sender(), r)
+	resp, err := SendWithSender(c.sender(tls.RenegotiateNever), r)
 	logger.Instance.WriteResponse(resp, logger.Filter{})
 	Respond(resp, c.ByInspecting())
 	return resp, err
 }
 
 // sender returns the Sender to which to send requests.
-func (c Client) sender() Sender {
+func (c Client) sender(renengotiation tls.RenegotiationSupport) Sender {
 	if c.Sender == nil {
 		// Use behaviour compatible with DefaultTransport, but require TLS minimum version.
 		var defaultTransport = http.DefaultTransport.(*http.Transport)
-
 		tracing.Transport.Base = &http.Transport{
 			Proxy:                 defaultTransport.Proxy,
 			DialContext:           defaultTransport.DialContext,
@@ -242,7 +251,7 @@ func (c Client) sender() Sender {
 			ExpectContinueTimeout: defaultTransport.ExpectContinueTimeout,
 			TLSClientConfig: &tls.Config{
 				MinVersion:    tls.VersionTLS12,
-				Renegotiation: tls.RenegotiateFreelyAsClient,
+				Renegotiation: renengotiation,
 			},
 		}
 
