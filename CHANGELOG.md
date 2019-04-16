@@ -4,7 +4,7 @@
 
 ### New Features
 
-- Added `autorest.NewClientWithUserAgentTLSRenegotiation()` to support endpoints that require free renegotiation.
+- Added `autorest.NewClientWithOptions()` to support endpoints that require free renegotiation.
 
 ## v11.7.1
 

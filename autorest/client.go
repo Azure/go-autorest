@@ -173,10 +173,18 @@ func NewClientWithUserAgent(ua string) Client {
 	return newClient(ua, tls.RenegotiateNever)
 }
 
-// NewClientWithUserAgentTLSRenegotiation returns an instance of a Client with the UserAgent set to
-// the passed string and enables client-side TLS renegotiation.
-func NewClientWithUserAgentTLSRenegotiation(ua string) Client {
-	return newClient(ua, tls.RenegotiateFreelyAsClient)
+// ClientOptions contains various Client configuration options.
+type ClientOptions struct {
+	// UserAgent is an optional user-agent string to append to the default user agent.
+	UserAgent string
+
+	// Renegotiation is an optional setting to control client-side TLS renegotiation.
+	Renegotiation tls.RenegotiationSupport
+}
+
+// NewClientWithOptions returns an instance of a Client with the specified values.
+func NewClientWithOptions(options ClientOptions) Client {
+	return newClient(options.UserAgent, options.Renegotiation)
 }
 
 func newClient(ua string, renegotiation tls.RenegotiationSupport) Client {

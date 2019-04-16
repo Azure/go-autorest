@@ -130,21 +130,27 @@ func TestNewClientWithUserAgent(t *testing.T) {
 	ua := "UserAgent"
 	c := NewClientWithUserAgent(ua)
 	completeUA := fmt.Sprintf("%s %s", UserAgent(), ua)
-
 	if c.UserAgent != completeUA {
 		t.Fatalf("autorest: NewClientWithUserAgent failed to set the UserAgent -- expected %s, received %s",
 			completeUA, c.UserAgent)
 	}
+	r := c.Sender.(*http.Client).Transport.(*ochttp.Transport).Base.(*http.Transport).TLSClientConfig.Renegotiation
+	if r != tls.RenegotiateNever {
+		t.Fatal("autorest: TestNewClientWithUserAgentTLSRenegotiation expected RenegotiateNever")
+	}
 }
 
-func TestNewClientWithUserAgentTLSRenegotiation(t *testing.T) {
-	ua := "UserAgent"
-	c1 := NewClientWithUserAgentTLSRenegotiation(ua)
+func TestNewClientWithOptions(t *testing.T) {
+	const ua = "UserAgent"
+	c1 := NewClientWithOptions(ClientOptions{
+		UserAgent:     ua,
+		Renegotiation: tls.RenegotiateFreelyAsClient,
+	})
 	r1 := c1.Sender.(*http.Client).Transport.(*ochttp.Transport).Base.(*http.Transport).TLSClientConfig.Renegotiation
 	if r1 != tls.RenegotiateFreelyAsClient {
 		t.Fatal("autorest: TestNewClientWithUserAgentTLSRenegotiation expected RenegotiateFreelyAsClient")
 	}
-	// ensure default value doesn't stop over previous value
+	// ensure default value doesn't stomp over previous value
 	c2 := NewClientWithUserAgent(ua)
 	r2 := c2.Sender.(*http.Client).Transport.(*ochttp.Transport).Base.(*http.Transport).TLSClientConfig.Renegotiation
 	if r2 != tls.RenegotiateNever {
@@ -156,7 +162,7 @@ func TestNewClientWithUserAgentTLSRenegotiation(t *testing.T) {
 	}
 	r2 = c2.Sender.(*http.Client).Transport.(*ochttp.Transport).Base.(*http.Transport).TLSClientConfig.Renegotiation
 	if r2 != tls.RenegotiateNever {
-		t.Fatal("autorest: TestNewClientWithUserAgentTLSRenegotiation expected RenegotiateNever (overwritten")
+		t.Fatal("autorest: TestNewClientWithUserAgentTLSRenegotiation expected RenegotiateNever (overwritten)")
 	}
 }
 
