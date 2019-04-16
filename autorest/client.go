@@ -242,7 +242,13 @@ func (c Client) sender(renengotiation tls.RenegotiationSupport) Sender {
 	if c.Sender == nil {
 		// Use behaviour compatible with DefaultTransport, but require TLS minimum version.
 		var defaultTransport = http.DefaultTransport.(*http.Transport)
-		tracing.Transport.Base = &http.Transport{
+		transport := tracing.Transport
+		// for non-default values of TLS renegotiation create a new tracing transport.
+		// updating tracing.Transport affects all clients which is not what we want.
+		if renengotiation != tls.RenegotiateNever {
+			transport = tracing.NewTransport()
+		}
+		transport.Base = &http.Transport{
 			Proxy:                 defaultTransport.Proxy,
 			DialContext:           defaultTransport.DialContext,
 			MaxIdleConns:          defaultTransport.MaxIdleConns,
@@ -254,9 +260,8 @@ func (c Client) sender(renengotiation tls.RenegotiationSupport) Sender {
 				Renegotiation: renengotiation,
 			},
 		}
-
 		j, _ := cookiejar.New(nil)
-		return &http.Client{Jar: j, Transport: tracing.Transport}
+		return &http.Client{Jar: j, Transport: transport}
 	}
 
 	return c.Sender
