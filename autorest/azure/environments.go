@@ -40,12 +40,11 @@ var environments = map[string]Environment{
 
 // ResourceIdentifier contains a set of Azure resource IDs.
 type ResourceIdentifier struct {
-	Graph          string `json:"graph"`
-	KeyVault       string `json:"keyVault"`
-	Datalake       string `json:"datalake"`
-	MicrosoftGraph string `json:"microsoftGraph"`
-	Batch          string `json:"batch"`
-	Storage        string `json:"storage"`
+	Graph               string `json:"graph"`
+	KeyVault            string `json:"keyVault"`
+	Datalake            string `json:"datalake"`
+	Batch               string `json:"batch"`
+	OperationalInsights string `json:"operationalInsights"`
 }
 
 // Environment represents a set of endpoints for each of Azure's Clouds.
@@ -99,12 +98,11 @@ var (
 		CosmosDBDNSSuffix:            "documents.azure.com",
 		TokenAudience:                "https://management.azure.com/",
 		ResourceIdentifiers: ResourceIdentifier{
-			Graph:          "https://graph.windows.net/",
-			KeyVault:       "https://vault.azure.net",
-			Datalake:       "https://datalake.azure.net/",
-			MicrosoftGraph: "https://graph.microsoft.com/",
-			Batch:          "https://batch.core.windows.net/",
-			Storage:        "https://storage.azure.com/",
+			Graph:               "https://graph.windows.net/",
+			KeyVault:            "https://vault.azure.net",
+			Datalake:            "https://datalake.azure.net/",
+			Batch:               "https://batch.core.windows.net/",
+			OperationalInsights: "https://api.loganalytics.io",
 		},
 	}
 
@@ -132,12 +130,11 @@ var (
 		CosmosDBDNSSuffix:            "documents.azure.us",
 		TokenAudience:                "https://management.usgovcloudapi.net/",
 		ResourceIdentifiers: ResourceIdentifier{
-			Graph:          "https://graph.windows.net/",
-			KeyVault:       "https://vault.usgovcloudapi.net",
-			Datalake:       NotAvailable,
-			MicrosoftGraph: NotAvailable,
-			Batch:          "https://batch.core.usgovcloudapi.net/",
-			Storage:        NotAvailable,
+			Graph:               "https://graph.windows.net/",
+			KeyVault:            "https://vault.usgovcloudapi.net",
+			Datalake:            NotAvailable,
+			Batch:               "https://batch.core.usgovcloudapi.net/",
+			OperationalInsights: "https://api.loganalytics.us",
 		},
 	}
 
@@ -165,12 +162,11 @@ var (
 		CosmosDBDNSSuffix:            "documents.azure.cn",
 		TokenAudience:                "https://management.chinacloudapi.cn/",
 		ResourceIdentifiers: ResourceIdentifier{
-			Graph:          "https://graph.chinacloudapi.cn/",
-			KeyVault:       "https://vault.azure.cn",
-			Datalake:       NotAvailable,
-			MicrosoftGraph: NotAvailable,
-			Batch:          "https://batch.chinacloudapi.cn/",
-			Storage:        NotAvailable,
+			Graph:               "https://graph.chinacloudapi.cn/",
+			KeyVault:            "https://vault.azure.cn",
+			Datalake:            NotAvailable,
+			Batch:               "https://batch.chinacloudapi.cn/",
+			OperationalInsights: NotAvailable,
 		},
 	}
 
@@ -198,12 +194,11 @@ var (
 		CosmosDBDNSSuffix:            "documents.microsoftazure.de",
 		TokenAudience:                "https://management.microsoftazure.de/",
 		ResourceIdentifiers: ResourceIdentifier{
-			Graph:          "https://graph.cloudapi.de/",
-			KeyVault:       "https://vault.microsoftazure.de",
-			Datalake:       NotAvailable,
-			MicrosoftGraph: NotAvailable,
-			Batch:          "https://batch.cloudapi.de/",
-			Storage:        NotAvailable,
+			Graph:               "https://graph.cloudapi.de/",
+			KeyVault:            "https://vault.microsoftazure.de",
+			Datalake:            NotAvailable,
+			Batch:               "https://batch.cloudapi.de/",
+			OperationalInsights: NotAvailable,
 		},
 	}
 )
