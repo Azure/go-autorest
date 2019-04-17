@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v11.8.0
+
+### New Features
+
+- Added `autorest.NewClientWithOptions()` to support endpoints that require free renegotiation.
+
 ## v11.7.1
 
 ### Bug Fixes
@@ -8,7 +14,7 @@
 
 ## v11.7.0
 
-## New Features
+### New Features
 
 - Added methods to obtain a ServicePrincipalToken on the various credential configuration types in the `auth` package.
 
