@@ -128,12 +128,9 @@ associated with a key should be cleared. With the helpers, the previous example 
 
 ## Install
 
-```bash
-go get github.com/Azure/go-autorest/autorest
-go get github.com/Azure/go-autorest/autorest/azure
-go get github.com/Azure/go-autorest/autorest/date
-go get github.com/Azure/go-autorest/autorest/to
-```
+This project is using Golang modules.
+
+`go build` is sufficient
 
 ## License
 
