@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v11.1.2
+
+### Bug Fixes (back-ports)
+
+- If zero bytes are read from a polling response body don't attempt to unmarshal them.
+- For an LRO PUT operation the final GET URL was incorrectly set to the Location polling header in some cases.
+- In `Future.WaitForCompletionRef()` if the provided context has a deadline don't add the default deadline.
+
 ## v11.1.1
 
 ### Bug Fixes
