@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v12.1.0
+
+### New Features
+
+- Added `to.ByteSlicePtr()`.
+- Added blob/queue storage resource ID to `azure.ResourceIdentifier`.
+
 ## v12.0.0
 
 ### Breaking Changes
