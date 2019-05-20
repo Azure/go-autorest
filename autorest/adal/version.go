@@ -1,4 +1,9 @@
-package utils
+package adal
+
+import (
+	"fmt"
+	"runtime"
+)
 
 // Copyright 2017 Microsoft Corporation
 //
@@ -14,19 +19,27 @@ package utils
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-import (
-	"bytes"
-	"os/exec"
+const number = "v1.0.0"
+
+var (
+	ua = fmt.Sprintf("Go/%s (%s-%s) go-autorest/adal/%s",
+		runtime.Version(),
+		runtime.GOARCH,
+		runtime.GOOS,
+		number,
+	)
 )
 
-// GetCommit returns git HEAD (short)
-func GetCommit() string {
-	cmd := exec.Command("git", "rev-parse", "HEAD")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
-	if err != nil {
-		return ""
+// UserAgent returns a string containing the Go version, system architecture and OS, and the adal version.
+func UserAgent() string {
+	return ua
+}
+
+// AddToUserAgent adds an extension to the current user agent
+func AddToUserAgent(extension string) error {
+	if extension != "" {
+		ua = fmt.Sprintf("%s %s", ua, extension)
+		return nil
 	}
-	return string(out.Bytes()[:7])
+	return fmt.Errorf("Extension was empty, User Agent remained as '%s'", ua)
 }
