@@ -17,6 +17,7 @@ package autorest
 import (
 	"bytes"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -370,6 +371,28 @@ func WithJSON(v interface{}) PrepareDecorator {
 				if err == nil {
 					r.ContentLength = int64(len(b))
 					r.Body = ioutil.NopCloser(bytes.NewReader(b))
+				}
+			}
+			return r, err
+		})
+	}
+}
+
+// WithXML returns a PrepareDecorator that encodes the data passed as XML into the body of the
+// request and sets the Content-Length header.
+func WithXML(v interface{}) PrepareDecorator {
+	return func(p Preparer) Preparer {
+		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
+			r, err := p.Prepare(r)
+			if err == nil {
+				b, err := xml.Marshal(v)
+				if err == nil {
+					// we have to tack on an XML header
+					withHeader := xml.Header + string(b)
+					bytesWithHeader := []byte(withHeader)
+
+					r.ContentLength = int64(len(bytesWithHeader))
+					r.Body = ioutil.NopCloser(bytes.NewReader(bytesWithHeader))
 				}
 			}
 			return r, err
