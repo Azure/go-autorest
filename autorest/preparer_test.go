@@ -238,6 +238,26 @@ func ExampleWithJSON() {
 	// Output: Request Body contains {"name":"Rob Pike","age":42}
 }
 
+// Create a request whose Body is the XML encoding of a structure
+func ExampleWithXML() {
+	t := mocks.T{Name: "Rob Pike", Age: 42}
+
+	r, err := Prepare(&http.Request{},
+		WithXML(&t))
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+	}
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+	} else {
+		fmt.Printf("Request Body contains %s\n", string(b))
+	}
+	// Output: Request Body contains <?xml version="1.0" encoding="UTF-8"?>
+	// <T><Name>Rob Pike</Name><Age>42</Age></T>
+}
+
 // Create a request from a path with escaped parameters
 func ExampleWithEscapedPathParameters() {
 	params := map[string]interface{}{
