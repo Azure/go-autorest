@@ -818,6 +818,33 @@ func TestDelayWithRetryAfterWithSuccess(t *testing.T) {
 	}
 }
 
+func TestDelayWithRetryAfterWithSuccessDateTime(t *testing.T) {
+	resumeAt := time.Now().Add(2 * time.Second).Round(time.Second)
+
+	client := mocks.NewSender()
+	resp := mocks.NewResponseWithStatus("503 Service temporarily unavailable", http.StatusServiceUnavailable)
+	mocks.SetResponseHeader(resp, "Retry-After", resumeAt.Format(time.RFC1123))
+	client.AppendResponse(resp)
+	client.AppendResponse(mocks.NewResponseWithStatus("200 OK", http.StatusOK))
+
+	r, _ := SendWithSender(client, mocks.NewRequest(),
+		DoRetryForStatusCodes(1, time.Duration(time.Second), http.StatusServiceUnavailable),
+	)
+
+	if time.Now().Before(resumeAt) {
+		t.Fatal("autorest: DelayWithRetryAfter failed stopped too soon")
+	}
+
+	Respond(r,
+		ByDiscardingBody(),
+		ByClosing())
+
+	if client.Attempts() != 2 {
+		t.Fatalf("autorest: Sender#DelayWithRetryAfter -- Got: StatusCode %v in %v attempts; Want: StatusCode 200 OK in 2 attempts -- ",
+			r.Status, client.Attempts()-1)
+	}
+}
+
 type temporaryError struct {
 	message string
 }
