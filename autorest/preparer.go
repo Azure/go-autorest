@@ -226,6 +226,25 @@ func WithBaseURL(baseURL string) PrepareDecorator {
 	}
 }
 
+// WithBytes returns a PrepareDecorator that takes a list of bytes
+// which passes the bytes directly to the body
+func WithBytes(input *[]byte) PrepareDecorator {
+	return func(p Preparer) Preparer {
+		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
+			r, err := p.Prepare(r)
+			if err == nil {
+				if input == nil {
+					return r, fmt.Errorf("Input Bytes was nil")
+				}
+
+				r.ContentLength = int64(len(*input))
+				r.Body = ioutil.NopCloser(bytes.NewReader(*input))
+			}
+			return r, err
+		})
+	}
+}
+
 // WithCustomBaseURL returns a PrepareDecorator that replaces brace-enclosed keys within the
 // request base URL (i.e., http.Request.URL) with the corresponding values from the passed map.
 func WithCustomBaseURL(baseURL string, urlParameters map[string]interface{}) PrepareDecorator {

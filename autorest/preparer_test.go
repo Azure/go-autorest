@@ -163,6 +163,30 @@ func ExampleWithBaseURL_second() {
 	// Output: parse :: missing protocol scheme
 }
 
+// Create a request whose Body is a byte array
+func TestWithBytes(t *testing.T) {
+	input := []byte{41, 82, 109}
+
+	r, err := Prepare(&http.Request{},
+		WithBytes(&input))
+	if err != nil {
+		t.Fatalf("ERROR: %v\n", err)
+	}
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		t.Fatalf("ERROR: %v\n", err)
+	}
+
+	if len(b) != len(input) {
+		t.Fatalf("Expected the Body to contain %d bytes but got %d", len(input), len(b))
+	}
+
+	if !reflect.DeepEqual(b, input) {
+		t.Fatalf("Body doesn't contain the same bytes: %s (Expected %s)", b, input)
+	}
+}
+
 func ExampleWithCustomBaseURL() {
 	r, err := Prepare(&http.Request{},
 		WithCustomBaseURL("https://{account}.{service}.core.windows.net/",
