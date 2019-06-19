@@ -191,6 +191,9 @@ func AsGet() PrepareDecorator { return WithMethod("GET") }
 // AsHead returns a PrepareDecorator that sets the HTTP method to HEAD.
 func AsHead() PrepareDecorator { return WithMethod("HEAD") }
 
+// AsMerge returns a PrepareDecorator that sets the HTTP method to MERGE.
+func AsMerge() PrepareDecorator { return WithMethod("MERGE") }
+
 // AsOptions returns a PrepareDecorator that sets the HTTP method to OPTIONS.
 func AsOptions() PrepareDecorator { return WithMethod("OPTIONS") }
 
