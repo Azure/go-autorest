@@ -468,6 +468,13 @@ func TestAsHead(t *testing.T) {
 	}
 }
 
+func TestAsMerge(t *testing.T) {
+	r, _ := Prepare(mocks.NewRequest(), AsMerge())
+	if r.Method != "MERGE" {
+		t.Fatal("autorest: AsMerge failed to set HTTP method header to MERGE")
+	}
+}
+
 func TestAsOptions(t *testing.T) {
 	r, _ := Prepare(mocks.NewRequest(), AsOptions())
 	if r.Method != "OPTIONS" {
