@@ -164,7 +164,7 @@ func ByUnmarshallingBytes(v *[]byte) RespondDecorator {
 				if errInner != nil {
 					err = fmt.Errorf("Error occurred reading http.Response#Body - Error = '%v'", errInner)
 				} else {
-					copy(*v, bytes)
+					v = &bytes
 				}
 			}
 			return err
