@@ -49,12 +49,13 @@ type ResourceIdentifier struct {
 
 // Environment represents a set of endpoints for each of Azure's Clouds.
 type Environment struct {
-	Name                         string             `json:"name"`
-	ManagementPortalURL          string             `json:"managementPortalURL"`
-	PublishSettingsURL           string             `json:"publishSettingsURL"`
-	ServiceManagementEndpoint    string             `json:"serviceManagementEndpoint"`
-	ResourceManagerEndpoint      string             `json:"resourceManagerEndpoint"`
-	ActiveDirectoryEndpoint      string             `json:"activeDirectoryEndpoint"`
+	Name                         string `json:"name"`
+	ManagementPortalURL          string `json:"managementPortalURL"`
+	PublishSettingsURL           string `json:"publishSettingsURL"`
+	ServiceManagementEndpoint    string `json:"serviceManagementEndpoint"`
+	ResourceManagerEndpoint      string `json:"resourceManagerEndpoint"`
+	ActiveDirectoryEndpoint      string `json:"activeDirectoryEndpoint"`
+	StorageEndpoint              string
 	GalleryEndpoint              string             `json:"galleryEndpoint"`
 	KeyVaultEndpoint             string             `json:"keyVaultEndpoint"`
 	GraphEndpoint                string             `json:"graphEndpoint"`
@@ -82,6 +83,7 @@ var (
 		ServiceManagementEndpoint:    "https://management.core.windows.net/",
 		ResourceManagerEndpoint:      "https://management.azure.com/",
 		ActiveDirectoryEndpoint:      "https://login.microsoftonline.com/",
+		StorageEndpoint:              "https://storage.azure.com/",
 		GalleryEndpoint:              "https://gallery.azure.com/",
 		KeyVaultEndpoint:             "https://vault.azure.net/",
 		GraphEndpoint:                "https://graph.windows.net/",
@@ -114,6 +116,7 @@ var (
 		ServiceManagementEndpoint:    "https://management.core.usgovcloudapi.net/",
 		ResourceManagerEndpoint:      "https://management.usgovcloudapi.net/",
 		ActiveDirectoryEndpoint:      "https://login.microsoftonline.us/",
+		StorageEndpoint:              "https://storage.azure.com/",
 		GalleryEndpoint:              "https://gallery.usgovcloudapi.net/",
 		KeyVaultEndpoint:             "https://vault.usgovcloudapi.net/",
 		GraphEndpoint:                "https://graph.windows.net/",
@@ -146,6 +149,7 @@ var (
 		ServiceManagementEndpoint:    "https://management.core.chinacloudapi.cn/",
 		ResourceManagerEndpoint:      "https://management.chinacloudapi.cn/",
 		ActiveDirectoryEndpoint:      "https://login.chinacloudapi.cn/",
+		StorageEndpoint:              "https://storage.azure.com/",
 		GalleryEndpoint:              "https://gallery.chinacloudapi.cn/",
 		KeyVaultEndpoint:             "https://vault.azure.cn/",
 		GraphEndpoint:                "https://graph.chinacloudapi.cn/",
@@ -178,6 +182,7 @@ var (
 		ServiceManagementEndpoint:    "https://management.core.cloudapi.de/",
 		ResourceManagerEndpoint:      "https://management.microsoftazure.de/",
 		ActiveDirectoryEndpoint:      "https://login.microsoftonline.de/",
+		StorageEndpoint:              "https://storage.azure.com/",
 		GalleryEndpoint:              "https://gallery.cloudapi.de/",
 		KeyVaultEndpoint:             "https://vault.microsoftazure.de/",
 		GraphEndpoint:                "https://graph.cloudapi.de/",
