@@ -52,7 +52,7 @@ func TestByUnmarshallingBytes(t *testing.T) {
 	expected := []byte("Lorem Ipsum Dolor")
 
 	// we'll create a fixed-sized array here, since that's the expectation
-	var bytes = make([]byte, len(expected))
+	bytes := make([]byte, len(expected))
 
 	Respond(mocks.NewResponseWithBytes(expected),
 		ByUnmarshallingBytes(&bytes),
