@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## v12.2.0
+
+### New Features
+
+- Added `autorest.WithXML`, `autorest.AsMerge`, `autorest.WithBytes` preparer decorators.
+- Added `autorest.ByUnmarshallingBytes` response decorator.
+- Added `Response.IsHTTPStatus` and `Response.HasHTTPStatus` helper methods for inspecting HTTP status code in `autorest.Response` types.
+
+### Bug Fixes
+
+- `autorest.DelayWithRetryAfter` now supports HTTP-Dates in the `Retry-After` header and is not limited to just 429 status codes.
+
 ## v12.1.0
 
 ### New Features
