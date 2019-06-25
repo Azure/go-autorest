@@ -570,7 +570,7 @@ func (ccc ClientCredentialsConfig) ServicePrincipalToken() (*adal.ServicePrincip
 
 // MultiTenantServicePrincipalToken creates a MultiTenantServicePrincipalToken from client credentials.
 func (ccc ClientCredentialsConfig) MultiTenantServicePrincipalToken() (*adal.MultiTenantServicePrincipalToken, error) {
-	oauthConfig, err := adal.NewMultiTenantOAuthConfig(ccc.AADEndpoint, ccc.TenantID, ccc.AuxTenants, adal.Config{})
+	oauthConfig, err := adal.NewMultiTenantOAuthConfig(ccc.AADEndpoint, ccc.TenantID, ccc.AuxTenants, adal.Options{})
 	if err != nil {
 		return nil, err
 	}

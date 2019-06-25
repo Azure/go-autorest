@@ -94,7 +94,7 @@ func TestNewOAuthConfigWithAPIVersionNotNil(t *testing.T) {
 }
 
 func TestNewMultiTenantOAuthConfig(t *testing.T) {
-	cfg, err := NewMultiTenantOAuthConfig(TestActiveDirectoryEndpoint, TestTenantID, TestAuxTenantIDs, Config{})
+	cfg, err := NewMultiTenantOAuthConfig(TestActiveDirectoryEndpoint, TestTenantID, TestAuxTenantIDs, Options{})
 	if err != nil {
 		t.Fatalf("autorest/adal: unexpected error while creating multitenant config: %v", err)
 	}
@@ -115,11 +115,11 @@ func TestNewMultiTenantOAuthConfig(t *testing.T) {
 }
 
 func TestNewMultiTenantOAuthConfigFail(t *testing.T) {
-	_, err := NewMultiTenantOAuthConfig(TestActiveDirectoryEndpoint, TestTenantID, nil, Config{})
+	_, err := NewMultiTenantOAuthConfig(TestActiveDirectoryEndpoint, TestTenantID, nil, Options{})
 	if err == nil {
 		t.Fatal("autorest/adal: expected non-nil error")
 	}
-	_, err = NewMultiTenantOAuthConfig(TestActiveDirectoryEndpoint, TestTenantID, []string{"one", "two", "three", "four"}, Config{})
+	_, err = NewMultiTenantOAuthConfig(TestActiveDirectoryEndpoint, TestTenantID, []string{"one", "two", "three", "four"}, Options{})
 	if err == nil {
 		t.Fatal("autorest/adal: expected non-nil error")
 	}

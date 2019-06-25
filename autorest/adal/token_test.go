@@ -846,7 +846,7 @@ func TestMarshalInnerToken(t *testing.T) {
 }
 
 func TestNewMultiTenantServicePrincipalToken(t *testing.T) {
-	cfg, err := NewMultiTenantOAuthConfig(TestActiveDirectoryEndpoint, TestTenantID, TestAuxTenantIDs, Config{})
+	cfg, err := NewMultiTenantOAuthConfig(TestActiveDirectoryEndpoint, TestTenantID, TestAuxTenantIDs, Options{})
 	if err != nil {
 		t.Fatalf("autorest/adal: unexpected error while creating multitenant config: %v", err)
 	}

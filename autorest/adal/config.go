@@ -100,12 +100,12 @@ type MultiTenantOAuthConfig interface {
 	AuxiliaryTenants() []*OAuthConfig
 }
 
-// Config contains optional OAuthConfig creation arguments.
-type Config struct {
+// Options contains optional OAuthConfig creation arguments.
+type Options struct {
 	APIVersion string
 }
 
-func (c Config) apiVersion() string {
+func (c Options) apiVersion() string {
 	if c.APIVersion != "" {
 		return fmt.Sprintf("?api-version=%s", c.APIVersion)
 	}
@@ -113,14 +113,15 @@ func (c Config) apiVersion() string {
 }
 
 // NewMultiTenantOAuthConfig creates an object that support multitenant OAuth configuration.
-func NewMultiTenantOAuthConfig(activeDirectoryEndpoint, primaryTenantID string, auxiliaryTenantIDs []string, cfg Config) (MultiTenantOAuthConfig, error) {
+// See https://docs.microsoft.com/en-us/azure/azure-resource-manager/authenticate-multi-tenant for more information.
+func NewMultiTenantOAuthConfig(activeDirectoryEndpoint, primaryTenantID string, auxiliaryTenantIDs []string, options Options) (MultiTenantOAuthConfig, error) {
 	if len(auxiliaryTenantIDs) == 0 || len(auxiliaryTenantIDs) > 3 {
 		return nil, errors.New("must specify one to three auxiliary tenants")
 	}
 	mtCfg := multiTenantOAuthConfig{
 		cfgs: make([]*OAuthConfig, len(auxiliaryTenantIDs)+1),
 	}
-	apiVer := cfg.apiVersion()
+	apiVer := options.apiVersion()
 	pri, err := NewOAuthConfigWithAPIVersion(activeDirectoryEndpoint, primaryTenantID, &apiVer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create OAuthConfig for primary tenant: %v", err)
