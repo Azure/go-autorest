@@ -100,12 +100,12 @@ type MultiTenantOAuthConfig interface {
 	AuxiliaryTenants() []*OAuthConfig
 }
 
-// Options contains optional OAuthConfig creation arguments.
-type Options struct {
+// OAuthOptions contains optional OAuthConfig creation arguments.
+type OAuthOptions struct {
 	APIVersion string
 }
 
-func (c Options) apiVersion() string {
+func (c OAuthOptions) apiVersion() string {
 	if c.APIVersion != "" {
 		return fmt.Sprintf("?api-version=%s", c.APIVersion)
 	}
@@ -114,7 +114,7 @@ func (c Options) apiVersion() string {
 
 // NewMultiTenantOAuthConfig creates an object that support multitenant OAuth configuration.
 // See https://docs.microsoft.com/en-us/azure/azure-resource-manager/authenticate-multi-tenant for more information.
-func NewMultiTenantOAuthConfig(activeDirectoryEndpoint, primaryTenantID string, auxiliaryTenantIDs []string, options Options) (MultiTenantOAuthConfig, error) {
+func NewMultiTenantOAuthConfig(activeDirectoryEndpoint, primaryTenantID string, auxiliaryTenantIDs []string, options OAuthOptions) (MultiTenantOAuthConfig, error) {
 	if len(auxiliaryTenantIDs) == 0 || len(auxiliaryTenantIDs) > 3 {
 		return nil, errors.New("must specify one to three auxiliary tenants")
 	}
