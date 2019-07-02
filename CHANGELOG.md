@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v12.3.0
+
+### New Features
+
+- Added `autorest.WithSendDecorators` and `autorest.GetSendDecorators` for adding and retrieving a custom chain of SendDecorators to the provided context.
+- Added `autorest.DoRetryForStatusCodesWithCap` and `autorest.DelayForBackoffWithCap` to enforce an upper bound on the duration between retries.
+
 ## v12.2.0
 
 ### New Features
