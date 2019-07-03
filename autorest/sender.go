@@ -241,8 +241,8 @@ func DoRetryForStatusCodes(attempts int, backoff time.Duration, codes ...int) Se
 
 // DoRetryForStatusCodesWithCap returns a SendDecorator that retries for specified statusCodes for up to the
 // specified number of attempts, exponentially backing off between requests using the supplied backoff
-// time.Duration (which may be zero). To cap the maximum possible delay specify a value greater than zero for
-// cap. Retrying may be canceled by cancelling the context on the http.Request.
+// time.Duration (which may be zero). To cap the maximum possible delay between iterations specify a value greater
+// than zero for cap. Retrying may be canceled by cancelling the context on the http.Request.
 func DoRetryForStatusCodesWithCap(attempts int, backoff, cap time.Duration, codes ...int) SendDecorator {
 	return func(s Sender) Sender {
 		return SenderFunc(func(r *http.Request) (*http.Response, error) {
@@ -251,7 +251,7 @@ func DoRetryForStatusCodesWithCap(attempts int, backoff, cap time.Duration, code
 	}
 }
 
-func doRetryForStatusCodesImpl(s Sender, r *http.Request, countAll bool, attempts int, backoff, cap time.Duration, codes ...int) (resp *http.Response, err error) {
+func doRetryForStatusCodesImpl(s Sender, r *http.Request, count429 bool, attempts int, backoff, cap time.Duration, codes ...int) (resp *http.Response, err error) {
 	rr := NewRetriableRequest(r)
 	// Increment to add the first call (attempts denotes number of retries)
 	for attempt := 0; attempt < attempts+1; {
@@ -273,9 +273,9 @@ func doRetryForStatusCodesImpl(s Sender, r *http.Request, countAll bool, attempt
 		if !delayed && !DelayForBackoffWithCap(backoff, cap, attempt, r.Context().Done()) {
 			return resp, r.Context().Err()
 		}
-		// when countAll == false don't count a 429 against the number
+		// when count429 == false don't count a 429 against the number
 		// of attempts so that we continue to retry until it succeeds
-		if countAll || (resp == nil || resp.StatusCode != http.StatusTooManyRequests) {
+		if count429 || (resp == nil || resp.StatusCode != http.StatusTooManyRequests) {
 			attempt++
 		}
 	}
