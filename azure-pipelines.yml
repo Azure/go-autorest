@@ -3,3 +3,43 @@ pool:
 
 trigger:
 - master
+
+variables:
+  GOROOT: '/usr/local/go1.12'
+  GOPATH: '$(system.defaultWorkingDirectory)/work'
+  sdkPath: '$(GOPATH)/src/github.com/$(build.repository.name)'
+
+steps:
+- script: |
+    set -e
+    mkdir -p '$(GOPATH)/bin'
+    mkdir -p '$(sdkPath)'
+    shopt -s extglob
+    mv !(work) '$(sdkPath)'
+    echo '##vso[task.prependpath]$(GOROOT)/bin'
+    echo '##vso[task.prependpath]$(GOPATH)/bin'
+  displayName: 'Create Go Workspace'
+- script: |
+    set -e
+    curl -sSL https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+    dep ensure -v
+    go install ./vendor/golang.org/x/lint/golint
+  workingDirectory: '$(sdkPath)'
+  displayName: 'Install Dependencies'
+- script: |
+    set -e
+    grep -L -r --include *.go --exclude-dir vendor -P "Copyright (\d{4}|\(c\)) Microsoft" ./ | tee >&2 | test -z "$(<&0)"
+    test -z "$(gofmt -s -l -w ./autorest/. | tee >&2)"
+    test -z "$(golint ./autorest/... |  tee >&2)"
+  workingDirectory: '$(sdkPath)'
+  displayName: 'Formatting and Linting'
+- script: |
+    set -e
+    go vet ./autorest/...
+    go build -v ./autorest/...
+  workingDirectory: '$(sdkPath)'
+  displayName: 'Vet and Build'
+- script: |
+    go test -race -v ./autorest/...
+  workingDirectory: '$(sdkPath)'
+  displayName: 'Run Tests'
