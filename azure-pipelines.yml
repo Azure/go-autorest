@@ -1,9 +1,6 @@
 pool:
   vmImage: 'Ubuntu 16.04'
 
-trigger:
-- master
-
 variables:
   GOROOT: '/usr/local/go1.12'
   GOPATH: '$(system.defaultWorkingDirectory)/work'
