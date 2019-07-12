@@ -38,8 +38,7 @@ steps:
     go test -race -v -coverprofile=coverage.txt -covermode atomic ./autorest/... 2>&1 | go-junit-report > report.xml
     gocov convert coverage.txt > coverage.json
     gocov-xml < coverage.json > coverage.xml
-    mkdir coverage
-    gocov-html < coverage.json > coverage/index.html
+    gocov-html < coverage.json > coverage.html
   workingDirectory: '$(sdkPath)'
   displayName: 'Run Tests'
 - script: grep -L -r --include *.go --exclude-dir vendor -P "Copyright (\d{4}|\(c\)) Microsoft" ./ | tee >&2
@@ -61,10 +60,11 @@ steps:
 - task: PublishTestResults@2
   inputs:
     testRunner: JUnit
-    testResultsFiles: $(System.DefaultWorkingDirectory)/**/report.xml
+    testResultsFiles: $(System.DefaultWorkingDirectory)/report.xml
 
 - task: PublishCodeCoverageResults@1
   inputs:
     codeCoverageTool: Cobertura 
-    summaryFileLocation: $(System.DefaultWorkingDirectory)/**/coverage.xml
-    reportDirectory: $(System.DefaultWorkingDirectory)/**/coverage
+    summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
+    reportDirectory: $(System.DefaultWorkingDirectory)/coverage
+    additionalCodeCoverageFiles: $(System.DefaultWorkingDirectory)/coverage.html
