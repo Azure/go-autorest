@@ -66,5 +66,4 @@ steps:
   inputs:
     codeCoverageTool: Cobertura 
     summaryFileLocation: $(sdkPath)/coverage.xml
-    reportDirectory: $(sdkPath)/coverage
     additionalCodeCoverageFiles: $(sdkPath)/coverage.html
