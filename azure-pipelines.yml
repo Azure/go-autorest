@@ -21,6 +21,10 @@ steps:
     curl -sSL https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
     dep ensure -v
     go install ./vendor/golang.org/x/lint/golint
+    go get github.com/jstemmer/go-junit-report
+    go get github.com/axw/gocov/gocov
+    go get github.com/AlekSi/gocov-xml
+    go get -u gopkg.in/matm/v1/gocov-html
   workingDirectory: '$(sdkPath)'
   displayName: 'Install Dependencies'
 - script: go vet ./autorest/...
@@ -29,7 +33,12 @@ steps:
 - script: go build -v ./autorest/...
   workingDirectory: '$(sdkPath)'
   displayName: 'Build'
-- script: go test -race -v ./autorest/...
+- script: |
+    set -e
+    go test -race -v -coverprofile=coverage.txt -covermode atomic ./autorest/... 2>&1 | go-junit-report > report.xml
+    gocov convert coverage.txt > coverage.json
+    gocov-xml < coverage.json > coverage.xml
+    gocov-html < coverage.json > coverage.html
   workingDirectory: '$(sdkPath)'
   displayName: 'Run Tests'
 - script: grep -L -r --include *.go --exclude-dir vendor -P "Copyright (\d{4}|\(c\)) Microsoft" ./ | tee >&2
@@ -47,3 +56,14 @@ steps:
   displayName: 'Linter Check'
   failOnStderr: true
   condition: succeededOrFailed()
+
+- task: PublishTestResults@2
+  inputs:
+    testRunner: JUnit
+    testResultsFiles: $(sdkPath)/report.xml
+
+- task: PublishCodeCoverageResults@1
+  inputs:
+    codeCoverageTool: Cobertura 
+    summaryFileLocation: $(sdkPath)/coverage.xml
+    additionalCodeCoverageFiles: $(sdkPath)/coverage.html
