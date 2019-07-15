@@ -154,7 +154,7 @@ replace (
 	...
 )
 ```
-The run `go mod tidy; go mod vendor`. After that you can check the `vendor/modules.txt` file to confirm that the latest version of the modules are used as dependency.
+Then run `go mod tidy; go mod vendor`. After that you can check the `vendor/modules.txt` file to confirm that the latest version of the modules are used as dependency.
 
 ## License
 
