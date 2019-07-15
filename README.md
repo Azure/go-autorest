@@ -139,7 +139,7 @@ go get github.com/Azure/go-autorest/autorest/to
 Since [v12.0.1](https://github.com/Azure/go-autorest/pull/386), this repository added support for Go modules on per package basis. If your code directly and/or indirectly depends on previous versions of autorest library, use replacements to tell Go to use the latest version of the modules from this repo:
 
 ```
-module github.com/appscode/osm
+module your_module_here
 
 go 1.12
 
