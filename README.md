@@ -135,6 +135,27 @@ go get github.com/Azure/go-autorest/autorest/date
 go get github.com/Azure/go-autorest/autorest/to
 ```
 
+### Using with GO Modules
+Since [v12.0.1](https://github.com/Azure/go-autorest/pull/386), this repository added support for Go modules on per package basis. If your code directly and/or indirectly depends on previous versions of autorest library, use replacements to tell Go to use the latest version of the modules from this repo:
+
+```
+module github.com/appscode/osm
+
+go 1.12
+
+require (
+	github.com/Azure/azure-sdk-for-go v31.1.0+incompatible
+	github.com/Azure/go-autorest/autorest v0.5.0
+	...
+)
+
+replace (
+	github.com/Azure/go-autorest => github.com/Azure/go-autorest/autorest v0.5.0
+	...
+)
+```
+The run `go mod tidy; go mod vendor`. After that you can check the `vendor/modules.txt` file to confirm that the latest version of the modules are used as dependency.
+
 ## License
 
 See LICENSE file.
