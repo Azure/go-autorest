@@ -150,7 +150,7 @@ require (
 )
 
 replace (
-	github.com/Azure/go-autorest => github.com/Azure/go-autorest/autorest v0.5.0
+	github.com/Azure/go-autorest => github.com/Azure/go-autorest v12.3.0+incompatible
 	...
 )
 ```
