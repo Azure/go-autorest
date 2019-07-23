@@ -15,6 +15,7 @@ package autorest
 //  limitations under the License.
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -849,5 +850,28 @@ func TestModifyingRequestWithExistingQueryParameters(t *testing.T) {
 
 	if r.URL.RawQuery != "pq=golang+encoded&q=golang+the+best" {
 		t.Fatalf("autorest: Preparing an existing request failed when setting the query parameters (%s)", r.URL.RawQuery)
+	}
+}
+
+func TestGetPrepareDecorators(t *testing.T) {
+	pd := GetPrepareDecorators(context.Background())
+	if l := len(pd); l != 0 {
+		t.Fatalf("expected zero length but got %d", l)
+	}
+	pd = GetPrepareDecorators(context.Background(), WithNothing(), AsFormURLEncoded())
+	if l := len(pd); l != 2 {
+		t.Fatalf("expected length of two but got %d", l)
+	}
+}
+
+func TestWithPrepareDecorators(t *testing.T) {
+	ctx := WithPrepareDecorators(context.Background(), []PrepareDecorator{WithUserAgent("somestring")})
+	pd := GetPrepareDecorators(ctx)
+	if l := len(pd); l != 1 {
+		t.Fatalf("expected length of one but got %d", l)
+	}
+	pd = GetPrepareDecorators(ctx, WithNothing(), WithNothing())
+	if l := len(pd); l != 1 {
+		t.Fatalf("expected length of one but got %d", l)
 	}
 }

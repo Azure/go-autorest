@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v12.4.0
+
+### New Features
+
+- Added `autorest.WithPrepareDecorators` and `autorest.GetPrepareDecorators` for adding and retrieving a custom chain of PrepareDecorators to the provided context.
+
 ## v12.3.0
 
 ### New Features
