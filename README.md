@@ -135,11 +135,26 @@ go get github.com/Azure/go-autorest/autorest/date
 go get github.com/Azure/go-autorest/autorest/to
 ```
 
-### Using with GO Modules
-Since [v12.0.1](https://github.com/Azure/go-autorest/pull/386), this repository added support for Go modules on per package basis. If your code directly and/or indirectly depends on previous versions of autorest library, use replacements to tell Go to use the latest version of the modules from this repo:
+### Using with Go Modules
+In [v12.0.1](https://github.com/Azure/go-autorest/pull/386), this repository introduced the following modules.
+
+- autorest/adal
+- autorest/azure/auth
+- autorest/azure/cli
+- autorest/date
+- autorest/mocks
+- autorest/to
+- autorest/validation
+- autorest
+- logger
+- tracing
+
+Tagging cumulative SDK releases as a whole (e.g. `v12.3.0`) is still enabled to support consumers of this repo that have not yet migrated to modules.
+
+If you're using modules and your code directly and/or indirectly depends on previous versions of `go-autorest` (e.g. as a dependency from azure-sdk-for-go), and if you get an ambiguous import for any packages from `go-autorest` you might need to use a replacement to tell Go to use the latest version of the SDK from this repo.
 
 ```
-module your_module_here
+module <your_module_here>
 
 go 1.12
 
@@ -154,7 +169,8 @@ replace (
 	...
 )
 ```
-Then run `go mod tidy; go mod vendor`. After that you can check the `vendor/modules.txt` file to confirm that the latest version of the modules are used as dependency. Also use `-mod=vendor` flag with your `go` build/run/install commands so that Go uses the vendored version of the dependencies to avoid errors.
+
+Once azure-sdk-for-go has been converted to modules this replacement should no longer be necessary.
 
 ## License
 
