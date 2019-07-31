@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v12.4.1
+
+### Bug Fixes
+
+- Updated OpenCensus and OCAgent versions to versions that don't depend on v1.3+ of protobuf as it was breaking kubernetes.
+- Pinned opencensus-proto to a version that's compatible with our versions of OpenCensus and OCAgent.
+
 ## v12.4.0
 
 ### New Features
