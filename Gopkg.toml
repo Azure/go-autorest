@@ -43,8 +43,12 @@ required = ["golang.org/x/lint/golint"]
 
 [[constraint]]
   name = "go.opencensus.io"
-  version = "0.19.2"
+  version = "=0.21.0"
 
 [[constraint]]
   name = "contrib.go.opencensus.io/exporter/ocagent"
-  version = "0.4.5"
+  version = "=0.3.0"
+
+[[override]]
+  name = "github.com/census-instrumentation/opencensus-proto"
+  version = "=0.1.0"
