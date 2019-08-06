@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## v12.4.2
+
+### Bug Fixes
+
+- Improvements to the fixes made in v12.4.1.
+  - Remove `override` stanza from Gopkg.toml and `replace` directive from go.mod as they don't apply when being consumed as a dependency.
+  - Switched to latest version of `ocagent` that still depends on protobuf v1.2.
+  - Add indirect dependencies to the `required` clause with matching `constraint` stanzas so that `dep` dependencies match go.sum.
+
 ## v12.4.1
 
 ### Bug Fixes
