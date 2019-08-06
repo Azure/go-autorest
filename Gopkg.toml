@@ -19,7 +19,15 @@
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
-required = ["golang.org/x/lint/golint"]
+required = [
+    "github.com/census-instrumentation/opencensus-proto/gen-go/stats/v1",
+    "github.com/golang/protobuf/proto",
+    "github.com/grpc-ecosystem/grpc-gateway/runtime",
+    "golang.org/x/lint/golint",
+    "google.golang.org/api/container/v1",
+    "google.golang.org/genproto",
+    "google.golang.org/grpc"
+  ]
 
 [prune]
   unused-packages = true
@@ -43,12 +51,32 @@ required = ["golang.org/x/lint/golint"]
 
 [[constraint]]
   name = "go.opencensus.io"
-  version = "=0.21.0"
+  revision = "aab39bd6a98b853ab66c8a564f5d6cfcad59ce8a"
 
 [[constraint]]
   name = "contrib.go.opencensus.io/exporter/ocagent"
-  version = "=0.3.0"
+  version = "=0.4.6"
 
-[[override]]
+[[constraint]]
   name = "github.com/census-instrumentation/opencensus-proto"
-  version = "=0.1.0"
+  revision = "ba49f56771b83cff7bea7f34d1236fc139dbc471"
+
+[[constraint]]
+  name = "github.com/golang/protobuf"
+  version = "=1.2.0"
+
+[[constraint]]
+  name = "google.golang.org/api"
+  revision = "7ca32eb868bf53ea2fc406698eb98583a8073d19"
+
+[[constraint]]
+  name = "google.golang.org/genproto"
+  revision = "11092d34479b07829b72e10713b159248caf5dad"
+
+[[constraint]]
+  name = "google.golang.org/grpc"
+  version = "=1.15.0"
+
+[[constraint]]
+  name = "github.com/grpc-ecosystem/grpc-gateway"
+  version = "=1.5.0"
