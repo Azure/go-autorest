@@ -1024,6 +1024,32 @@ func (mt *MultiTenantServicePrincipalToken) EnsureFreshWithContext(ctx context.C
 	return nil
 }
 
+// RefreshWithContext obtains a fresh token for the Service Principal.
+func (mt *MultiTenantServicePrincipalToken) RefreshWithContext(ctx context.Context) error {
+	if err := mt.PrimaryToken.RefreshWithContext(ctx); err != nil {
+		return fmt.Errorf("failed to refresh primary token: %v", err)
+	}
+	for _, aux := range mt.AuxiliaryTokens {
+		if err := aux.RefreshWithContext(ctx); err != nil {
+			return fmt.Errorf("failed to refresh auxiliary token: %v", err)
+		}
+	}
+	return nil
+}
+
+// RefreshExchangeWithContext refreshes the token, but for a different resource.
+func (mt *MultiTenantServicePrincipalToken) RefreshExchangeWithContext(ctx context.Context, resource string) error {
+	if err := mt.PrimaryToken.RefreshExchangeWithContext(ctx, resource); err != nil {
+		return fmt.Errorf("failed to refresh primary token: %v", err)
+	}
+	for _, aux := range mt.AuxiliaryTokens {
+		if err := aux.RefreshExchangeWithContext(ctx, resource); err != nil {
+			return fmt.Errorf("failed to refresh auxiliary token: %v", err)
+		}
+	}
+	return nil
+}
+
 // NewMultiTenantServicePrincipalToken creates a new MultiTenantServicePrincipalToken with the specified credentials and resource.
 func NewMultiTenantServicePrincipalToken(multiTenantCfg MultiTenantOAuthConfig, clientID string, secret string, resource string) (*MultiTenantServicePrincipalToken, error) {
 	if err := validateStringParam(clientID, "clientID"); err != nil {

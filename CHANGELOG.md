@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v12.4.3
+
+### Bug Fixes
+
+- `autorest.MultiTenantServicePrincipalTokenAuthorizer` will now properly add its auxiliary bearer tokens.
+
 ## v12.4.2
 
 ### Bug Fixes
