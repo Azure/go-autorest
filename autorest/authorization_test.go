@@ -366,8 +366,10 @@ func TestMultiTenantServicePrincipalTokenWithAuthorizationRefresh(t *testing.T) 
 	if err != nil {
 		t.Fatalf("azure: multiTenantSPTAuthorizer#WithAuthorization returned an error (%v)", err)
 	}
-	if req.Header.Get(http.CanonicalHeaderKey("Authorization")) != fmt.Sprintf("Bearer %s", mtSpt.PrimaryOAuthToken()) {
+	if ah := req.Header.Get(http.CanonicalHeaderKey("Authorization")); ah != fmt.Sprintf("Bearer %s", mtSpt.PrimaryOAuthToken()) {
 		t.Fatal("azure: multiTenantSPTAuthorizer#WithAuthorization failed to set Authorization header for primary token")
+	} else if ah != "Bearer primary token refreshed" {
+		t.Fatal("azure: multiTenantSPTAuthorizer#WithAuthorization primary token value doesn't match")
 	}
 	auxTokens := mtSpt.AuxiliaryOAuthTokens()
 	for i := range auxTokens {
@@ -376,6 +378,11 @@ func TestMultiTenantServicePrincipalTokenWithAuthorizationRefresh(t *testing.T) 
 	auxHeader := req.Header.Get(http.CanonicalHeaderKey(headerAuxAuthorization))
 	if auxHeader != strings.Join(auxTokens, "; ") {
 		t.Fatal("azure: multiTenantSPTAuthorizer#WithAuthorization failed to set Authorization header for auxiliary tokens")
+	}
+	for i := range auxTokens {
+		if auxTokens[i] != fmt.Sprintf("Bearer aux token %d refreshed", i+1) {
+			t.Fatal("azure: multiTenantSPTAuthorizer#WithAuthorization auxiliary token value doesn't match")
+		}
 	}
 }
 
