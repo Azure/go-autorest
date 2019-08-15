@@ -34,7 +34,6 @@ import (
 	"time"
 
 	"github.com/Azure/go-autorest/autorest/date"
-	"github.com/Azure/go-autorest/tracing"
 	"github.com/dgrijalva/jwt-go"
 )
 
@@ -396,7 +395,7 @@ func (spt *ServicePrincipalToken) UnmarshalJSON(data []byte) error {
 		spt.refreshLock = &sync.RWMutex{}
 	}
 	if spt.sender == nil {
-		spt.sender = &http.Client{Transport: tracing.Transport}
+		spt.sender = sender()
 	}
 	return nil
 }
@@ -444,7 +443,7 @@ func NewServicePrincipalTokenWithSecret(oauthConfig OAuthConfig, id string, reso
 			RefreshWithin: defaultRefresh,
 		},
 		refreshLock:      &sync.RWMutex{},
-		sender:           &http.Client{Transport: tracing.Transport},
+		sender:           sender(),
 		refreshCallbacks: callbacks,
 	}
 	return spt, nil
@@ -685,7 +684,7 @@ func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, userAssignedI
 			RefreshWithin: defaultRefresh,
 		},
 		refreshLock:           &sync.RWMutex{},
-		sender:                &http.Client{Transport: tracing.Transport},
+		sender:                sender(),
 		refreshCallbacks:      callbacks,
 		MaxMSIRefreshAttempts: defaultMaxMSIRefreshAttempts,
 	}
