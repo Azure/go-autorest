@@ -98,6 +98,9 @@ func TestTracingByEnv(t *testing.T) {
 func TestEnableTracingWithAIError(t *testing.T) {
 	agentEndpoint := fmt.Sprintf("%s:%d", ocagent.DefaultAgentHost, ocagent.DefaultAgentPort)
 	err := EnableWithAIForwarding(agentEndpoint)
+	if err != nil {
+		t.Fatalf("Enable returned an error: %v", err)
+	}
 	if !IsEnabled() {
 		t.Fatalf("Enable failed, IsEnabled() is %t", IsEnabled())
 	}
@@ -114,10 +117,6 @@ func TestEnableTracingWithAIError(t *testing.T) {
 		if fv == nil || !reflect.DeepEqual(v, fv) {
 			t.Fatalf("Enable failed, view %s was not registered", n)
 		}
-	}
-
-	if err == nil {
-		t.Fatal("Expected error on no agent running, got nil")
 	}
 }
 
