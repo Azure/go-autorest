@@ -130,7 +130,7 @@ func WithHeader(header string, value string) PrepareDecorator {
 				if r.Header == nil {
 					r.Header = make(http.Header)
 				}
-				r.Header.Set(http.CanonicalHeaderKey(header), value)
+				r.Header.Set(http.CanonicalHeaderKey(header), url.PathEscape(value))
 			}
 			return r, err
 		})
@@ -151,7 +151,7 @@ func WithHeaders(headers map[string]interface{}) PrepareDecorator {
 				}
 
 				for name, value := range h {
-					r.Header.Set(http.CanonicalHeaderKey(name), value)
+					r.Header.Set(http.CanonicalHeaderKey(name), url.PathEscape(value))
 				}
 			}
 			return r, err

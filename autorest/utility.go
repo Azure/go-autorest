@@ -181,7 +181,9 @@ func Encode(location string, v interface{}, sep ...string) string {
 	case "path":
 		return pathEscape(s)
 	case "query":
-		return queryEscape(s)
+		return url.QueryEscape(s)
+	case "header":
+		return url.PathEscape(s)
 	default:
 		return s
 	}
@@ -189,10 +191,6 @@ func Encode(location string, v interface{}, sep ...string) string {
 
 func pathEscape(s string) string {
 	return strings.Replace(url.QueryEscape(s), "+", "%20", -1)
-}
-
-func queryEscape(s string) string {
-	return url.QueryEscape(s)
 }
 
 // ChangeToGet turns the specified http.Request into a GET (it assumes it wasn't).

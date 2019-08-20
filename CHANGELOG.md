@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v13.0.1
+
+### Bug Fixes
+
+- Call `url.PathEscape()` on header values.
+
 ## v13.0.0
 
 ## Breaking Changes
