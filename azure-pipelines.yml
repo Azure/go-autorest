@@ -73,6 +73,7 @@ steps:
   inputs:
     testRunner: JUnit
     testResultsFiles: $(sdkPath)/report.xml
+    failTaskOnFailedTests: true
 
 - task: PublishCodeCoverageResults@1
   inputs:
