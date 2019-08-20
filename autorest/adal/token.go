@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"net"
@@ -907,6 +908,10 @@ func retryForIMDS(sender Sender, req *http.Request, maxAttempts int) (resp *http
 	delay := time.Duration(0)
 
 	for attempt < maxAttempts {
+		if resp != nil && resp.Body != nil {
+			io.Copy(ioutil.Discard, resp.Body)
+			resp.Body.Close()
+		}
 		resp, err = sender.Do(req)
 		// retry on temporary network errors, e.g. transient network failures.
 		// if we don't receive a response then assume we can't connect to the

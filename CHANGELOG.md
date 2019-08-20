@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v11.10.0
+
+### New Features
+
+- Added helper `autorest.DrainResponseBody()` for draining HTTP response bodies.
+
+### Bug Fixes
+
+- The retry senders now drain their response bodies between retry attempts.
+- Method `Future.GetResult()` no longer leaks its connection.
+
 ## v11.9.0
 
 ### New Features

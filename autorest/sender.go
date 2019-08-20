@@ -196,6 +196,7 @@ func DoRetryForAttempts(attempts int, backoff time.Duration) SendDecorator {
 				if err != nil {
 					return resp, err
 				}
+				DrainResponseBody(resp)
 				resp, err = s.Do(rr.Request())
 				if err == nil {
 					return resp, err
@@ -223,6 +224,7 @@ func DoRetryForStatusCodes(attempts int, backoff time.Duration, codes ...int) Se
 				if err != nil {
 					return resp, err
 				}
+				DrainResponseBody(resp)
 				resp, err = s.Do(rr.Request())
 				// if the error isn't temporary don't bother retrying
 				if err != nil && !IsTemporaryNetworkError(err) {
@@ -280,6 +282,7 @@ func DoRetryForDuration(d time.Duration, backoff time.Duration) SendDecorator {
 				if err != nil {
 					return resp, err
 				}
+				DrainResponseBody(resp)
 				resp, err = s.Do(rr.Request())
 				if err == nil {
 					return resp, err
