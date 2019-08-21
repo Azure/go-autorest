@@ -26,6 +26,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -735,6 +736,22 @@ func TestGetVMEndpoint(t *testing.T) {
 	}
 
 	if endpoint != msiEndpoint {
+		t.Fatal("Didn't get correct endpoint")
+	}
+}
+
+func TestGetAppServiceEndpoint(t *testing.T) {
+	testEndpoint := "http://172.16.1.2:8081/msi/token"
+	if err := os.Setenv("MSI_ENDPOINT", testEndpoint); err != nil {
+		t.Fatalf("os.Setenv: %v", err)
+	}
+
+	endpoint, err := GetMSIAppServiceEndpoint()
+	if err != nil {
+		t.Fatal("Coudn't get App Service endpoint")
+	}
+
+	if endpoint != testEndpoint {
 		t.Fatal("Didn't get correct endpoint")
 	}
 }

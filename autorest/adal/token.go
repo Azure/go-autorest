@@ -28,6 +28,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -633,6 +634,31 @@ func GetMSIVMEndpoint() (string, error) {
 	return msiEndpoint, nil
 }
 
+func isAppService() bool {
+	_, endpointEnvExists := os.LookupEnv("MSI_ENDPOINT")
+	_, secretEnvExists := os.LookupEnv("MSI_SECRET")
+
+	return endpointEnvExists && secretEnvExists
+}
+
+// GetMSIAppServiceEndpoint get the MSI endpoint for App Service and Functions
+func GetMSIAppServiceEndpoint() (string, error) {
+	asMSIEndpoint, endpointEnvExists := os.LookupEnv("MSI_ENDPOINT")
+
+	if endpointEnvExists {
+		return asMSIEndpoint, nil
+	}
+	return "", errors.New("MSI endpoint not found")
+}
+
+// GetMSIEndpoint get the appropriate MSI endpoint depending on the runtime environment
+func GetMSIEndpoint() (string, error) {
+	if isAppService() {
+		return GetMSIAppServiceEndpoint()
+	}
+	return GetMSIVMEndpoint()
+}
+
 // NewServicePrincipalTokenFromMSI creates a ServicePrincipalToken via the MSI VM Extension.
 // It will use the system assigned identity when creating the token.
 func NewServicePrincipalTokenFromMSI(msiEndpoint, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
@@ -665,7 +691,12 @@ func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, userAssignedI
 
 	v := url.Values{}
 	v.Set("resource", resource)
-	v.Set("api-version", "2018-02-01")
+	// App Service MSI currently only supports token API version 2017-09-01
+	if isAppService() {
+		v.Set("api-version", "2017-09-01")
+	} else {
+		v.Set("api-version", "2018-02-01")
+	}
 	if userAssignedID != nil {
 		v.Set("client_id", *userAssignedID)
 	}
@@ -801,6 +832,11 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 		return fmt.Errorf("adal: Failed to build the refresh request. Error = '%v'", err)
 	}
 	req.Header.Add("User-Agent", UserAgent())
+	// Add header when runtime is on App Service or Functions
+	if isAppService() {
+		asMSISecret, _ := os.LookupEnv("MSI_SECRET")
+		req.Header.Add("Secret", asMSISecret)
+	}
 	req = req.WithContext(ctx)
 	if !isIMDS(spt.inner.OauthConfig.TokenEndpoint) {
 		v := url.Values{}
