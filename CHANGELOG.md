@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v13.1.0
+
+### New Features
+
+- Added support for MSI authentication on Azure App Service and Azure Functions.
+
 ## v13.0.2
 
 ### Bug Fixes
