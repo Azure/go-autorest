@@ -144,7 +144,7 @@ type RequestError struct {
 	autorest.DetailedError
 
 	// The error returned by the Azure service.
-	ServiceError *ServiceError `json:"error",xml:"Error"`
+	ServiceError *ServiceError `json:"error", xml:"Error"`
 
 	// The request id (from the x-ms-request-id-header) of the request.
 	RequestID string
