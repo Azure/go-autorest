@@ -28,8 +28,6 @@ import (
 	"time"
 
 	"github.com/Azure/go-autorest/autorest/mocks"
-	"github.com/Azure/go-autorest/tracing"
-	"go.opencensus.io/plugin/ochttp"
 )
 
 func TestLoggingInspectorWithInspection(t *testing.T) {
@@ -134,7 +132,7 @@ func TestNewClientWithUserAgent(t *testing.T) {
 		t.Fatalf("autorest: NewClientWithUserAgent failed to set the UserAgent -- expected %s, received %s",
 			completeUA, c.UserAgent)
 	}
-	r := c.Sender.(*http.Client).Transport.(*ochttp.Transport).Base.(*http.Transport).TLSClientConfig.Renegotiation
+	r := c.Sender.(*http.Client).Transport.(*http.Transport).TLSClientConfig.Renegotiation
 	if r != tls.RenegotiateNever {
 		t.Fatal("autorest: TestNewClientWithUserAgentTLSRenegotiation expected RenegotiateNever")
 	}
@@ -146,21 +144,21 @@ func TestNewClientWithOptions(t *testing.T) {
 		UserAgent:     ua,
 		Renegotiation: tls.RenegotiateFreelyAsClient,
 	})
-	r1 := c1.Sender.(*http.Client).Transport.(*ochttp.Transport).Base.(*http.Transport).TLSClientConfig.Renegotiation
+	r1 := c1.Sender.(*http.Client).Transport.(*http.Transport).TLSClientConfig.Renegotiation
 	if r1 != tls.RenegotiateFreelyAsClient {
 		t.Fatal("autorest: TestNewClientWithUserAgentTLSRenegotiation expected RenegotiateFreelyAsClient")
 	}
 	// ensure default value doesn't stomp over previous value
 	c2 := NewClientWithUserAgent(ua)
-	r2 := c2.Sender.(*http.Client).Transport.(*ochttp.Transport).Base.(*http.Transport).TLSClientConfig.Renegotiation
+	r2 := c2.Sender.(*http.Client).Transport.(*http.Transport).TLSClientConfig.Renegotiation
 	if r2 != tls.RenegotiateNever {
 		t.Fatal("autorest: TestNewClientWithUserAgentTLSRenegotiation expected RenegotiateNever")
 	}
-	r1 = c1.Sender.(*http.Client).Transport.(*ochttp.Transport).Base.(*http.Transport).TLSClientConfig.Renegotiation
+	r1 = c1.Sender.(*http.Client).Transport.(*http.Transport).TLSClientConfig.Renegotiation
 	if r1 != tls.RenegotiateFreelyAsClient {
 		t.Fatal("autorest: TestNewClientWithUserAgentTLSRenegotiation expected RenegotiateFreelyAsClient (overwritten)")
 	}
-	r2 = c2.Sender.(*http.Client).Transport.(*ochttp.Transport).Base.(*http.Transport).TLSClientConfig.Renegotiation
+	r2 = c2.Sender.(*http.Client).Transport.(*http.Transport).TLSClientConfig.Renegotiation
 	if r2 != tls.RenegotiateNever {
 		t.Fatal("autorest: TestNewClientWithUserAgentTLSRenegotiation expected RenegotiateNever (overwritten)")
 	}
@@ -375,18 +373,6 @@ func TestClientByInspectingSetsDefault(t *testing.T) {
 
 	if !reflect.DeepEqual(r, &http.Response{}) {
 		t.Fatal("autorest: Client#ByInspecting failed to provide a default ResponseInspector")
-	}
-}
-
-func TestClientTracing(t *testing.T) {
-	c := Client{}
-
-	httpClient, ok := c.sender(tls.RenegotiateNever).(*http.Client)
-	if !ok {
-		t.Fatal("autorest: Client#sender failed to return http.Client by default")
-	}
-	if httpClient.Transport != tracing.Transport {
-		t.Fatal("autorest: Client.Sender Default transport is not the tracing transport")
 	}
 }
 

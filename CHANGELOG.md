@@ -1,5 +1,56 @@
 # CHANGELOG
 
+## v13.0.0
+
+## Breaking Changes
+
+The `tracing` package has been rewritten to provide a common interface for consumers to wire in the tracing package of their choice.
+What this means is that by default no tracing provider will be compiled into your program and setting the `AZURE_SDK_TRACING_ENABLED`
+environment variable will have no effect.  To enable this previous behavior you must now add the following include to your source file.
+```go
+  include _ "github.com/Azure/go-autorest/tracing/opencensus"
+```
+The APIs required by autorest-generated code have remained but some APIs have been removed and new ones added.
+The following APIs and variables have been removed (the majority of them were moved to the `opencensus` package).
+- tracing.Transport
+- tracing.Enable()
+- tracing.EnableWithAIForwarding()
+- tracing.Disable()
+
+The following APIs and types have been added
+- tracing.Tracer
+- tracing.Register()
+
+To hook up a tracer simply call `tracing.Register()` passing in a type that satisfies the `tracing.Tracer` interface.
+
+## v12.4.3
+
+### Bug Fixes
+
+- `autorest.MultiTenantServicePrincipalTokenAuthorizer` will now properly add its auxiliary bearer tokens.
+
+## v12.4.2
+
+### Bug Fixes
+
+- Improvements to the fixes made in v12.4.1.
+  - Remove `override` stanza from Gopkg.toml and `replace` directive from go.mod as they don't apply when being consumed as a dependency.
+  - Switched to latest version of `ocagent` that still depends on protobuf v1.2.
+  - Add indirect dependencies to the `required` clause with matching `constraint` stanzas so that `dep` dependencies match go.sum.
+
+## v12.4.1
+
+### Bug Fixes
+
+- Updated OpenCensus and OCAgent versions to versions that don't depend on v1.3+ of protobuf as it was breaking kubernetes.
+- Pinned opencensus-proto to a version that's compatible with our versions of OpenCensus and OCAgent.
+
+## v12.4.0
+
+### New Features
+
+- Added `autorest.WithPrepareDecorators` and `autorest.GetPrepareDecorators` for adding and retrieving a custom chain of PrepareDecorators to the provided context.
+
 ## v12.3.0
 
 ### New Features

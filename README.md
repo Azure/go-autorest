@@ -135,6 +135,22 @@ go get github.com/Azure/go-autorest/autorest/date
 go get github.com/Azure/go-autorest/autorest/to
 ```
 
+### Using with Go Modules
+In [v12.0.1](https://github.com/Azure/go-autorest/pull/386), this repository introduced the following modules.
+
+- autorest/adal
+- autorest/azure/auth
+- autorest/azure/cli
+- autorest/date
+- autorest/mocks
+- autorest/to
+- autorest/validation
+- autorest
+- logger
+- tracing
+
+Tagging cumulative SDK releases as a whole (e.g. `v12.3.0`) is still enabled to support consumers of this repo that have not yet migrated to modules.
+
 ## License
 
 See LICENSE file.
