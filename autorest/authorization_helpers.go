@@ -104,7 +104,7 @@ func buildCanonicalizedHeader(headers http.Header) string {
 }
 
 // buildCanonicalizedResource builds the Canonical Resource required for to sign Storage Account requests
-func buildCanonicalizedResource(uri, accountName string) (*string, error) {
+func buildCanonicalizedResource(uri, accountName string, sharedKeyLite bool) (*string, error) {
 	u, err := url.Parse(uri)
 	if err != nil {
 		return nil, err
@@ -123,13 +123,43 @@ func buildCanonicalizedResource(uri, accountName string) (*string, error) {
 		cr.WriteString(u.EscapedPath())
 	}
 
-	// TODO: replace this with less of a hack
-	if comp := u.Query().Get("comp"); comp != "" {
-		cr.WriteString(fmt.Sprintf("?comp=%s", comp))
+	if sharedKeyLite {
+		if comp := u.Query().Get("comp"); comp != "" {
+			cr.WriteString(fmt.Sprintf("?comp=%s", comp))
+		}
+	} else {
+		// Convert all parameter names to lowercase.
+		// URL-decode each query parameter name and value.
+		// Sort the query parameters lexicographically by parameter name, in ascending order.
+		keys := make([]string, 0)
+		keysWithValues := make(map[string]string, len(u.Query()))
+		for k, unsortedValues := range u.Query() {
+			key := strings.ToLower(k)
+			keys = append(keys, key)
+
+			// If a query parameter has more than one value, sort all values lexicographically, then include them in a comma-separated list:
+			sortedValues := make([]string, 0)
+			sortedValues = append(sortedValues, unsortedValues...)
+			sort.Strings(sortedValues)
+			keysWithValues[key] = strings.Join(sortedValues, ",")
+		}
+		sort.Strings(keys)
+
+		for _, key := range keys {
+			values := keysWithValues[key]
+			// Include a new-line character (\n) before each name-value pair.
+			// Append each query parameter name and value to the string in the following format, making sure to include the colon (:) between the name and the value
+			cr.WriteString(fmt.Sprintf("\n%s:%s", key, values))
+		}
 	}
 
-	out := string(cr.Bytes())
+	out := cr.String()
 	return &out, nil
+}
+
+func formatSharedKeyAuthorizationHeader(accountName, key string) string {
+	canonicalizedAccountName := primaryStorageAccountName(accountName)
+	return fmt.Sprintf("SharedKey %s:%s", canonicalizedAccountName, key)
 }
 
 func formatSharedKeyLiteAuthorizationHeader(accountName, key string) string {
