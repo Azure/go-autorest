@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v13.0.1
+
+## Bug Fixes
+
+- Fixed `autorest.WithQueryParameters()` so that it properly encodes multi-value query parameters.
+
 ## v13.0.0
 
 ## Breaking Changes
