@@ -320,8 +320,8 @@ func ExampleWithPathParameters() {
 // Create a request with query parameters
 func ExampleWithQueryParameters() {
 	params := map[string]interface{}{
-		"q1": "value1",
-		"q2": "value2",
+		"q1": []string{"value1"},
+		"q2": []string{"value2"},
 	}
 	r, err := Prepare(&http.Request{},
 		WithBaseURL("https://microsoft.com/"),
@@ -835,6 +835,7 @@ func TestModifyingRequestWithExistingQueryParameters(t *testing.T) {
 		WithPath("search"),
 		WithQueryParameters(map[string]interface{}{"q": "golang the best"}),
 		WithQueryParameters(map[string]interface{}{"pq": "golang+encoded"}),
+		WithQueryParameters(map[string]interface{}{"zq": []string{"one", "two"}}),
 	)
 	if err != nil {
 		t.Fatalf("autorest: Preparing an existing request returned an error (%v)", err)
@@ -848,7 +849,7 @@ func TestModifyingRequestWithExistingQueryParameters(t *testing.T) {
 		t.Fatalf("autorest: Preparing an existing request failed when setting the path (%s)", r.URL.Path)
 	}
 
-	if r.URL.RawQuery != "pq=golang+encoded&q=golang+the+best" {
+	if r.URL.RawQuery != "pq=golang+encoded&q=golang+the+best&zq=one&zq=two" {
 		t.Fatalf("autorest: Preparing an existing request failed when setting the query parameters (%s)", r.URL.RawQuery)
 	}
 }
