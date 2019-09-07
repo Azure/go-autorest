@@ -63,6 +63,12 @@ const (
 
 	// the default number of attempts to refresh an MSI authentication token
 	defaultMaxMSIRefreshAttempts = 5
+
+	// asMSIEndpointEnv is the environment variable used to store the endpoint on App Service and Functions
+	asMSIEndpointEnv = "MSI_ENDPOINT"
+
+	// asMSISecretEnv is the environment variable used to store the request secret on App Service and Functions
+	asMSISecretEnv = "MSI_SECRET"
 )
 
 // OAuthTokenProvider is an interface which should be implemented by an access token retriever
@@ -635,17 +641,17 @@ func GetMSIVMEndpoint() (string, error) {
 }
 
 func isAppService() bool {
-	_, endpointEnvExists := os.LookupEnv("MSI_ENDPOINT")
-	_, secretEnvExists := os.LookupEnv("MSI_SECRET")
+	_, asMSIEndpointEnvExists := os.LookupEnv(asMSIEndpointEnv)
+	_, asMSISecretEnvExists := os.LookupEnv(asMSISecretEnv)
 
-	return endpointEnvExists && secretEnvExists
+	return asMSIEndpointEnvExists && asMSISecretEnvExists
 }
 
 // GetMSIAppServiceEndpoint get the MSI endpoint for App Service and Functions
 func GetMSIAppServiceEndpoint() (string, error) {
-	asMSIEndpoint, endpointEnvExists := os.LookupEnv("MSI_ENDPOINT")
+	asMSIEndpoint, asMSIEndpointEnvExists := os.LookupEnv(asMSIEndpointEnv)
 
-	if endpointEnvExists {
+	if asMSIEndpointEnvExists {
 		return asMSIEndpoint, nil
 	}
 	return "", errors.New("MSI endpoint not found")
@@ -834,7 +840,7 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 	req.Header.Add("User-Agent", UserAgent())
 	// Add header when runtime is on App Service or Functions
 	if isAppService() {
-		asMSISecret, _ := os.LookupEnv("MSI_SECRET")
+		asMSISecret, _ := os.LookupEnv(asMSISecretEnv)
 		req.Header.Add("Secret", asMSISecret)
 	}
 	req = req.WithContext(ctx)
