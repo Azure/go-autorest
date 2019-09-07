@@ -742,7 +742,7 @@ func TestGetVMEndpoint(t *testing.T) {
 
 func TestGetAppServiceEndpoint(t *testing.T) {
 	const testEndpoint = "http://172.16.1.2:8081/msi/token"
-	if err := os.Setenv("MSI_ENDPOINT", testEndpoint); err != nil {
+	if err := os.Setenv(asMSIEndpointEnv, testEndpoint); err != nil {
 		t.Fatalf("os.Setenv: %v", err)
 	}
 
@@ -755,7 +755,7 @@ func TestGetAppServiceEndpoint(t *testing.T) {
 		t.Fatal("Didn't get correct endpoint")
 	}
 
-	if err := os.Unsetenv("MSI_ENDPOINT"); err != nil {
+	if err := os.Unsetenv(asMSIEndpointEnv); err != nil {
 		t.Fatalf("os.Unsetenv: %v", err)
 	}
 }
@@ -767,11 +767,11 @@ func TestGetMSIEndpoint(t *testing.T) {
 	)
 
 	// Test VM well-known endpoint is returned
-	if err := os.Unsetenv("MSI_ENDPOINT"); err != nil {
+	if err := os.Unsetenv(asMSIEndpointEnv); err != nil {
 		t.Fatalf("os.Unsetenv: %v", err)
 	}
 
-	if err := os.Unsetenv("MSI_SECRET"); err != nil {
+	if err := os.Unsetenv(asMSISecretEnv); err != nil {
 		t.Fatalf("os.Unsetenv: %v", err)
 	}
 
@@ -785,11 +785,11 @@ func TestGetMSIEndpoint(t *testing.T) {
 	}
 
 	// Test App Service endpoint is returned
-	if err := os.Setenv("MSI_ENDPOINT", testEndpoint); err != nil {
+	if err := os.Setenv(asMSIEndpointEnv, testEndpoint); err != nil {
 		t.Fatalf("os.Setenv: %v", err)
 	}
 
-	if err := os.Setenv("MSI_SECRET", testSecret); err != nil {
+	if err := os.Setenv(asMSISecretEnv, testSecret); err != nil {
 		t.Fatalf("os.Setenv: %v", err)
 	}
 
@@ -802,11 +802,11 @@ func TestGetMSIEndpoint(t *testing.T) {
 		t.Fatal("Didn't get correct endpoint")
 	}
 
-	if err := os.Unsetenv("MSI_ENDPOINT"); err != nil {
+	if err := os.Unsetenv(asMSIEndpointEnv); err != nil {
 		t.Fatalf("os.Unsetenv: %v", err)
 	}
 
-	if err := os.Unsetenv("MSI_SECRET"); err != nil {
+	if err := os.Unsetenv(asMSISecretEnv); err != nil {
 		t.Fatalf("os.Unsetenv: %v", err)
 	}
 }
