@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v13.0.2
+
+### Bug Fixes
+
+- Always retry a request even if the sender returns a non-nil error.
+
 ## v13.0.1
 
 ## Bug Fixes
@@ -12,9 +18,9 @@
 
 The `tracing` package has been rewritten to provide a common interface for consumers to wire in the tracing package of their choice.
 What this means is that by default no tracing provider will be compiled into your program and setting the `AZURE_SDK_TRACING_ENABLED`
-environment variable will have no effect.  To enable this previous behavior you must now add the following include to your source file.
+environment variable will have no effect.  To enable this previous behavior you must now add the following import to your source file.
 ```go
-  include _ "github.com/Azure/go-autorest/tracing/opencensus"
+  import _ "github.com/Azure/go-autorest/tracing/opencensus"
 ```
 The APIs required by autorest-generated code have remained but some APIs have been removed and new ones added.
 The following APIs and variables have been removed (the majority of them were moved to the `opencensus` package).
