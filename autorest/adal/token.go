@@ -845,7 +845,8 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 		resp, err = spt.sender.Do(req)
 	}
 	if err != nil {
-		return newTokenRefreshError(fmt.Sprintf("adal: Failed to execute the refresh request. Error = '%v'", err), nil)
+		// don't return a TokenRefreshError here; this will allow retry logic to apply
+		return fmt.Errorf("adal: Failed to execute the refresh request. Error = '%v'", err)
 	}
 
 	defer resp.Body.Close()
