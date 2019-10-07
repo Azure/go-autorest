@@ -26,7 +26,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
-	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -846,7 +845,8 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 		resp, err = spt.sender.Do(req)
 	}
 	if err != nil {
-		return newTokenRefreshError(fmt.Sprintf("adal: Failed to execute the refresh request. Error = '%v'", err), nil)
+		// don't return a TokenRefreshError here; this will allow retry logic to apply
+		return fmt.Errorf("adal: Failed to execute the refresh request. Error = '%v'", err)
 	}
 
 	defer resp.Body.Close()
@@ -913,10 +913,8 @@ func retryForIMDS(sender Sender, req *http.Request, maxAttempts int) (resp *http
 
 	for attempt < maxAttempts {
 		resp, err = sender.Do(req)
-		// retry on temporary network errors, e.g. transient network failures.
-		// if we don't receive a response then assume we can't connect to the
-		// endpoint so we're likely not running on an Azure VM so don't retry.
-		if (err != nil && !isTemporaryNetworkError(err)) || resp == nil || resp.StatusCode == http.StatusOK || !containsInt(retries, resp.StatusCode) {
+		// we want to retry if err is not nil or the status code is in the list of retry codes
+		if err == nil && !responseHasStatusCode(resp, retries...) {
 			return
 		}
 
@@ -940,20 +938,12 @@ func retryForIMDS(sender Sender, req *http.Request, maxAttempts int) (resp *http
 	return
 }
 
-// returns true if the specified error is a temporary network error or false if it's not.
-// if the error doesn't implement the net.Error interface the return value is true.
-func isTemporaryNetworkError(err error) bool {
-	if netErr, ok := err.(net.Error); !ok || (ok && netErr.Temporary()) {
-		return true
-	}
-	return false
-}
-
-// returns true if slice ints contains the value n
-func containsInt(ints []int, n int) bool {
-	for _, i := range ints {
-		if i == n {
-			return true
+func responseHasStatusCode(resp *http.Response, codes ...int) bool {
+	if resp != nil {
+		for _, i := range codes {
+			if i == resp.StatusCode {
+				return true
+			}
 		}
 	}
 	return false
