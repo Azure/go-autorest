@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v13.1.0
+
+### New Features
+
+- Added SendDecorator `autorest.ReadResponseBody()` which will read the response body, wrapping it in a nop-closing byte reader attached to the HTTP response.
+  Add this decorator after a retry decorator so if the read fails the retry decorator will retry the operation.
+
 ## v13.0.2
 
 ### Bug Fixes

@@ -15,9 +15,11 @@ package autorest
 //  limitations under the License.
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math"
 	"net/http"
@@ -403,5 +405,27 @@ func DelayForBackoffWithCap(backoff, cap time.Duration, attempt int, cancel <-ch
 		return true
 	case <-cancel:
 		return false
+	}
+}
+
+// ReadResponseBody will attempt to read the response body.  If there is a failure an error is returned.
+// If the body is successfully read it's wrapped in a nop-closing byte reader and placed in the http response.
+func ReadResponseBody() SendDecorator {
+	return func(s Sender) Sender {
+		return SenderFunc(func(r *http.Request) (*http.Response, error) {
+			resp, err := s.Do(r)
+			if err != nil {
+				return resp, err
+			}
+			if resp.ContentLength != 0 {
+				defer resp.Body.Close()
+				b, err := ioutil.ReadAll(resp.Body)
+				if err != nil {
+					return resp, err
+				}
+				resp.Body = ioutil.NopCloser(bytes.NewReader(b))
+			}
+			return resp, nil
+		})
 	}
 }
