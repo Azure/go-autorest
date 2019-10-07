@@ -17,8 +17,8 @@ package azure
 //  limitations under the License.
 
 import (
+	"bytes"
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -300,29 +300,18 @@ func WithErrorUnlessStatusCode(codes ...int) autorest.RespondDecorator {
 				}
 				if e.ServiceError == nil {
 					// Check if error is unwrapped ServiceError
-					if encodedAs == autorest.EncodedAsXML {
-						if err := xml.Unmarshal(b.Bytes(), &e.ServiceError); err != nil {
-							return err
-						}
-					} else {
-						if err := json.Unmarshal(b.Bytes(), &e.ServiceError); err != nil {
-							return err
-						}
+					decoder := autorest.NewDecoder(encodedAs, bytes.NewReader(b.Bytes()))
+					if err := decoder.Decode(&e.ServiceError); err != nil {
+						return err
 					}
 				}
 				if e.ServiceError.Message == "" {
 					// if we're here it means the returned error wasn't OData v4 compliant.
 					// try to unmarshal the body in hopes of getting something.
 					rawBody := map[string]interface{}{}
-
-					if encodedAs == autorest.EncodedAsXML {
-						if err := xml.Unmarshal(b.Bytes(), &rawBody); err != nil {
-							return err
-						}
-					} else {
-						if err := json.Unmarshal(b.Bytes(), &rawBody); err != nil {
-							return err
-						}
+					decoder := autorest.NewDecoder(encodedAs, bytes.NewReader(b.Bytes()))
+					if err := decoder.Decode(&e.ServiceError); err != nil {
+						return err
 					}
 
 					e.ServiceError = &ServiceError{
