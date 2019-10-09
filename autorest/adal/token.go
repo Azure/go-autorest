@@ -667,17 +667,17 @@ func GetMSIEndpoint() (string, error) {
 
 // NewServicePrincipalTokenFromMSI creates a ServicePrincipalToken via the MSI VM Extension.
 // It will use the system assigned identity when creating the token.
-func NewServicePrincipalTokenFromMSI(msiEndpoint string, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+func NewServicePrincipalTokenFromMSI(msiEndpoint, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	return newServicePrincipalTokenFromMSI(msiEndpoint, resource, nil, callbacks...)
 }
 
 // NewServicePrincipalTokenFromMSIWithUserAssignedID creates a ServicePrincipalToken via the MSI VM Extension.
 // It will use the specified user assigned identity when creating the token.
-func NewServicePrincipalTokenFromMSIWithUserAssignedID(msiEndpoint string, resource string, userAssignedID string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+func NewServicePrincipalTokenFromMSIWithUserAssignedID(msiEndpoint, resource string, userAssignedID string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	return newServicePrincipalTokenFromMSI(msiEndpoint, resource, &userAssignedID, callbacks...)
 }
 
-func newServicePrincipalTokenFromMSI(msiEndpoint string, resource string, userAssignedID *string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, userAssignedID *string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	if err := validateStringParam(msiEndpoint, "msiEndpoint"); err != nil {
 		return nil, err
 	}
@@ -829,7 +829,7 @@ func isIMDS(u url.URL) bool {
 	if err != nil {
 		return false
 	}
-	return u.Host == imds.Host && u.Path == imds.Path || isAppService()
+	return (u.Host == imds.Host && u.Path == imds.Path) || isAppService()
 }
 
 func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource string) error {
