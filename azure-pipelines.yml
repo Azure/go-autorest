@@ -5,6 +5,7 @@ variables:
   GOROOT: '/usr/local/go1.12'
   GOPATH: '$(system.defaultWorkingDirectory)/work'
   sdkPath: '$(GOPATH)/src/github.com/$(build.repository.name)'
+  GO111MODULE: 'on'
 
 steps:
 - script: |

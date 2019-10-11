@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## v13.2.0
+
+### New Features
+
+- Added the following functions to replace their versions that don't take a context.
+  - `adal.InitiateDeviceAuthWithContext()`
+  - `adal.CheckForUserCompletionWithContext()`
+  - `adal.WaitForUserCompletionWithContext()`
+
 ## v13.1.0
 
 ### New Features
