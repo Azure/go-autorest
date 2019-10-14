@@ -15,11 +15,13 @@ package adal
 //  limitations under the License.
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Azure/go-autorest/autorest/mocks"
 )
@@ -326,5 +328,17 @@ func TestDeviceTokenReturnsErrorIfTokenEmptyAndStatusOK(t *testing.T) {
 
 	if body.IsOpen() {
 		t.Fatalf("response body was left open!")
+	}
+}
+
+func TestWaitForUserCompletionWithContext(t *testing.T) {
+	sender := SenderFunc(func(*http.Request) (*http.Response, error) {
+		return mocks.NewResponseWithContent(`{"error":"authorization_pending"}`), nil
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	_, err := WaitForUserCompletionWithContext(ctx, sender, deviceCode())
+	if err != context.DeadlineExceeded {
+		t.Fatalf("adal: got wrong error expected(%s) actual(%s)", context.DeadlineExceeded.Error(), err.Error())
 	}
 }
