@@ -923,19 +923,20 @@ func (fe fatalError) Temporary() bool {
 }
 
 func TestDoRetryForStatusCodes_NilResponseFatalError(t *testing.T) {
+	const retryAttempts = 3
 	client := mocks.NewSender()
-	client.AppendResponse(nil)
-	client.SetError(fatalError{"fatal error"})
+	client.AppendAndRepeatResponse(nil, retryAttempts+1)
+	client.SetAndRepeatError(fatalError{"fatal error"}, retryAttempts+1)
 
 	r, err := SendWithSender(client, mocks.NewRequest(),
-		DoRetryForStatusCodes(3, time.Duration(1*time.Second), StatusCodesForRetry...),
+		DoRetryForStatusCodes(retryAttempts, time.Duration(1*time.Second), StatusCodesForRetry...),
 	)
 
 	Respond(r,
 		ByDiscardingBody(),
 		ByClosing())
 
-	if err == nil || client.Attempts() > 1 {
+	if err == nil || client.Attempts() < retryAttempts+1 {
 		t.Fatalf("autorest: Sender#TestDoRetryForStatusCodes_NilResponseFatalError -- Got: nil error or wrong number of attempts - %v", err)
 	}
 }

@@ -15,6 +15,7 @@ package autorest
 //  limitations under the License.
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -319,8 +320,8 @@ func ExampleWithPathParameters() {
 // Create a request with query parameters
 func ExampleWithQueryParameters() {
 	params := map[string]interface{}{
-		"q1": "value1",
-		"q2": "value2",
+		"q1": []string{"value1"},
+		"q2": []string{"value2"},
 	}
 	r, err := Prepare(&http.Request{},
 		WithBaseURL("https://microsoft.com/"),
@@ -834,6 +835,7 @@ func TestModifyingRequestWithExistingQueryParameters(t *testing.T) {
 		WithPath("search"),
 		WithQueryParameters(map[string]interface{}{"q": "golang the best"}),
 		WithQueryParameters(map[string]interface{}{"pq": "golang+encoded"}),
+		WithQueryParameters(map[string]interface{}{"zq": []string{"one", "two"}}),
 	)
 	if err != nil {
 		t.Fatalf("autorest: Preparing an existing request returned an error (%v)", err)
@@ -847,7 +849,30 @@ func TestModifyingRequestWithExistingQueryParameters(t *testing.T) {
 		t.Fatalf("autorest: Preparing an existing request failed when setting the path (%s)", r.URL.Path)
 	}
 
-	if r.URL.RawQuery != "pq=golang+encoded&q=golang+the+best" {
+	if r.URL.RawQuery != "pq=golang+encoded&q=golang+the+best&zq=one&zq=two" {
 		t.Fatalf("autorest: Preparing an existing request failed when setting the query parameters (%s)", r.URL.RawQuery)
+	}
+}
+
+func TestGetPrepareDecorators(t *testing.T) {
+	pd := GetPrepareDecorators(context.Background())
+	if l := len(pd); l != 0 {
+		t.Fatalf("expected zero length but got %d", l)
+	}
+	pd = GetPrepareDecorators(context.Background(), WithNothing(), AsFormURLEncoded())
+	if l := len(pd); l != 2 {
+		t.Fatalf("expected length of two but got %d", l)
+	}
+}
+
+func TestWithPrepareDecorators(t *testing.T) {
+	ctx := WithPrepareDecorators(context.Background(), []PrepareDecorator{WithUserAgent("somestring")})
+	pd := GetPrepareDecorators(ctx)
+	if l := len(pd); l != 1 {
+		t.Fatalf("expected length of one but got %d", l)
+	}
+	pd = GetPrepareDecorators(ctx, WithNothing(), WithNothing())
+	if l := len(pd); l != 1 {
+		t.Fatalf("expected length of one but got %d", l)
 	}
 }
