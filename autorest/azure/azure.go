@@ -310,7 +310,7 @@ func WithErrorUnlessStatusCode(codes ...int) autorest.RespondDecorator {
 					// try to unmarshal the body in hopes of getting something.
 					rawBody := map[string]interface{}{}
 					decoder := autorest.NewDecoder(encodedAs, bytes.NewReader(b.Bytes()))
-					if err := decoder.Decode(&e.ServiceError); err != nil {
+					if err := decoder.Decode(&rawBody); err != nil {
 						return err
 					}
 
