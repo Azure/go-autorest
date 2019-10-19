@@ -61,6 +61,8 @@ const (
 	headerRange             = "Range"
 )
 
+const storageEmulatorAccountName = "devstoreaccount1"
+
 // SharedKeyAuthorizer implements an authorization for Shared Key
 // this can be used for interaction with Blob, File and Queue Storage Endpoints
 type SharedKeyAuthorizer struct {
