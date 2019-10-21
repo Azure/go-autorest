@@ -786,13 +786,13 @@ func (spt *ServicePrincipalToken) InvokeRefreshCallbacks(token Token) error {
 }
 
 // Refresh obtains a fresh token for the Service Principal.
-// This method is not safe for concurrent use and should be syncrhonized.
+// This method is safe for concurrent use.
 func (spt *ServicePrincipalToken) Refresh() error {
 	return spt.RefreshWithContext(context.Background())
 }
 
 // RefreshWithContext obtains a fresh token for the Service Principal.
-// This method is not safe for concurrent use and should be syncrhonized.
+// This method is safe for concurrent use.
 func (spt *ServicePrincipalToken) RefreshWithContext(ctx context.Context) error {
 	spt.refreshLock.Lock()
 	defer spt.refreshLock.Unlock()
@@ -800,13 +800,13 @@ func (spt *ServicePrincipalToken) RefreshWithContext(ctx context.Context) error 
 }
 
 // RefreshExchange refreshes the token, but for a different resource.
-// This method is not safe for concurrent use and should be syncrhonized.
+// This method is safe for concurrent use.
 func (spt *ServicePrincipalToken) RefreshExchange(resource string) error {
 	return spt.RefreshExchangeWithContext(context.Background(), resource)
 }
 
 // RefreshExchangeWithContext refreshes the token, but for a different resource.
-// This method is not safe for concurrent use and should be syncrhonized.
+// This method is safe for concurrent use.
 func (spt *ServicePrincipalToken) RefreshExchangeWithContext(ctx context.Context, resource string) error {
 	spt.refreshLock.Lock()
 	defer spt.refreshLock.Unlock()
