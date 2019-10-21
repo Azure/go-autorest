@@ -599,6 +599,35 @@ func TestParseResourceID_WithMalformedResourceID(t *testing.T) {
 	}
 }
 
+func TestRequestErrorString_WithXMLError(t *testing.T) {
+	j := `<?xml version="1.0" encoding="utf-8"?>  
+	<Error>  
+	  <Code>InternalError</Code>  
+	  <Message>Internal service error.</Message>  
+	</Error> `
+	uuid := "71FDB9F4-5E49-4C12-B266-DE7B4FD999A6"
+	r := mocks.NewResponseWithContent(j)
+	mocks.SetResponseHeader(r, HeaderRequestID, uuid)
+	r.Request = mocks.NewRequest()
+	r.StatusCode = http.StatusInternalServerError
+	r.Status = http.StatusText(r.StatusCode)
+	r.Header.Add("Content-Type", "text/xml")
+
+	err := autorest.Respond(r,
+		WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByClosing())
+
+	if err == nil {
+		t.Fatalf("azure: returned nil error for proper error response")
+	}
+	azErr, _ := err.(*RequestError)
+	const expected = `autorest/azure: Service returned an error. Status=500 Code="InternalError" Message="Internal service error."`
+	if got := azErr.Error(); expected != got {
+		fmt.Println(got)
+		t.Fatalf("azure: send wrong RequestError.\nexpected=%v\ngot=%v", expected, got)
+	}
+}
+
 func withErrorPrepareDecorator(e *error) autorest.PrepareDecorator {
 	return func(p autorest.Preparer) autorest.Preparer {
 		return autorest.PreparerFunc(func(r *http.Request) (*http.Request, error) {
