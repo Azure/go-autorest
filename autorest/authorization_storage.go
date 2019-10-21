@@ -48,6 +48,8 @@ const (
 )
 
 const (
+	headerAccept            = "Accept"
+	headerAcceptCharset     = "Accept-Charset"
 	headerContentEncoding   = "Content-Encoding"
 	headerContentLength     = "Content-Length"
 	headerContentMD5        = "Content-MD5"
@@ -58,6 +60,7 @@ const (
 	headerIfUnmodifiedSince = "If-Unmodified-Since"
 	headerDate              = "Date"
 	headerXMSDate           = "X-Ms-Date"
+	headerXMSVersion        = "x-ms-version"
 	headerRange             = "Range"
 )
 

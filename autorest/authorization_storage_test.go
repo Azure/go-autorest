@@ -28,12 +28,12 @@ func TestNewSharedKeyAuthorizer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create HTTP request: %v", err)
 	}
-	req.Header.Add("Accept-Charset", "UTF-8")
+	req.Header.Add(headerAcceptCharset, "UTF-8")
 	req.Header.Add(headerContentType, "application/json")
 	req.Header.Add(headerXMSDate, "Wed, 23 Sep 2015 16:40:05 GMT")
 	req.Header.Add(headerContentLength, "0")
-	req.Header.Add("x-ms-version", "2015-02-21")
-	req.Header.Add("Accept", "application/json;odata=nometadata")
+	req.Header.Add(headerXMSVersion, "2015-02-21")
+	req.Header.Add(headerAccept, "application/json;odata=nometadata")
 	req, err = Prepare(req, auth.WithAuthorization())
 	if err != nil {
 		t.Fatalf("prepare HTTP request: %v", err)
@@ -53,12 +53,12 @@ func TestNewSharedKeyForTableAuthorizer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create HTTP request: %v", err)
 	}
-	req.Header.Add("Accept-Charset", "UTF-8")
+	req.Header.Add(headerAcceptCharset, "UTF-8")
 	req.Header.Add(headerContentType, "application/json")
 	req.Header.Add(headerXMSDate, "Wed, 23 Sep 2015 16:40:05 GMT")
 	req.Header.Add(headerContentLength, "0")
-	req.Header.Add("x-ms-version", "2015-02-21")
-	req.Header.Add("Accept", "application/json;odata=nometadata")
+	req.Header.Add(headerXMSVersion, "2015-02-21")
+	req.Header.Add(headerAccept, "application/json;odata=nometadata")
 	req, err = Prepare(req, auth.WithAuthorization())
 	if err != nil {
 		t.Fatalf("prepare HTTP request: %v", err)
@@ -79,12 +79,12 @@ func TestNewSharedKeyLiteAuthorizer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create HTTP request: %v", err)
 	}
-	req.Header.Add("Accept-Charset", "UTF-8")
+	req.Header.Add(headerAcceptCharset, "UTF-8")
 	req.Header.Add(headerContentType, "application/json")
 	req.Header.Add(headerXMSDate, "Wed, 23 Sep 2015 16:40:05 GMT")
 	req.Header.Add(headerContentLength, "0")
-	req.Header.Add("x-ms-version", "2015-02-21")
-	req.Header.Add("Accept", "application/json;odata=nometadata")
+	req.Header.Add(headerXMSVersion, "2015-02-21")
+	req.Header.Add(headerAccept, "application/json;odata=nometadata")
 	req, err = Prepare(req, auth.WithAuthorization())
 	if err != nil {
 		t.Fatalf("prepare HTTP request: %v", err)
@@ -105,12 +105,12 @@ func TestNewSharedKeyLiteForTableAuthorizer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create HTTP request: %v", err)
 	}
-	req.Header.Add("Accept-Charset", "UTF-8")
+	req.Header.Add(headerAcceptCharset, "UTF-8")
 	req.Header.Add(headerContentType, "application/json")
 	req.Header.Add(headerXMSDate, "Wed, 23 Sep 2015 16:40:05 GMT")
 	req.Header.Add(headerContentLength, "0")
-	req.Header.Add("x-ms-version", "2015-02-21")
-	req.Header.Add("Accept", "application/json;odata=nometadata")
+	req.Header.Add(headerXMSVersion, "2015-02-21")
+	req.Header.Add(headerAccept, "application/json;odata=nometadata")
 	req, err = Prepare(req, auth.WithAuthorization())
 	if err != nil {
 		t.Fatalf("prepare HTTP request: %v", err)
