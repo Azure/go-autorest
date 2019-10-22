@@ -29,7 +29,7 @@ type SASTokenAuthorizer struct {
 // NewSASTokenAuthorizer creates a SASTokenAuthorizer using the given credentials
 func NewSASTokenAuthorizer(sasToken string) (*SASTokenAuthorizer, error) {
 	if strings.TrimSpace(sasToken) == "" {
-		return nil, fmt.Errorf("`sasToken` cannot be empty!")
+		return nil, fmt.Errorf("sasToken cannot be empty")
 	}
 
 	token := sasToken
@@ -42,14 +42,10 @@ func NewSASTokenAuthorizer(sasToken string) (*SASTokenAuthorizer, error) {
 	}, nil
 }
 
-// WithAuthorization returns a PrepareDecorator that adds an HTTP Authorization header whose
-// value is "SharedKey " followed by the computed key.
-// This can be used for the Blob, Queue, and File Services
+// WithAuthorization returns a PrepareDecorator that adds a shared access signature token to the
+// URI's query parameters.  This can be used for the Blob, Queue, and File Services.
 //
-// from: https://docs.microsoft.com/en-us/rest/api/storageservices/authorize-with-shared-key
-// You may use Shared Key Lite authorization to authorize a request made against the
-// 2009-09-19 version and later of the Blob and Queue services,
-// and version 2014-02-14 and later of the File services.
+// See https://docs.microsoft.com/en-us/rest/api/storageservices/delegate-access-with-shared-access-signature
 func (sas *SASTokenAuthorizer) WithAuthorization() PrepareDecorator {
 	return func(p Preparer) Preparer {
 		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
@@ -58,14 +54,12 @@ func (sas *SASTokenAuthorizer) WithAuthorization() PrepareDecorator {
 				return r, err
 			}
 
-			queryString := r.URL.RawQuery
-			if queryString != "" {
-				queryString = fmt.Sprintf("%s&%s", queryString, sas.sasToken)
+			if r.URL.RawQuery != "" {
+				r.URL.RawQuery = fmt.Sprintf("%s&%s", r.URL.RawQuery, sas.sasToken)
 			} else {
-				queryString = sas.sasToken
+				r.URL.RawQuery = sas.sasToken
 			}
 
-			r.URL.RawQuery = queryString
 			r.RequestURI = r.URL.String()
 			return Prepare(r)
 		})

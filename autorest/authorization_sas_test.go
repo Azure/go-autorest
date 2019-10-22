@@ -1,5 +1,19 @@
 package autorest
 
+// Copyright 2017 Microsoft Corporation
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+
 import (
 	"net/http"
 	"net/url"
@@ -40,34 +54,34 @@ func TestSasNewSasAuthorizerValidToken(t *testing.T) {
 }
 
 func TestSasAuthorizerRequest(t *testing.T) {
-	testData := []struct{
-		name string
-		token string
-		input string
+	testData := []struct {
+		name     string
+		token    string
+		input    string
 		expected string
 	}{
 		{
-			name: "empty querystring without a prefix",
-			token: "abc123",
-			input: "https://example.com/foo/bar",
+			name:     "empty querystring without a prefix",
+			token:    "abc123",
+			input:    "https://example.com/foo/bar",
 			expected: "https://example.com/foo/bar?abc123",
 		},
 		{
-			name: "empty querystring with a prefix",
-			token: "?abc123",
-			input: "https://example.com/foo/bar",
+			name:     "empty querystring with a prefix",
+			token:    "?abc123",
+			input:    "https://example.com/foo/bar",
 			expected: "https://example.com/foo/bar?abc123",
 		},
 		{
-			name: "existing querystring without a prefix",
-			token: "abc123",
-			input: "https://example.com/foo/bar?hello=world",
+			name:     "existing querystring without a prefix",
+			token:    "abc123",
+			input:    "https://example.com/foo/bar?hello=world",
 			expected: "https://example.com/foo/bar?hello=world&abc123",
 		},
 		{
-			name: "existing querystring with a prefix",
-			token: "?abc123",
-			input: "https://example.com/foo/bar?hello=world",
+			name:     "existing querystring with a prefix",
+			token:    "?abc123",
+			input:    "https://example.com/foo/bar?hello=world",
 			expected: "https://example.com/foo/bar?hello=world&abc123",
 		},
 	}
