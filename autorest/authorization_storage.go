@@ -28,9 +28,9 @@ import (
 )
 
 // SharedKeyType defines the enumeration for the various shared key types.
+// See https://docs.microsoft.com/en-us/rest/api/storageservices/authorize-with-shared-key for details on the shared key types.
 type SharedKeyType string
 
-// see https://docs.microsoft.com/en-us/rest/api/storageservices/authorize-with-shared-key for details on the shared key types
 const (
 	// SharedKey is used to authorize against blobs, files and queues services.
 	SharedKey SharedKeyType = "sharedKey"
@@ -75,12 +75,12 @@ type SharedKeyAuthorizer struct {
 }
 
 // NewSharedKeyAuthorizer creates a SharedKeyAuthorizer using the provided credentials and shared key type.
-func NewSharedKeyAuthorizer(accountName, accountKey string, keyType SharedKeyType) (SharedKeyAuthorizer, error) {
+func NewSharedKeyAuthorizer(accountName, accountKey string, keyType SharedKeyType) (*SharedKeyAuthorizer, error) {
 	key, err := base64.StdEncoding.DecodeString(accountKey)
 	if err != nil {
-		return SharedKeyAuthorizer{}, fmt.Errorf("azure: malformed storage account key: %v", err)
+		return nil, fmt.Errorf("malformed storage account key: %v", err)
 	}
-	return SharedKeyAuthorizer{
+	return &SharedKeyAuthorizer{
 		accountName: accountName,
 		accountKey:  key,
 		keyType:     keyType,
@@ -95,7 +95,7 @@ func NewSharedKeyAuthorizer(accountName, accountKey string, keyType SharedKeyTyp
 // You may use Shared Key authorization to authorize a request made against the
 // 2009-09-19 version and later of the Blob and Queue services,
 // and version 2014-02-14 and later of the File services.
-func (sk SharedKeyAuthorizer) WithAuthorization() PrepareDecorator {
+func (sk *SharedKeyAuthorizer) WithAuthorization() PrepareDecorator {
 	return func(p Preparer) Preparer {
 		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
 			r, err := p.Prepare(r)
