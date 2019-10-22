@@ -350,7 +350,7 @@ type ServicePrincipalToken struct {
 	inner             servicePrincipalToken
 	refreshLock       *sync.RWMutex
 	sender            Sender
-	customRefreshFunc *TokenRefresh
+	customRefreshFunc TokenRefresh
 	refreshCallbacks  []TokenRefreshCallback
 	// MaxMSIRefreshAttempts is the maximum number of attempts to refresh an MSI token.
 	MaxMSIRefreshAttempts int
@@ -367,7 +367,7 @@ func (spt *ServicePrincipalToken) SetRefreshCallbacks(callbacks []TokenRefreshCa
 }
 
 // SetCustomRefreshFunc sets a custom refresh function used to refresh the token.
-func (spt *ServicePrincipalToken) SetCustomRefreshFunc(customRefreshFunc *TokenRefresh) {
+func (spt *ServicePrincipalToken) SetCustomRefreshFunc(customRefreshFunc TokenRefresh) {
 	spt.customRefreshFunc = customRefreshFunc
 }
 
@@ -843,8 +843,7 @@ func isIMDS(u url.URL) bool {
 
 func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource string) error {
 	if spt.customRefreshFunc != nil {
-		f := *spt.customRefreshFunc
-		token, err := f(ctx, resource)
+		token, err := spt.customRefreshFunc(ctx, resource)
 		if err != nil {
 			return err
 		}

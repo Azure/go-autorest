@@ -111,7 +111,7 @@ func TestServicePrincipalTokenSetCustomRefreshFunc(t *testing.T) {
 		t.Fatalf("adal: ServicePrincipalToken#SetCustomRefreshFunc had a default custom refresh func when it shouldn't")
 	}
 
-	spt.SetCustomRefreshFunc(&refreshFunc)
+	spt.SetCustomRefreshFunc(refreshFunc)
 
 	if spt.customRefreshFunc == nil {
 		t.Fatalf("adal: ServicePrincipalToken#SetCustomRefreshFunc didn't have a refresh func")
@@ -149,7 +149,7 @@ func TestServicePrincipalTokenRefreshUsesCustomRefreshFunc(t *testing.T) {
 		called = true
 		return &Token{}, nil
 	}
-	spt.SetCustomRefreshFunc(&refreshFunc)
+	spt.SetCustomRefreshFunc(refreshFunc)
 	if called {
 		t.Fatalf("adal: ServicePrincipalToken#refreshInternal called the refresh function prior to refreshing")
 	}
