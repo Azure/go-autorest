@@ -847,10 +847,8 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 		if err != nil {
 			return err
 		}
-
 		spt.inner.Token = *token
-
-		return spt.InvokeRefreshCallbacks(*token)
+		return spt.InvokeRefreshCallbacks(spt.inner.Token)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, spt.inner.OauthConfig.TokenEndpoint.String(), nil)
