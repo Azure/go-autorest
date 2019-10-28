@@ -100,6 +100,24 @@ func TestServicePrincipalTokenSetAutoRefresh(t *testing.T) {
 	}
 }
 
+func TestServicePrincipalTokenSetCustomRefreshFunc(t *testing.T) {
+	spt := newServicePrincipalToken()
+
+	var refreshFunc TokenRefresh = func(context context.Context, resource string) (*Token, error) {
+		return nil, nil
+	}
+
+	if spt.customRefreshFunc != nil {
+		t.Fatalf("adal: ServicePrincipalToken#SetCustomRefreshFunc had a default custom refresh func when it shouldn't")
+	}
+
+	spt.SetCustomRefreshFunc(refreshFunc)
+
+	if spt.customRefreshFunc == nil {
+		t.Fatalf("adal: ServicePrincipalToken#SetCustomRefreshFunc didn't have a refresh func")
+	}
+}
+
 func TestServicePrincipalTokenSetRefreshWithin(t *testing.T) {
 	spt := newServicePrincipalToken()
 
@@ -120,6 +138,26 @@ func TestServicePrincipalTokenSetSender(t *testing.T) {
 	spt.SetSender(c)
 	if !reflect.DeepEqual(c, spt.sender) {
 		t.Fatal("adal: ServicePrincipalToken#SetSender did not set the sender")
+	}
+}
+
+func TestServicePrincipalTokenRefreshUsesCustomRefreshFunc(t *testing.T) {
+	spt := newServicePrincipalToken()
+
+	called := false
+	var refreshFunc TokenRefresh = func(context context.Context, resource string) (*Token, error) {
+		called = true
+		return &Token{}, nil
+	}
+	spt.SetCustomRefreshFunc(refreshFunc)
+	if called {
+		t.Fatalf("adal: ServicePrincipalToken#refreshInternal called the refresh function prior to refreshing")
+	}
+
+	spt.refreshInternal(context.Background(), "https://example.com")
+
+	if !called {
+		t.Fatalf("adal: ServicePrincipalToken#refreshInternal didn't call the refresh function")
 	}
 }
 
