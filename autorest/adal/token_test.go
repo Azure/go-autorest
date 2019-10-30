@@ -978,6 +978,9 @@ func TestNewMultiTenantServicePrincipalToken(t *testing.T) {
 		t.Fatalf("autorest/adal: unexpected error while creating multitenant config: %v", err)
 	}
 	mt, err := NewMultiTenantServicePrincipalToken(cfg, "clientID", "superSecret", "resource")
+	if err != nil {
+		t.Fatalf("autorest/adal: unexpected error while creating multitenant service principal token: %v", err)
+	}
 	if !strings.Contains(mt.PrimaryToken.inner.OauthConfig.AuthorizeEndpoint.String(), TestTenantID) {
 		t.Fatal("didn't find primary tenant ID in primary SPT")
 	}
