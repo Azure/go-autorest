@@ -151,7 +151,7 @@ func AsStringSlice(s interface{}) ([]string, error) {
 	stringSlice := make([]string, 0, v.Len())
 
 	for i := 0; i < v.Len(); i++ {
-		stringSlice = append(stringSlice, v.Index(i).String())
+		stringSlice = append(stringSlice, fmt.Sprintf("%v", v.Index(i)))
 	}
 	return stringSlice, nil
 }
