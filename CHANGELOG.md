@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v13.3.1
+
+### Bug Fixes
+
+- Updated `autorest.AsStringSlice()` to convert slice elements to their string representation.
+
 ## v13.3.0
 
 ### New Features
