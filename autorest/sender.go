@@ -283,7 +283,7 @@ func DoRetryForStatusCodesWithCap(attempts int, backoff, cap time.Duration, code
 func doRetryForStatusCodesImpl(s Sender, r *http.Request, count429 bool, attempts int, backoff, cap time.Duration, codes ...int) (resp *http.Response, err error) {
 	rr := NewRetriableRequest(r)
 	// Increment to add the first call (attempts denotes number of retries)
-	for attempt := 0; attempt < attempts+1; {
+	for attempt, delayCount := 0, 0; attempt < attempts+1; {
 		err = rr.Prepare()
 		if err != nil {
 			return
@@ -295,7 +295,7 @@ func doRetryForStatusCodesImpl(s Sender, r *http.Request, count429 bool, attempt
 			return resp, err
 		}
 		delayed := DelayWithRetryAfter(resp, r.Context().Done())
-		if !delayed && !DelayForBackoffWithCap(backoff, cap, attempt, r.Context().Done()) {
+		if !delayed && !DelayForBackoffWithCap(backoff, cap, delayCount, r.Context().Done()) {
 			return resp, r.Context().Err()
 		}
 		// when count429 == false don't count a 429 against the number
@@ -303,6 +303,9 @@ func doRetryForStatusCodesImpl(s Sender, r *http.Request, count429 bool, attempt
 		if count429 || (resp == nil || resp.StatusCode != http.StatusTooManyRequests) {
 			attempt++
 		}
+		// delay count is tracked separately from attempts to
+		// ensure that 429 participates in exponential back-off
+		delayCount++
 	}
 	return resp, err
 }
