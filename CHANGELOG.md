@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## v13.3.2
+
+### Bug Fixes
+
+- Updated `autorest.AsStringSlice()` to convert slice elements to their string representation.
+
+## v13.3.1
+
+- Updated external dependencies.
+
+### Bug Fixes
+
+## v13.3.0
+
+### New Features
+
+- Added support for shared key and shared access signature token authorization.
+  - `autorest.NewSharedKeyAuthorizer()` and dependent types.
+  - `autorest.NewSASTokenAuthorizer()` and dependent types.
+- Added `ServicePrincipalToken.SetCustomRefresh()` so a custom refresh function can be invoked when a token has expired.
+
+### Bug Fixes
+
+- Fixed `cli.AccessTokensPath()` to respect `AZURE_CONFIG_DIR` when set.
+- Support parsing error messages in XML responses.
+
 ## v13.2.0
 
 ### New Features

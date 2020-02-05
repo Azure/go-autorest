@@ -262,6 +262,15 @@ func TestStringWithEnumSlice(t *testing.T) {
 	}
 }
 
+func TestStringWithIntegerSlice(t *testing.T) {
+	type TestEnumType int32
+	s := []TestEnumType{1, 2}
+	if got, want := String(s, ","), "1,2"; got != want {
+		t.Logf("got:  %q\nwant: %q", got, want)
+		t.Fail()
+	}
+}
+
 func ExampleAsStringSlice() {
 	type TestEnumType string
 
