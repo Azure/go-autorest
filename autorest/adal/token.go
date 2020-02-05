@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -972,6 +973,10 @@ func retryForIMDS(sender Sender, req *http.Request, maxAttempts int) (resp *http
 	delay := time.Duration(0)
 
 	for attempt < maxAttempts {
+		if resp != nil && resp.Body != nil {
+			io.Copy(ioutil.Discard, resp.Body)
+			resp.Body.Close()
+		}
 		resp, err = sender.Do(req)
 		// we want to retry if err is not nil or the status code is in the list of retry codes
 		if err == nil && !responseHasStatusCode(resp, retries...) {
