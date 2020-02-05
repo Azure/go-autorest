@@ -243,6 +243,7 @@ func DoRetryForAttempts(attempts int, backoff time.Duration) SendDecorator {
 				if err != nil {
 					return resp, err
 				}
+				DrainResponseBody(resp)
 				resp, err = s.Do(rr.Request())
 				if err == nil {
 					return resp, err
@@ -288,6 +289,7 @@ func doRetryForStatusCodesImpl(s Sender, r *http.Request, count429 bool, attempt
 		if err != nil {
 			return
 		}
+		DrainResponseBody(resp)
 		resp, err = s.Do(rr.Request())
 		// we want to retry if err is not nil (e.g. transient network failure).  note that for failed authentication
 		// resp and err will both have a value, so in this case we don't want to retry as it will never succeed.
@@ -347,6 +349,7 @@ func DoRetryForDuration(d time.Duration, backoff time.Duration) SendDecorator {
 				if err != nil {
 					return resp, err
 				}
+				DrainResponseBody(resp)
 				resp, err = s.Do(rr.Request())
 				if err == nil {
 					return resp, err
