@@ -295,7 +295,8 @@ func doRetryForStatusCodesImpl(s Sender, r *http.Request, count429 bool, attempt
 			return resp, err
 		}
 		delayed := DelayWithRetryAfter(resp, r.Context().Done())
-		// enforce a 2 minute cap when not counting 429 if there isn't one.
+		// enforce a 2 minute cap between requests when 429 status codes are
+		// not going to be counted as an attempt and when the cap is 0.
 		// this should only happen in the absense of a retry-after header.
 		if !count429 && cap == 0 {
 			cap = 2 * time.Minute
