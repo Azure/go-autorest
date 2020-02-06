@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v13.3.3
+
+### Bug Fixes
+
+- Fixed connection leak when retrying requests.
+- Enabled exponential back-off with a 2-minute cap when retrying on 429.
+- Fixed some cases where errors were inadvertently dropped.
+
 ## v13.3.2
 
 ### Bug Fixes
