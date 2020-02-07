@@ -20,6 +20,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -467,5 +468,43 @@ func withErrorRespondDecorator(e *error) RespondDecorator {
 			*e = fmt.Errorf("autorest: Faux Respond Error")
 			return *e
 		})
+	}
+}
+
+type mockDrain struct {
+	read   bool
+	closed bool
+}
+
+func (md *mockDrain) Read(b []byte) (int, error) {
+	md.read = true
+	b = append(b, 0xff)
+	return 1, io.EOF
+}
+
+func (md *mockDrain) Close() error {
+	md.closed = true
+	return nil
+}
+
+func TestDrainResponseBody(t *testing.T) {
+	err := DrainResponseBody(nil)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	err = DrainResponseBody(&http.Response{})
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	md := &mockDrain{}
+	err = DrainResponseBody(&http.Response{Body: md})
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if !md.closed {
+		t.Fatal("mockDrain wasn't closed")
+	}
+	if !md.read {
+		t.Fatal("mockDrain wasn't read")
 	}
 }
