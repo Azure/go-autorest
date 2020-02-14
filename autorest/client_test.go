@@ -469,7 +469,8 @@ func TestClientSendMethod(t *testing.T) {
 	client := Client{
 		Sender: sender,
 	}
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, mocks.TestURL, nil)
+	req, err := http.NewRequest(http.MethodGet, mocks.TestURL, nil)
+	req = req.WithContext(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
