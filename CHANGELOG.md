@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v13.4.0
+
+## New Features
+
+- Added field `SendDecorators` to the `Client` type.  This can be used to specify a custom chain of SendDecorators per client.
+- Added method `Client.Send()` which includes logic for selecting the preferred chain of SendDecorators.
+
 ## v13.3.3
 
 ### Bug Fixes
