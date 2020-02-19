@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v11.1.3
+
+### Bug Fixes (back-ports)
+
+- Honor `Retry-After` header in HTTP-Time format.
+
 ## v11.1.2
 
 ### Bug Fixes (back-ports)
