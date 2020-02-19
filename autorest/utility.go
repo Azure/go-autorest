@@ -20,6 +20,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -225,4 +226,14 @@ func IsTemporaryNetworkError(err error) bool {
 		return true
 	}
 	return false
+}
+
+// drainResponseBody reads the response body then closes it.
+func drainResponseBody(resp *http.Response) error {
+	if resp != nil && resp.Body != nil {
+		_, err := io.Copy(ioutil.Discard, resp.Body)
+		resp.Body.Close()
+		return err
+	}
+	return nil
 }

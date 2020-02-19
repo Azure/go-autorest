@@ -5,6 +5,7 @@
 ### Bug Fixes (back-ports)
 
 - Honor `Retry-After` header in HTTP-Time format.
+- Drain response bodies between retry attempts.
 
 ## v11.1.2
 
