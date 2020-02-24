@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v14.0.0
+
+## Breaking Changes
+
+- By default, the `DoRetryForStatusCodes` functions will no longer infinitely retry a request when the response returns an HTTP status code of 429 (StatusTooManyRequests).  To opt in to the old behavior set `autorest.Count429AsRetry` to `false`.
+
+## New Features
+
+- Variable `autorest.Max429Delay` can be used to control the maximum delay between retries when a 429 is received with no `Retry-After` header.  The default is zero which means there is no cap.
+
 ## v13.4.0
 
 ## New Features
