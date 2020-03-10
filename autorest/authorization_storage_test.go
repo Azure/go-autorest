@@ -44,6 +44,31 @@ func TestNewSharedKeyAuthorizer(t *testing.T) {
 	}
 }
 
+func TestNewSharedKeyForAccountAuthorizer(t *testing.T) {
+	auth, err := NewSharedKeyAuthorizer("golangrocksonazure", "YmFy", SharedKeyForAccount)
+	if err != nil {
+		t.Fatalf("create shared key authorizer: %v", err)
+	}
+	req, err := http.NewRequest(http.MethodGet, "https://golangrocksonazure.blob.core.windows.net/?comp=properties&restype=service", nil)
+	if err != nil {
+		t.Fatalf("create HTTP request: %v", err)
+	}
+	req.Header.Add(headerAcceptCharset, "UTF-8")
+	req.Header.Add(headerContentType, "application/json")
+	req.Header.Add(headerXMSDate, "Tue, 10 Mar 2020 10:04:41 GMT")
+	req.Header.Add(headerContentLength, "0")
+	req.Header.Add(headerXMSVersion, "2018-11-09")
+	req.Header.Add(headerAccept, "application/json;odata=nometadata")
+	req, err = Prepare(req, auth.WithAuthorization())
+	if err != nil {
+		t.Fatalf("prepare HTTP request: %v", err)
+	}
+	const expected = "SharedKey golangrocksonazure:YxaPt5rsKrfBl973jnvCq5VBfrB76FRbL+M1ZuvIGSw="
+	if auth := req.Header.Get(headerAuthorization); auth != expected {
+		t.Fatalf("expected: %s, go %s", expected, auth)
+	}
+}
+
 func TestNewSharedKeyForTableAuthorizer(t *testing.T) {
 	auth, err := NewSharedKeyAuthorizer("golangrocksonazure", "YmFy", SharedKeyForTable)
 	if err != nil {
