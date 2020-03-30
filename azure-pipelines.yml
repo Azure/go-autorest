@@ -3,7 +3,7 @@ variables:
   sdkPath: '$(GOPATH)/src/github.com/$(build.repository.name)'
 
 jobs:
-  - job: 'go-autorest CI'
+  - job: 'goautorest'
     displayName: 'Run go-autorest CI Checks'
 
     strategy:
