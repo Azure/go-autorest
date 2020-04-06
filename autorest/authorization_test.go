@@ -102,8 +102,8 @@ func TestServicePrincipalTokenWithAuthorizationRefresh(t *testing.T) {
 	jwt := `{
 		"access_token" : "accessToken",
 		"expires_in"   : "3600",
-		"expires_on"   : "test",
-		"not_before"   : "test",
+		"expires_on"   : "12345",
+		"not_before"   : "67890",
 		"resource"     : "test",
 		"token_type"   : "Bearer"
 	}`
@@ -317,8 +317,8 @@ func TestMultiTenantServicePrincipalTokenWithAuthorizationRefresh(t *testing.T) 
 	primaryToken := `{
 		"access_token" : "primary token refreshed",
 		"expires_in"   : "3600",
-		"expires_on"   : "test",
-		"not_before"   : "test",
+		"expires_on"   : "12345",
+		"not_before"   : "67890",
 		"resource"     : "test",
 		"token_type"   : "Bearer"
 	}`
@@ -326,8 +326,8 @@ func TestMultiTenantServicePrincipalTokenWithAuthorizationRefresh(t *testing.T) 
 	auxToken1 := `{
 		"access_token" : "aux token 1 refreshed",
 		"expires_in"   : "3600",
-		"expires_on"   : "test",
-		"not_before"   : "test",
+		"expires_on"   : "12345",
+		"not_before"   : "67890",
 		"resource"     : "test",
 		"token_type"   : "Bearer"
 	}`
@@ -335,8 +335,8 @@ func TestMultiTenantServicePrincipalTokenWithAuthorizationRefresh(t *testing.T) 
 	auxToken2 := `{
 		"access_token" : "aux token 2 refreshed",
 		"expires_in"   : "3600",
-		"expires_on"   : "test",
-		"not_before"   : "test",
+		"expires_on"   : "12345",
+		"not_before"   : "67890",
 		"resource"     : "test",
 		"token_type"   : "Bearer"
 	}`
@@ -344,8 +344,8 @@ func TestMultiTenantServicePrincipalTokenWithAuthorizationRefresh(t *testing.T) 
 	auxToken3 := `{
 		"access_token" : "aux token 3 refreshed",
 		"expires_in"   : "3600",
-		"expires_on"   : "test",
-		"not_before"   : "test",
+		"expires_on"   : "12345",
+		"not_before"   : "67890",
 		"resource"     : "test",
 		"token_type"   : "Bearer"
 	}`

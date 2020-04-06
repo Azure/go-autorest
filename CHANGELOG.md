@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v14.0.1
+
+### Bug Fixes
+
+- Fix race condition when refreshing token.
+- Fixed some tests to work with Go 1.14.
+
 ## v14.0.0
 
 ## Breaking Changes
