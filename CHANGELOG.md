@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v14.1.0
+
+### New Features
+
+- Added `azure.SetEnvironment()` that will update the global environments map with the specified values.
+
 ## v14.0.1
 
 ### Bug Fixes
