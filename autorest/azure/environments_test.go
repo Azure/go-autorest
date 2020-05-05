@@ -405,3 +405,19 @@ func TestRoundTripSerialization(t *testing.T) {
 		t.Errorf("Expected ResourceIdentifiers.OperationalInsights to be %q, but got %q", env.ResourceIdentifiers.OperationalInsights, testSubject.ResourceIdentifiers.OperationalInsights)
 	}
 }
+
+func TestSetEnvironment(t *testing.T) {
+	const testEnvName = "testenvironment"
+	if _, err := EnvironmentFromName(testEnvName); err == nil {
+		t.Fatal("expected non-nil error")
+	}
+	testEnv := Environment{Name: testEnvName}
+	SetEnvironment(testEnvName, testEnv)
+	result, err := EnvironmentFromName(testEnvName)
+	if err != nil {
+		t.Fatalf("failed to get custom environment: %v", err)
+	}
+	if testEnv != result {
+		t.Fatalf("expected %v, got %v", testEnv, result)
+	}
+}
