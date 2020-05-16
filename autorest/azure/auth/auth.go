@@ -713,8 +713,8 @@ type MSIConfig struct {
 	ClientID string
 }
 
-// Authorizer gets the authorizer from MSI.
-func (mc MSIConfig) Authorizer() (autorest.Authorizer, error) {
+// ServicePrincipalToken creates a ServicePrincipalToken from MSI.
+func (mc MSIConfig) ServicePrincipalToken() (*adal.ServicePrincipalToken, error) {
 	msiEndpoint, err := adal.GetMSIEndpoint()
 	if err != nil {
 		return nil, err
@@ -731,6 +731,16 @@ func (mc MSIConfig) Authorizer() (autorest.Authorizer, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to get oauth token from MSI for user assigned identity: %v", err)
 		}
+	}
+
+	return spToken, nil
+}
+
+// Authorizer gets the authorizer from MSI.
+func (mc MSIConfig) Authorizer() (autorest.Authorizer, error) {
+	spToken, err := mc.ServicePrincipalToken()
+	if err != nil {
+		return nil, err
 	}
 
 	return autorest.NewBearerAuthorizer(spToken), nil
