@@ -299,7 +299,7 @@ func TestMultitenantAuthorizationThree(t *testing.T) {
 	if primary := req.Header.Get(headerAuthorization); primary != "Bearer primary" {
 		t.Fatalf("bad primary authorization header %s", primary)
 	}
-	if aux := req.Header.Get(headerAuxAuthorization); aux != "Bearer aux1; Bearer aux2; Bearer aux3" {
+	if aux := req.Header.Get(headerAuxAuthorization); aux != "Bearer aux1, Bearer aux2, Bearer aux3" {
 		t.Fatalf("bad auxiliary authorization header %s", aux)
 	}
 }
@@ -376,7 +376,7 @@ func TestMultiTenantServicePrincipalTokenWithAuthorizationRefresh(t *testing.T) 
 		auxTokens[i] = fmt.Sprintf("Bearer %s", auxTokens[i])
 	}
 	auxHeader := req.Header.Get(http.CanonicalHeaderKey(headerAuxAuthorization))
-	if auxHeader != strings.Join(auxTokens, "; ") {
+	if auxHeader != strings.Join(auxTokens, ", ") {
 		t.Fatal("azure: multiTenantSPTAuthorizer#WithAuthorization failed to set Authorization header for auxiliary tokens")
 	}
 	for i := range auxTokens {
