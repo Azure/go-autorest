@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v14.1.1
+
+### Bug Fixes
+- Fix `x-ms-authorization-auxiliary` header sperator to comma.
+
 ## v14.1.0
 
 ### New Features
