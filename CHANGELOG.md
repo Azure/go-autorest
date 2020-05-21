@@ -3,7 +3,8 @@
 ## v14.1.1
 
 ### Bug Fixes
-- Fix `x-ms-authorization-auxiliary` header sperator to comma.
+
+- Change `x-ms-authorization-auxiliary` header value separator to comma.
 
 ## v14.1.0
 

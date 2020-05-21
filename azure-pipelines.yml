@@ -11,23 +11,25 @@ jobs:
         Linux_Go113:
           vm.image: 'ubuntu-18.04'
           go.version: '1.13'
-          GOROOT: '/usr/local/go$(go.version)'
         Linux_Go114:
           vm.image: 'ubuntu-18.04'
           go.version: '1.14'
-          GOROOT: '/usr/local/go$(go.version)'
 
     pool:
       vmImage: '$(vm.image)'
 
     steps:
+      - task: GoTool@0
+        inputs:
+          version: '$(go.version)'
+        displayName: "Select Go Version"
+
       - script: |
           set -e
           mkdir -p '$(GOPATH)/bin'
           mkdir -p '$(sdkPath)'
           shopt -s extglob
           mv !(work) '$(sdkPath)'
-          echo '##vso[task.prependpath]$(GOROOT)/bin'
           echo '##vso[task.prependpath]$(GOPATH)/bin'
         displayName: 'Create Go Workspace'
 
