@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v13.4.1
+
+### Bug Fixes
+
+- Change `x-ms-authorization-auxiliary` header value separator to comma.
+
 ## v13.4.0
 
 ## New Features

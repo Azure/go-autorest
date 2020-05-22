@@ -164,7 +164,7 @@ func TestServicePrincipalTokenRefreshUsesCustomRefreshFunc(t *testing.T) {
 func TestServicePrincipalTokenRefreshUsesPOST(t *testing.T) {
 	spt := newServicePrincipalToken()
 
-	body := mocks.NewBody(newTokenJSON("test", "test"))
+	body := mocks.NewBody(newTokenJSON("12345", "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
@@ -199,7 +199,7 @@ func TestServicePrincipalTokenFromMSIRefreshUsesGET(t *testing.T) {
 		t.Fatalf("Failed to get MSI SPT: %v", err)
 	}
 
-	body := mocks.NewBody(newTokenJSON("test", "test"))
+	body := mocks.NewBody(newTokenJSON("12345", "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
@@ -264,7 +264,7 @@ func TestServicePrincipalTokenFromMSIRefreshCancel(t *testing.T) {
 func TestServicePrincipalTokenRefreshSetsMimeType(t *testing.T) {
 	spt := newServicePrincipalToken()
 
-	body := mocks.NewBody(newTokenJSON("test", "test"))
+	body := mocks.NewBody(newTokenJSON("12345", "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
@@ -291,7 +291,7 @@ func TestServicePrincipalTokenRefreshSetsMimeType(t *testing.T) {
 func TestServicePrincipalTokenRefreshSetsURL(t *testing.T) {
 	spt := newServicePrincipalToken()
 
-	body := mocks.NewBody(newTokenJSON("test", "test"))
+	body := mocks.NewBody(newTokenJSON("12345", "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
@@ -315,7 +315,7 @@ func TestServicePrincipalTokenRefreshSetsURL(t *testing.T) {
 }
 
 func testServicePrincipalTokenRefreshSetsBody(t *testing.T, spt *ServicePrincipalToken, f func(*testing.T, []byte)) {
-	body := mocks.NewBody(newTokenJSON("test", "test"))
+	body := mocks.NewBody(newTokenJSON("12345", "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
@@ -435,7 +435,7 @@ func TestServicePrincipalTokenSecretRefreshSetsBody(t *testing.T) {
 func TestServicePrincipalTokenRefreshClosesRequestBody(t *testing.T) {
 	spt := newServicePrincipalToken()
 
-	body := mocks.NewBody(newTokenJSON("test", "test"))
+	body := mocks.NewBody(newTokenJSON("12345", "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
@@ -460,7 +460,7 @@ func TestServicePrincipalTokenRefreshClosesRequestBody(t *testing.T) {
 func TestServicePrincipalTokenRefreshRejectsResponsesWithStatusNotOK(t *testing.T) {
 	spt := newServicePrincipalToken()
 
-	body := mocks.NewBody(newTokenJSON("test", "test"))
+	body := mocks.NewBody(newTokenJSON("12345", "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusUnauthorized, "Unauthorized")
 
 	c := mocks.NewSender()
@@ -559,7 +559,7 @@ func TestServicePrincipalTokenEnsureFreshRefreshes(t *testing.T) {
 	spt := newServicePrincipalToken()
 	expireToken(&spt.inner.Token)
 
-	body := mocks.NewBody(newTokenJSON("test", "test"))
+	body := mocks.NewBody(newTokenJSON("12345", "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	f := false
