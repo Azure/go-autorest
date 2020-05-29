@@ -21,4 +21,4 @@ package adal
 
 // Necessary for safely adding multi-module repo.
 // See: https://github.com/golang/go/wiki/Modules#is-it-possible-to-add-a-module-to-a-multi-module-repository
-import _ "github.com/Azure/go-autorest/autorest"
+import _ "github.com/Azure/go-autorest/v15/autorest"

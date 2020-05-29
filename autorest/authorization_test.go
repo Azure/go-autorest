@@ -21,8 +21,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Azure/go-autorest/autorest/adal"
-	"github.com/Azure/go-autorest/autorest/mocks"
+	"github.com/Azure/go-autorest/v15/autorest/adal"
+	"github.com/Azure/go-autorest/v15/autorest/mocks"
 )
 
 const (

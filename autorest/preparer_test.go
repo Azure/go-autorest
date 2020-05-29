@@ -25,7 +25,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Azure/go-autorest/autorest/mocks"
+	"github.com/Azure/go-autorest/v15/autorest/mocks"
 )
 
 // PrepareDecorators wrap and invoke a Preparer. Most often, the decorator invokes the passed

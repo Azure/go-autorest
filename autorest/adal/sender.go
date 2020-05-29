@@ -20,7 +20,7 @@ import (
 	"net/http/cookiejar"
 	"sync"
 
-	"github.com/Azure/go-autorest/tracing"
+	"github.com/Azure/go-autorest/v15/tracing"
 )
 
 const (

@@ -26,8 +26,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Azure/go-autorest/autorest/adal"
-	"github.com/Azure/go-autorest/autorest/date"
+	"github.com/Azure/go-autorest/v15/autorest/adal"
+	"github.com/Azure/go-autorest/v15/autorest/date"
 	"github.com/mitchellh/go-homedir"
 )
 

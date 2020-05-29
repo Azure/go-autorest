@@ -25,9 +25,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/go-autorest/autorest/adal"
-	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/v15/autorest"
+	"github.com/Azure/go-autorest/v15/autorest/adal"
+	"github.com/Azure/go-autorest/v15/autorest/azure"
 	"golang.org/x/crypto/pkcs12"
 )
 

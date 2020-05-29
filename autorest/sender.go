@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Azure/go-autorest/tracing"
+	"github.com/Azure/go-autorest/v15/tracing"
 )
 
 // used as a key type in context.WithValue()

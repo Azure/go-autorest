@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Azure/go-autorest/logger"
+	"github.com/Azure/go-autorest/v15/logger"
 )
 
 const (

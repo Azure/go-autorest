@@ -22,7 +22,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/Azure/go-autorest/autorest/adal"
+	"github.com/Azure/go-autorest/v15/autorest/adal"
 )
 
 const (
