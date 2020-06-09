@@ -117,7 +117,7 @@ var (
 		ResourceManagerEndpoint:      "https://management.usgovcloudapi.net/",
 		ActiveDirectoryEndpoint:      "https://login.microsoftonline.us/",
 		GalleryEndpoint:              "https://gallery.usgovcloudapi.net/",
-		KeyVaultEndpoint:             "https://vault.usgovcloudapi.net/",
+		KeyVaultEndpoint:             "https://vault.usgovcloudapi.net",
 		GraphEndpoint:                "https://graph.windows.net/",
 		ServiceBusEndpoint:           "https://servicebus.usgovcloudapi.net/",
 		BatchManagementEndpoint:      "https://batch.core.usgovcloudapi.net/",
