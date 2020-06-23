@@ -160,7 +160,7 @@ var (
 		KeyVaultDNSSuffix:            "vault.azure.cn",
 		ServiceBusEndpointSuffix:     "servicebus.chinacloudapi.cn",
 		ServiceManagementVMDNSSuffix: "chinacloudapp.cn",
-		ResourceManagerVMDNSSuffix:   "cloudapp.azure.cn",
+		ResourceManagerVMDNSSuffix:   "cloudapp.chinacloudapi.cn",
 		ContainerRegistryDNSSuffix:   "azurecr.cn",
 		CosmosDBDNSSuffix:            "documents.azure.cn",
 		TokenAudience:                "https://management.chinacloudapi.cn/",
