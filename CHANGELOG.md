@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v14.2.0
+
+- Added package comment to make `github.com/Azure/go-autorest` importable.
+
 ## v14.1.1
 
 ### Bug Fixes
