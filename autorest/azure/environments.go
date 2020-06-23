@@ -127,7 +127,7 @@ var (
 		KeyVaultDNSSuffix:            "vault.usgovcloudapi.net",
 		ServiceBusEndpointSuffix:     "servicebus.usgovcloudapi.net",
 		ServiceManagementVMDNSSuffix: "usgovcloudapp.net",
-		ResourceManagerVMDNSSuffix:   "cloudapp.windowsazure.us",
+		ResourceManagerVMDNSSuffix:   "cloudapp.usgovcloudapi.net",
 		ContainerRegistryDNSSuffix:   "azurecr.us",
 		CosmosDBDNSSuffix:            "documents.azure.us",
 		TokenAudience:                "https://management.usgovcloudapi.net/",
