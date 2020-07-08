@@ -745,6 +745,39 @@ func TestFuture_WaitForCompletionRef(t *testing.T) {
 		autorest.ByClosing())
 }
 
+func TestFuture_WaitForCompletionRefWithRetryAfter(t *testing.T) {
+	r2 := newOperationResourceResponse("busy")
+	r3 := newOperationResourceResponse(operationSucceeded)
+
+	sender := mocks.NewSender()
+	sender.AppendAndRepeatResponse(r2, 2)
+	sender.AppendResponse(r3)
+	client := autorest.Client{
+		PollingDelay:    1 * time.Second,
+		PollingDuration: autorest.DefaultPollingDuration,
+		RetryAttempts:   autorest.DefaultRetryAttempts,
+		RetryDuration:   1 * time.Second,
+		Sender:          sender,
+	}
+
+	future, err := NewFutureFromResponse(newSimpleAsyncRespWithRetryAfter())
+	if err != nil {
+		t.Fatalf("failed to create future: %v", err)
+	}
+
+	err = future.WaitForCompletionRef(context.Background(), client)
+	if err != nil {
+		t.Fatalf("WaitForCompletion returned non-nil error")
+	}
+
+	if sender.Attempts() < sender.NumResponses() {
+		t.Fatalf("stopped polling before receiving a terminated OperationResource")
+	}
+
+	autorest.Respond(future.Response(),
+		autorest.ByClosing())
+}
+
 func TestFuture_WaitForCompletionTimedOut(t *testing.T) {
 	r2 := newProvisioningStatusResponse("busy")
 
@@ -986,6 +1019,13 @@ func newAsyncResp(req *http.Request, statusCode int, body *mocks.Body) *http.Res
 func newSimpleAsyncResp() *http.Response {
 	r := newAsyncResp(newAsyncReq(http.MethodPut, nil), http.StatusCreated, mocks.NewBody(fmt.Sprintf(operationResourceFormat, operationInProgress)))
 	mocks.SetResponseHeader(r, headerAsyncOperation, mocks.TestAzureAsyncURL)
+	return r
+}
+
+func newSimpleAsyncRespWithRetryAfter() *http.Response {
+	r := newAsyncResp(newAsyncReq(http.MethodPut, nil), http.StatusCreated, mocks.NewBody(fmt.Sprintf(operationResourceFormat, operationInProgress)))
+	mocks.SetResponseHeader(r, headerAsyncOperation, mocks.TestAzureAsyncURL)
+	mocks.SetResponseHeader(r, autorest.HeaderRetryAfter, "1")
 	return r
 }
 
