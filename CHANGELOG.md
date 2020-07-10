@@ -1002,3 +1002,4 @@ and `azure.DoPollForAsynchronous` for examples.
 ## v1.1.1
 
 - Introduce godeps and vendor dependencies introduced in v1.1.1
+- Added `APIManagementHostManagementSuffix` field in environment 
