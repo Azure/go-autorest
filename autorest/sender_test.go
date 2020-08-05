@@ -798,6 +798,8 @@ func newAcceptedResponse() *http.Response {
 }
 
 func TestDelayWithRetryAfterWithSuccess(t *testing.T) {
+	Count429AsRetry = false
+	defer func() { Count429AsRetry = true }()
 	after, retries := 2, 2
 	totalSecs := after * retries
 
@@ -821,8 +823,44 @@ func TestDelayWithRetryAfterWithSuccess(t *testing.T) {
 		ByDiscardingBody(),
 		ByClosing())
 
+	if r.StatusCode != http.StatusOK {
+		t.Fatalf("autorest: Sender#DelayWithRetryAfterWithSuccess -- got status code %d, wanted 200", r.StatusCode)
+	}
 	if client.Attempts() != 3 {
-		t.Fatalf("autorest: Sender#DelayWithRetryAfter -- Got: StatusCode %v in %v attempts; Want: StatusCode 200 OK in 2 attempts -- ",
+		t.Fatalf("autorest: Sender#DelayWithRetryAfterWithSuccess -- Got: StatusCode %v in %v attempts; Want: StatusCode 200 OK in 2 attempts -- ",
+			r.Status, client.Attempts()-1)
+	}
+}
+
+func TestDelayWithRetryAfterWithFail(t *testing.T) {
+	after, retries := 2, 2
+	totalSecs := after * retries
+
+	client := mocks.NewSender()
+	resp := mocks.NewResponseWithStatus("429 Too many requests", http.StatusTooManyRequests)
+	mocks.SetResponseHeader(resp, "Retry-After", fmt.Sprintf("%v", after))
+	client.AppendAndRepeatResponse(resp, retries)
+	client.AppendResponse(mocks.NewResponseWithStatus("200 OK", http.StatusOK))
+
+	d := time.Second * time.Duration(totalSecs)
+	start := time.Now()
+	r, _ := SendWithSender(client, mocks.NewRequest(),
+		DoRetryForStatusCodes(1, time.Duration(time.Second), http.StatusTooManyRequests),
+	)
+
+	if time.Since(start) < d {
+		t.Fatal("autorest: DelayWithRetryAfter failed stopped too soon")
+	}
+
+	Respond(r,
+		ByDiscardingBody(),
+		ByClosing())
+
+	if r.StatusCode != http.StatusTooManyRequests {
+		t.Fatalf("autorest: Sender#DelayWithRetryAfterWithFail -- got status code %d, wanted 429", r.StatusCode)
+	}
+	if client.Attempts() != 2 {
+		t.Fatalf("autorest: Sender#DelayWithRetryAfterWithFail -- Got: StatusCode %v in %v attempts; Want: StatusCode 429 OK in 1 attempt -- ",
 			r.Status, client.Attempts()-1)
 	}
 }
@@ -942,6 +980,8 @@ func TestDoRetryForStatusCodes_NilResponseFatalError(t *testing.T) {
 }
 
 func TestDoRetryForStatusCodes_Cancel429(t *testing.T) {
+	Count429AsRetry = false
+	defer func() { Count429AsRetry = true }()
 	retries := 6
 	client := mocks.NewSender()
 	resp := mocks.NewResponseWithStatus("429 Too many requests", http.StatusTooManyRequests)

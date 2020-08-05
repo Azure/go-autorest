@@ -158,10 +158,11 @@ func ExampleWithBaseURL() {
 	// Output: https://microsoft.com/a/b/c/
 }
 
-func ExampleWithBaseURL_second() {
+func TestWithBaseURL_second(t *testing.T) {
 	_, err := Prepare(&http.Request{}, WithBaseURL(":"))
-	fmt.Println(err)
-	// Output: parse :: missing protocol scheme
+	if err == nil {
+		t.Fatal("unexpected nil error")
+	}
 }
 
 // Create a request whose Body is a byte array
@@ -203,11 +204,12 @@ func ExampleWithCustomBaseURL() {
 	// Output: https://myaccount.blob.core.windows.net/
 }
 
-func ExampleWithCustomBaseURL_second() {
+func TestWithCustomBaseURL_second(t *testing.T) {
 	_, err := Prepare(&http.Request{},
 		WithCustomBaseURL(":", map[string]interface{}{}))
-	fmt.Println(err)
-	// Output: parse :: missing protocol scheme
+	if err == nil {
+		t.Fatal("unexpected nil error")
+	}
 }
 
 // Create a request with a custom HTTP header

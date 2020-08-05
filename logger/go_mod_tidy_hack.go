@@ -1,6 +1,6 @@
 // +build modhack
 
-package auth
+package logger
 
 // Copyright 2017 Microsoft Corporation
 //

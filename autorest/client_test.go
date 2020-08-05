@@ -16,6 +16,7 @@ package autorest
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
@@ -460,4 +461,93 @@ func randomString(n int) string {
 		s[i] = chars[r.Intn(len(chars))]
 	}
 	return string(s)
+}
+
+func TestClientSendMethod(t *testing.T) {
+	sender := mocks.NewSender()
+	sender.AppendResponse(newAcceptedResponse())
+	client := Client{
+		Sender: sender,
+	}
+	req, err := http.NewRequest(http.MethodGet, mocks.TestURL, nil)
+	req = req.WithContext(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	// no SendDecorators
+	resp, err := client.Send(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusAccepted {
+		t.Fatalf("expected status code %d, got %d", http.StatusAccepted, resp.StatusCode)
+	}
+	// default SendDecorators
+	sender.AppendResponse(newAcceptedResponse())
+	resp, err = client.Send(req, DefaultSendDecorator())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v := resp.Header.Get("default-decorator"); v != "true" {
+		t.Fatal("didn't find default-decorator header in response")
+	}
+	// using client SendDecorators
+	sender.AppendResponse(newAcceptedResponse())
+	client.SendDecorators = []SendDecorator{ClientSendDecorator()}
+	resp, err = client.Send(req, DefaultSendDecorator())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v := resp.Header.Get("client-decorator"); v != "true" {
+		t.Fatal("didn't find client-decorator header in response")
+	}
+	if v := resp.Header.Get("default-decorator"); v == "true" {
+		t.Fatal("unexpected default-decorator header in response")
+	}
+	// using context SendDecorators
+	sender.AppendResponse(newAcceptedResponse())
+	req = req.WithContext(WithSendDecorators(req.Context(), []SendDecorator{ContextSendDecorator()}))
+	resp, err = client.Send(req, DefaultSendDecorator())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v := resp.Header.Get("context-decorator"); v != "true" {
+		t.Fatal("didn't find context-decorator header in response")
+	}
+	if v := resp.Header.Get("client-decorator"); v == "true" {
+		t.Fatal("unexpected client-decorator header in response")
+	}
+	if v := resp.Header.Get("default-decorator"); v == "true" {
+		t.Fatal("unexpected default-decorator header in response")
+	}
+}
+
+func DefaultSendDecorator() SendDecorator {
+	return func(s Sender) Sender {
+		return SenderFunc(func(r *http.Request) (*http.Response, error) {
+			resp, err := s.Do(r)
+			resp.Header.Set("default-decorator", "true")
+			return resp, err
+		})
+	}
+}
+
+func ClientSendDecorator() SendDecorator {
+	return func(s Sender) Sender {
+		return SenderFunc(func(r *http.Request) (*http.Response, error) {
+			resp, err := s.Do(r)
+			resp.Header.Set("client-decorator", "true")
+			return resp, err
+		})
+	}
+}
+
+func ContextSendDecorator() SendDecorator {
+	return func(s Sender) Sender {
+		return SenderFunc(func(r *http.Request) (*http.Response, error) {
+			resp, err := s.Do(r)
+			resp.Header.Set("context-decorator", "true")
+			return resp, err
+		})
+	}
 }
