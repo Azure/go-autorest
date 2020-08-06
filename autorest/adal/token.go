@@ -678,16 +678,22 @@ func GetMSIEndpoint() (string, error) {
 // NewServicePrincipalTokenFromMSI creates a ServicePrincipalToken via the MSI VM Extension.
 // It will use the system assigned identity when creating the token.
 func NewServicePrincipalTokenFromMSI(msiEndpoint, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
-	return newServicePrincipalTokenFromMSI(msiEndpoint, resource, nil, callbacks...)
+	return newServicePrincipalTokenFromMSI(msiEndpoint, resource, nil, nil, callbacks...)
 }
 
 // NewServicePrincipalTokenFromMSIWithUserAssignedID creates a ServicePrincipalToken via the MSI VM Extension.
-// It will use the specified user assigned identity when creating the token.
+// It will use the clientID of specified user assigned identity when creating the token.
 func NewServicePrincipalTokenFromMSIWithUserAssignedID(msiEndpoint, resource string, userAssignedID string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
-	return newServicePrincipalTokenFromMSI(msiEndpoint, resource, &userAssignedID, callbacks...)
+	return newServicePrincipalTokenFromMSI(msiEndpoint, resource, &userAssignedID, nil, callbacks...)
 }
 
-func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, userAssignedID *string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+// NewServicePrincipalTokenFromMSIWithIdentityResourceID creates a ServicePrincipalToken via the MSI VM Extension.
+// It will use the azure resource id of user assigned identity when creating the token.
+func NewServicePrincipalTokenFromMSIWithIdentityResourceID(msiEndpoint, resource string, identityResourceID string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+	return newServicePrincipalTokenFromMSI(msiEndpoint, resource, nil, &identityResourceID, callbacks...)
+}
+
+func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, userAssignedID *string, identityResourceID *string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	if err := validateStringParam(msiEndpoint, "msiEndpoint"); err != nil {
 		return nil, err
 	}
@@ -696,6 +702,11 @@ func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, userAssignedI
 	}
 	if userAssignedID != nil {
 		if err := validateStringParam(*userAssignedID, "userAssignedID"); err != nil {
+			return nil, err
+		}
+	}
+	if identityResourceID != nil {
+		if err := validateStringParam(*identityResourceID, "identityResourceID"); err != nil {
 			return nil, err
 		}
 	}
@@ -715,6 +726,9 @@ func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, userAssignedI
 	}
 	if userAssignedID != nil {
 		v.Set("client_id", *userAssignedID)
+	}
+	if identityResourceID != nil {
+		v.Set("mi_res_id", *identityResourceID)
 	}
 	msiEndpointURL.RawQuery = v.Encode()
 

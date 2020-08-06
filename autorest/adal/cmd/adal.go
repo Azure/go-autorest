@@ -31,10 +31,13 @@ import (
 )
 
 const (
-	deviceMode       = "device"
-	clientSecretMode = "secret"
-	clientCertMode   = "cert"
-	refreshMode      = "refresh"
+	deviceMode        = "device"
+	clientSecretMode  = "secret"
+	clientCertMode    = "cert"
+	refreshMode       = "refresh"
+	msiDefaultMode    = "msiDefault"
+	msiClientIDMode   = "msiClientID"
+	msiResourceIDMode = "msiResourceID"
 
 	activeDirectoryEndpoint = "https://login.microsoftonline.com/"
 )
@@ -48,8 +51,9 @@ var (
 	mode     string
 	resource string
 
-	tenantID      string
-	applicationID string
+	tenantID           string
+	applicationID      string
+	identityResourceID string
 
 	applicationSecret string
 	certificatePath   string
@@ -82,10 +86,28 @@ func init() {
 	flag.StringVar(&applicationSecret, "secret", "", "application secret")
 	flag.StringVar(&certificatePath, "certificatePath", "", "path to pk12/PFC application certificate")
 	flag.StringVar(&tokenCachePath, "tokenCachePath", defaultTokenCachePath(), "location of oath token cache")
+	flag.StringVar(&identityResourceID, "identityResourceID", "", "managedIdentity azure resource id")
 
 	flag.Parse()
 
 	switch mode = strings.TrimSpace(mode); mode {
+	case msiDefaultMode:
+		checkMandatoryOptions(msiDefaultMode,
+			option{name: "resource", value: resource},
+			option{name: "tenantId", value: tenantID},
+		)
+	case msiClientIDMode:
+		checkMandatoryOptions(msiClientIDMode,
+			option{name: "resource", value: resource},
+			option{name: "tenantId", value: tenantID},
+			option{name: "applicationId", value: applicationID},
+		)
+	case msiResourceIDMode:
+		checkMandatoryOptions(msiResourceIDMode,
+			option{name: "resource", value: resource},
+			option{name: "tenantId", value: tenantID},
+			option{name: "identityResourceID", value: identityResourceID},
+		)
 	case clientSecretMode:
 		checkMandatoryOptions(clientSecretMode,
 			option{name: "resource", value: resource},
@@ -148,6 +170,42 @@ func decodePkcs12(pkcs []byte, password string) (*x509.Certificate, *rsa.Private
 	}
 
 	return certificate, rsaPrivateKey, nil
+}
+
+func acquireTokenMSIFlow(applicationID string,
+	identityResourceID string,
+	resource string,
+	callbacks ...adal.TokenRefreshCallback) (*adal.ServicePrincipalToken, error) {
+
+	// only one of them can be present:
+	if applicationID != "" && identityResourceID != "" {
+		return nil, fmt.Errorf("didn't expect applicationID and identityResourceID at same time")
+	}
+
+	msiEndpoint, _ := adal.GetMSIVMEndpoint()
+	var spt *adal.ServicePrincipalToken
+	var err error
+
+	// both can be empty, systemAssignedMSI scenario
+	if applicationID == "" && identityResourceID == "" {
+		spt, err = adal.NewServicePrincipalTokenFromMSI(msiEndpoint, resource, callbacks...)
+	}
+
+	// msi login with clientID
+	if applicationID != "" {
+		spt, err = adal.NewServicePrincipalTokenFromMSIWithUserAssignedID(msiEndpoint, resource, applicationID, callbacks...)
+	}
+
+	// msi login with resourceID
+	if identityResourceID != "" {
+		spt, err = adal.NewServicePrincipalTokenFromMSIWithIdentityResourceID(msiEndpoint, resource, identityResourceID, callbacks...)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return spt, spt.Refresh()
 }
 
 func acquireTokenClientCertFlow(oauthConfig adal.OAuthConfig,
@@ -278,6 +336,20 @@ func main() {
 		spt, err = acquireTokenDeviceCodeFlow(
 			*oauthConfig,
 			applicationID,
+			resource,
+			callback)
+		if err == nil {
+			err = saveToken(spt.Token())
+		}
+	case msiResourceIDMode:
+		fallthrough
+	case msiClientIDMode:
+		fallthrough
+	case msiDefaultMode:
+		var spt *adal.ServicePrincipalToken
+		spt, err = acquireTokenMSIFlow(
+			applicationID,
+			identityResourceID,
 			resource,
 			callback)
 		if err == nil {
