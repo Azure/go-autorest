@@ -106,7 +106,7 @@ func init() {
 		checkMandatoryOptions(msiResourceIDMode,
 			option{name: "resource", value: resource},
 			option{name: "tenantId", value: tenantID},
-			option{name: "identityResourceID", value: applicationID},
+			option{name: "identityResourceID", value: identityResourceID},
 		)
 	case clientSecretMode:
 		checkMandatoryOptions(clientSecretMode,

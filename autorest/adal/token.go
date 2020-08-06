@@ -728,8 +728,8 @@ func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, userAssignedI
 		v.Set("client_id", *userAssignedID)
 	}
 	if identityResourceID != nil {
-		fmt.Println("mi_res_id set to ", *userAssignedID)
-		v.Set("mi_res_id", *userAssignedID)
+		fmt.Println("mi_res_id set to ", *identityResourceID)
+		v.Set("mi_res_id", *identityResourceID)
 	}
 	msiEndpointURL.RawQuery = v.Encode()
 
