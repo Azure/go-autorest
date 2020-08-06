@@ -746,10 +746,10 @@ func TestNewServicePrincipalTokenFromMSIWithUserAssignedID(t *testing.T) {
 
 func TestNewServicePrincipalTokenFromMSIWithIdentityResourceID(t *testing.T) {
 	resource := "https://resource"
-	identityResourceId := "/subscriptions/testSub/resourceGroups/testGroup/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity"
+	identityResourceID := "/subscriptions/testSub/resourceGroups/testGroup/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity"
 	cb := func(token Token) error { return nil }
 
-	spt, err := NewServicePrincipalTokenFromMSIWithIdentityResourceID("http://msiendpoint/", resource, identityResourceId, cb)
+	spt, err := NewServicePrincipalTokenFromMSIWithIdentityResourceID("http://msiendpoint/", resource, identityResourceID, cb)
 	if err != nil {
 		t.Fatalf("Failed to get MSI SPT: %v", err)
 	}
@@ -767,7 +767,9 @@ func TestNewServicePrincipalTokenFromMSIWithIdentityResourceID(t *testing.T) {
 		t.Fatal("SPT had incorrect refresh callbacks.")
 	}
 
-	strings.Contains(spt.inner.OauthConfig.TokenEndpoint.RawQuery, fmt.Sprintf("mi_res_id=%s", identityResourceId))
+	if !strings.Contains(spt.inner.OauthConfig.TokenEndpoint.RawQuery, fmt.Sprintf("mi_res_id=%s", identityResourceID)) {
+		t.Fatal("SPT tokenEndpoint should contains mi_res_id")
+	}
 }
 
 func TestNewServicePrincipalTokenFromManualTokenSecret(t *testing.T) {
