@@ -1,4 +1,4 @@
-module github.com/Azure/go-autorest/autorest/adal
+module github.com/haitch/go-autorest/autorest/adal
 
 go 1.12
 
