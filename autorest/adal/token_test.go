@@ -694,7 +694,7 @@ func TestServicePrincipalTokenManualRefreshFailsWithoutRefresh(t *testing.T) {
 }
 
 func TestNewServicePrincipalTokenFromMSI(t *testing.T) {
-	resource := "https://resource"
+	const resource = "https://resource"
 	cb := func(token Token) error { return nil }
 
 	spt, err := NewServicePrincipalTokenFromMSI("http://msiendpoint/", resource, cb)
@@ -717,8 +717,10 @@ func TestNewServicePrincipalTokenFromMSI(t *testing.T) {
 }
 
 func TestNewServicePrincipalTokenFromMSIWithUserAssignedID(t *testing.T) {
-	resource := "https://resource"
-	userID := "abc123"
+	const (
+		resource = "https://resource"
+		userID   = "abc123"
+	)
 	cb := func(token Token) error { return nil }
 
 	spt, err := NewServicePrincipalTokenFromMSIWithUserAssignedID("http://msiendpoint/", resource, userID, cb)
@@ -745,8 +747,10 @@ func TestNewServicePrincipalTokenFromMSIWithUserAssignedID(t *testing.T) {
 }
 
 func TestNewServicePrincipalTokenFromMSIWithIdentityResourceID(t *testing.T) {
-	resource := "https://resource"
-	identityResourceID := "/subscriptions/testSub/resourceGroups/testGroup/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity"
+	const (
+		resource           = "https://resource"
+		identityResourceID = "/subscriptions/testSub/resourceGroups/testGroup/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity"
+	)
 	cb := func(token Token) error { return nil }
 
 	spt, err := NewServicePrincipalTokenFromMSIWithIdentityResourceID("http://msiendpoint/", resource, identityResourceID, cb)
@@ -767,7 +771,10 @@ func TestNewServicePrincipalTokenFromMSIWithIdentityResourceID(t *testing.T) {
 		t.Fatal("SPT had incorrect refresh callbacks.")
 	}
 
-	if !strings.Contains(spt.inner.OauthConfig.TokenEndpoint.RawQuery, fmt.Sprintf("mi_res_id=%s", identityResourceID)) {
+	urlPathParameter := url.Values{}
+	urlPathParameter.Set("mi_res_id", identityResourceID)
+
+	if !strings.Contains(spt.inner.OauthConfig.TokenEndpoint.RawQuery, urlPathParameter.Encode()) {
 		t.Fatal("SPT tokenEndpoint should contains mi_res_id")
 	}
 }
