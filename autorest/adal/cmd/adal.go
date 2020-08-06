@@ -26,7 +26,7 @@ import (
 	"net/http"
 	"os/user"
 
-	"github.com/Azure/go-autorest/autorest/adal"
+	"github.com/haitch/go-autorest/autorest/adal"
 	"golang.org/x/crypto/pkcs12"
 )
 
@@ -92,18 +92,18 @@ func init() {
 
 	switch mode = strings.TrimSpace(mode); mode {
 	case msiDefaultMode:
-		checkMandatoryOptions(clientSecretMode,
+		checkMandatoryOptions(msiDefaultMode,
 			option{name: "resource", value: resource},
 			option{name: "tenantId", value: tenantID},
 		)
 	case msiClientIDMode:
-		checkMandatoryOptions(clientSecretMode,
+		checkMandatoryOptions(msiClientIDMode,
 			option{name: "resource", value: resource},
 			option{name: "tenantId", value: tenantID},
 			option{name: "applicationId", value: applicationID},
 		)
 	case msiResourceIDMode:
-		checkMandatoryOptions(clientSecretMode,
+		checkMandatoryOptions(msiResourceIDMode,
 			option{name: "resource", value: resource},
 			option{name: "tenantId", value: tenantID},
 			option{name: "identityResourceID", value: applicationID},
@@ -172,8 +172,7 @@ func decodePkcs12(pkcs []byte, password string) (*x509.Certificate, *rsa.Private
 	return certificate, rsaPrivateKey, nil
 }
 
-func acquireTokenMSIFlow(oauthConfig adal.OAuthConfig,
-	applicationID string,
+func acquireTokenMSIFlow(applicationID string,
 	identityResourceID string,
 	resource string,
 	callbacks ...adal.TokenRefreshCallback) (*adal.ServicePrincipalToken, error) {
@@ -337,6 +336,20 @@ func main() {
 		spt, err = acquireTokenDeviceCodeFlow(
 			*oauthConfig,
 			applicationID,
+			resource,
+			callback)
+		if err == nil {
+			err = saveToken(spt.Token())
+		}
+	case msiResourceIDMode:
+		fallthrough
+	case msiClientIDMode:
+		fallthrough
+	case msiDefaultMode:
+		var spt *adal.ServicePrincipalToken
+		spt, err = acquireTokenMSIFlow(
+			applicationID,
+			identityResourceID,
 			resource,
 			callback)
 		if err == nil {
