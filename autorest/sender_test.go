@@ -1016,18 +1016,24 @@ func TestDoRetryForStatusCodes_Race(t *testing.T) {
 	sender := DecorateSender(s.Client(),
 		DoRetryForStatusCodes(0, 0, http.StatusRequestTimeout))
 
-	var wg sync.WaitGroup
-	for i := 0; i < 2; i++ {
-		wg.Add(1)
+	runs := 2
+	errCh := make(chan error, runs)
+
+	for i := 0; i < runs; i++ {
 		go func() {
-			defer wg.Done()
 			req, _ := http.NewRequest(http.MethodGet, s.URL, nil)
-			if _, err := sender.Do(req); err != nil {
-				t.Fatal(err)
-			}
+			// cannot use testing.T.Fatal inside a goroutine, send error down channel
+			_, err := sender.Do(req)
+			errCh <- err
 		}()
 	}
-	wg.Wait()
+	for i := 0; i < runs; i++ {
+		err := <-errCh
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	close(errCh)
 }
 
 func TestGetSendDecorators(t *testing.T) {

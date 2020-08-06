@@ -102,8 +102,8 @@ func TestSasAuthorizerRequest(t *testing.T) {
 			t.Fatalf("azure: SASTokenAuthorizer#WithAuthorization returned an error (%v)", err)
 		}
 
-		if req.RequestURI != v.expected {
-			t.Fatalf("azure: SASTokenAuthorizer#WithAuthorization failed to set QueryString header - got %q but expected %q", req.RequestURI, v.expected)
+		if req.URL.String() != v.expected {
+			t.Fatalf("azure: SASTokenAuthorizer#WithAuthorization failed to set QueryString header - got %q but expected %q", req.URL.String(), v.expected)
 		}
 
 		if req.Header.Get(http.CanonicalHeaderKey("Authorization")) != "" {
