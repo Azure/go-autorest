@@ -26,7 +26,7 @@ import (
 	"net/http"
 	"os/user"
 
-	"github.com/haitch/go-autorest/autorest/adal"
+	"github.com/Azure/go-autorest/autorest/adal"
 	"golang.org/x/crypto/pkcs12"
 )
 
