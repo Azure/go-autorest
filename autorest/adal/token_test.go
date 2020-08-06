@@ -895,7 +895,7 @@ func TestMarshalServicePrincipalCertificateSecret(t *testing.T) {
 }
 
 func TestMarshalServicePrincipalMSISecret(t *testing.T) {
-	spt, err := newServicePrincipalTokenFromMSI("http://msiendpoint/", "https://resource", nil)
+	spt, err := newServicePrincipalTokenFromMSI("http://msiendpoint/", "https://resource", nil, nil)
 	if err != nil {
 		t.Fatalf("failed to get MSI SPT: %+v", err)
 	}
