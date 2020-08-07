@@ -694,7 +694,7 @@ func TestServicePrincipalTokenManualRefreshFailsWithoutRefresh(t *testing.T) {
 }
 
 func TestNewServicePrincipalTokenFromMSI(t *testing.T) {
-	resource := "https://resource"
+	const resource = "https://resource"
 	cb := func(token Token) error { return nil }
 
 	spt, err := NewServicePrincipalTokenFromMSI("http://msiendpoint/", resource, cb)
@@ -717,8 +717,10 @@ func TestNewServicePrincipalTokenFromMSI(t *testing.T) {
 }
 
 func TestNewServicePrincipalTokenFromMSIWithUserAssignedID(t *testing.T) {
-	resource := "https://resource"
-	userID := "abc123"
+	const (
+		resource = "https://resource"
+		userID   = "abc123"
+	)
 	cb := func(token Token) error { return nil }
 
 	spt, err := NewServicePrincipalTokenFromMSIWithUserAssignedID("http://msiendpoint/", resource, userID, cb)
@@ -741,6 +743,39 @@ func TestNewServicePrincipalTokenFromMSIWithUserAssignedID(t *testing.T) {
 
 	if spt.inner.ClientID != userID {
 		t.Fatal("SPT had incorrect client ID")
+	}
+}
+
+func TestNewServicePrincipalTokenFromMSIWithIdentityResourceID(t *testing.T) {
+	const (
+		resource           = "https://resource"
+		identityResourceID = "/subscriptions/testSub/resourceGroups/testGroup/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity"
+	)
+	cb := func(token Token) error { return nil }
+
+	spt, err := NewServicePrincipalTokenFromMSIWithIdentityResourceID("http://msiendpoint/", resource, identityResourceID, cb)
+	if err != nil {
+		t.Fatalf("Failed to get MSI SPT: %v", err)
+	}
+
+	// check some of the SPT fields
+	if _, ok := spt.inner.Secret.(*ServicePrincipalMSISecret); !ok {
+		t.Fatal("SPT secret was not of MSI type")
+	}
+
+	if spt.inner.Resource != resource {
+		t.Fatal("SPT came back with incorrect resource")
+	}
+
+	if len(spt.refreshCallbacks) != 1 {
+		t.Fatal("SPT had incorrect refresh callbacks.")
+	}
+
+	urlPathParameter := url.Values{}
+	urlPathParameter.Set("mi_res_id", identityResourceID)
+
+	if !strings.Contains(spt.inner.OauthConfig.TokenEndpoint.RawQuery, urlPathParameter.Encode()) {
+		t.Fatal("SPT tokenEndpoint should contains mi_res_id")
 	}
 }
 
@@ -895,7 +930,7 @@ func TestMarshalServicePrincipalCertificateSecret(t *testing.T) {
 }
 
 func TestMarshalServicePrincipalMSISecret(t *testing.T) {
-	spt, err := newServicePrincipalTokenFromMSI("http://msiendpoint/", "https://resource", nil)
+	spt, err := newServicePrincipalTokenFromMSI("http://msiendpoint/", "https://resource", nil, nil)
 	if err != nil {
 		t.Fatalf("failed to get MSI SPT: %+v", err)
 	}
