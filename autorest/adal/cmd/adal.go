@@ -27,7 +27,6 @@ import (
 	"os/user"
 
 	"github.com/Azure/go-autorest/autorest/adal"
-	"golang.org/x/crypto/pkcs12"
 )
 
 const (
@@ -159,17 +158,7 @@ func acquireTokenClientSecretFlow(oauthConfig adal.OAuthConfig,
 }
 
 func decodePkcs12(pkcs []byte, password string) (*x509.Certificate, *rsa.PrivateKey, error) {
-	privateKey, certificate, err := pkcs12.Decode(pkcs, password)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	rsaPrivateKey, isRsaKey := privateKey.(*rsa.PrivateKey)
-	if !isRsaKey {
-		return nil, nil, fmt.Errorf("PKCS#12 certificate must contain an RSA private key")
-	}
-
-	return certificate, rsaPrivateKey, nil
+	return adal.DecodePfxCertificateData(pkcs, password)
 }
 
 func acquireTokenMSIFlow(applicationID string,
