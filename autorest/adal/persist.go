@@ -86,8 +86,9 @@ func SaveToken(path string, mode os.FileMode, token Token) error {
 }
 
 // DecodePfxCertificateData extracts the x509 certificate and RSA private key from the provided PFX data.
-// The PFX data must contain a local certificate along with a private key or an error is returned.
-// If the certificate is not password protected pass the empty string for password.
+// The PFX data must contain a private key along with a certificate whose public key matches that of the
+// private key or an error is returned.
+// If the private key is not password protected pass the empty string for password.
 func DecodePfxCertificateData(pfxData []byte, password string) (*x509.Certificate, *rsa.PrivateKey, error) {
 	blocks, err := pkcs12.ToPEM(pfxData, password)
 	if err != nil {
