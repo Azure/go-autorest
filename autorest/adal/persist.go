@@ -93,32 +93,42 @@ func DecodePfxCertificateData(pfxData []byte, password string) (*x509.Certificat
 	if err != nil {
 		return nil, nil, err
 	}
-
-	var (
-		cert *x509.Certificate
-		priv *rsa.PrivateKey
-	)
-
+	// first extract the private key
+	var priv *rsa.PrivateKey
 	for _, block := range blocks {
-		if block.Type == "CERTIFICATE" {
-			if _, ok := block.Headers["localKeyId"]; ok {
-				cert, err = x509.ParseCertificate(block.Bytes)
-				if err != nil {
-					return nil, nil, err
-				}
-			}
-		} else if block.Type == "PRIVATE KEY" {
+		if block.Type == "PRIVATE KEY" {
 			priv, err = x509.ParsePKCS1PrivateKey(block.Bytes)
 			if err != nil {
 				return nil, nil, err
 			}
+			break
 		}
 	}
-
+	if priv == nil {
+		return nil, nil, ErrMissingPrivateKey
+	}
+	// now find the certificate with the matching public key of our private key
+	var cert *x509.Certificate
+	for _, block := range blocks {
+		if block.Type == "CERTIFICATE" {
+			pcert, err := x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				return nil, nil, err
+			}
+			certKey, ok := pcert.PublicKey.(*rsa.PublicKey)
+			if !ok {
+				// keep looking
+				continue
+			}
+			if priv.E == certKey.E && priv.N.Cmp(certKey.N) == 0 {
+				// found a match
+				cert = pcert
+				break
+			}
+		}
+	}
 	if cert == nil {
 		return nil, nil, ErrMissingCertificate
-	} else if priv == nil {
-		return nil, nil, ErrMissingPrivateKey
 	}
 	return cert, priv, nil
 }
