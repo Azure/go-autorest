@@ -650,6 +650,8 @@ func GetMSIVMEndpoint() (string, error) {
 	return msiEndpoint, nil
 }
 
+// NOTE: this only indicates if the ASE environment credentials have been set
+// which does not necessarily mean that the caller is authenticating via ASE!
 func isAppService() bool {
 	_, asMSIEndpointEnvExists := os.LookupEnv(asMSIEndpointEnv)
 	_, asMSISecretEnvExists := os.LookupEnv(asMSISecretEnv)
@@ -850,11 +852,28 @@ func (spt *ServicePrincipalToken) getGrantType() string {
 }
 
 func isIMDS(u url.URL) bool {
-	imds, err := url.Parse(msiEndpoint)
+	return isMSIEndpoint(u) == true || isASEEndpoint(u) == true
+}
+
+func isMSIEndpoint(endpoint url.URL) bool {
+	msi, err := url.Parse(msiEndpoint)
 	if err != nil {
 		return false
 	}
-	return (u.Host == imds.Host && u.Path == imds.Path) || isAppService()
+	return endpoint.Host == msi.Host && endpoint.Path == msi.Path
+}
+
+func isASEEndpoint(endpoint url.URL) bool {
+	aseEndpoint, err := GetMSIAppServiceEndpoint()
+	if err != nil {
+		// app service environment isn't enabled
+		return false
+	}
+	ase, err := url.Parse(aseEndpoint)
+	if err != nil {
+		return false
+	}
+	return endpoint.Host == ase.Host && endpoint.Path == ase.Path
 }
 
 func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource string) error {
@@ -873,7 +892,7 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 	}
 	req.Header.Add("User-Agent", UserAgent())
 	// Add header when runtime is on App Service or Functions
-	if isAppService() {
+	if isASEEndpoint(spt.inner.OauthConfig.TokenEndpoint) {
 		asMSISecret, _ := os.LookupEnv(asMSISecretEnv)
 		req.Header.Add("Secret", asMSISecret)
 	}

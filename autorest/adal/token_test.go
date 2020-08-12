@@ -884,6 +884,23 @@ func TestGetMSIEndpoint(t *testing.T) {
 	}
 }
 
+func TestClientSecretWithASESet(t *testing.T) {
+	if err := os.Setenv(asMSIEndpointEnv, "http://172.16.1.2:8081/msi/token"); err != nil {
+		t.Fatalf("os.Setenv: %v", err)
+	}
+	if err := os.Setenv(asMSISecretEnv, "the_secret"); err != nil {
+		t.Fatalf("os.Setenv: %v", err)
+	}
+	defer func() {
+		os.Unsetenv(asMSIEndpointEnv)
+		os.Unsetenv(asMSISecretEnv)
+	}()
+	spt := newServicePrincipalToken()
+	if isIMDS(spt.inner.OauthConfig.TokenEndpoint) {
+		t.Fatal("isIMDS should return false for client secret token even when ASE is enabled")
+	}
+}
+
 func TestMarshalServicePrincipalNoSecret(t *testing.T) {
 	spt := newServicePrincipalTokenManual()
 	b, err := json.Marshal(spt)
