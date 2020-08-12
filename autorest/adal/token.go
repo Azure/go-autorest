@@ -354,6 +354,7 @@ type ServicePrincipalToken struct {
 	customRefreshFunc TokenRefresh
 	refreshCallbacks  []TokenRefreshCallback
 	// MaxMSIRefreshAttempts is the maximum number of attempts to refresh an MSI token.
+	// Settings this to a value less than 1 will use the default value.
 	MaxMSIRefreshAttempts int
 }
 
@@ -1005,6 +1006,11 @@ func retryForIMDS(sender Sender, req *http.Request, maxAttempts int) (resp *http
 
 	attempt := 0
 	delay := time.Duration(0)
+
+	// maxAttempts is user-specified, ensure that its value is greater than zero else no request will be made
+	if maxAttempts < 1 {
+		maxAttempts = defaultMaxMSIRefreshAttempts
+	}
 
 	for attempt < maxAttempts {
 		if resp != nil && resp.Body != nil {
