@@ -228,6 +228,46 @@ func TestServicePrincipalTokenFromMSIRefreshUsesGET(t *testing.T) {
 	}
 }
 
+func TestServicePrincipalTokenFromMSIRefreshZeroRetry(t *testing.T) {
+	resource := "https://resource"
+	cb := func(token Token) error { return nil }
+
+	endpoint, _ := GetMSIVMEndpoint()
+	spt, err := NewServicePrincipalTokenFromMSI(endpoint, resource, cb)
+	if err != nil {
+		t.Fatalf("Failed to get MSI SPT: %v", err)
+	}
+	spt.MaxMSIRefreshAttempts = 0
+
+	body := mocks.NewBody(newTokenJSON("12345", "test"))
+	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
+
+	c := mocks.NewSender()
+	s := DecorateSender(c,
+		(func() SendDecorator {
+			return func(s Sender) Sender {
+				return SenderFunc(func(r *http.Request) (*http.Response, error) {
+					if r.Method != "GET" {
+						t.Fatalf("adal: ServicePrincipalToken#Refresh did not correctly set HTTP method -- expected %v, received %v", "GET", r.Method)
+					}
+					if h := r.Header.Get("Metadata"); h != "true" {
+						t.Fatalf("adal: ServicePrincipalToken#Refresh did not correctly set Metadata header for MSI")
+					}
+					return resp, nil
+				})
+			}
+		})())
+	spt.SetSender(s)
+	err = spt.Refresh()
+	if err != nil {
+		t.Fatalf("adal: ServicePrincipalToken#Refresh returned an unexpected error (%v)", err)
+	}
+
+	if body.IsOpen() {
+		t.Fatalf("the response was not closed!")
+	}
+}
+
 func TestServicePrincipalTokenFromMSIRefreshCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	endpoint, _ := GetMSIVMEndpoint()
@@ -881,6 +921,23 @@ func TestGetMSIEndpoint(t *testing.T) {
 
 	if err := os.Unsetenv(asMSISecretEnv); err != nil {
 		t.Fatalf("os.Unsetenv: %v", err)
+	}
+}
+
+func TestClientSecretWithASESet(t *testing.T) {
+	if err := os.Setenv(asMSIEndpointEnv, "http://172.16.1.2:8081/msi/token"); err != nil {
+		t.Fatalf("os.Setenv: %v", err)
+	}
+	if err := os.Setenv(asMSISecretEnv, "the_secret"); err != nil {
+		t.Fatalf("os.Setenv: %v", err)
+	}
+	defer func() {
+		os.Unsetenv(asMSIEndpointEnv)
+		os.Unsetenv(asMSISecretEnv)
+	}()
+	spt := newServicePrincipalToken()
+	if isIMDS(spt.inner.OauthConfig.TokenEndpoint) {
+		t.Fatal("isIMDS should return false for client secret token even when ASE is enabled")
 	}
 }
 
