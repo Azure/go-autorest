@@ -237,16 +237,24 @@ func TestServicePrincipalTokenFromMSIRefreshZeroRetry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get MSI SPT: %v", err)
 	}
-	spt.MaxMSIRefreshAttempts = 0
+	spt.MaxMSIRefreshAttempts = 1
 
 	body := mocks.NewBody(newTokenJSON("12345", "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
+	// the call to MSIAvailable() means the sender will be invoked twice.
+	reqCount := 0
 	s := DecorateSender(c,
 		(func() SendDecorator {
 			return func(s Sender) Sender {
 				return SenderFunc(func(r *http.Request) (*http.Response, error) {
+					if reqCount == 0 {
+						// first invocation, simply return StatusOK
+						reqCount++
+						return mocks.NewResponse(), nil
+					}
+					// second invocation, perform MSI request validation
 					if r.Method != "GET" {
 						t.Fatalf("adal: ServicePrincipalToken#Refresh did not correctly set HTTP method -- expected %v, received %v", "GET", r.Method)
 					}
