@@ -1083,6 +1083,12 @@ func TestNewMultiTenantServicePrincipalToken(t *testing.T) {
 	}
 }
 
+func TestMSIAvailable(t *testing.T) {
+	if MSIAvailable(context.Background(), http.DefaultClient) {
+		t.Fatal("didn't expect MSI to be available, is the test running on an Azure VM?")
+	}
+}
+
 func newTokenJSON(expiresOn string, resource string) string {
 	return fmt.Sprintf(`{
 		"access_token" : "accessToken",
