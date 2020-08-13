@@ -237,16 +237,24 @@ func TestServicePrincipalTokenFromMSIRefreshZeroRetry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get MSI SPT: %v", err)
 	}
-	spt.MaxMSIRefreshAttempts = 0
+	spt.MaxMSIRefreshAttempts = 1
 
 	body := mocks.NewBody(newTokenJSON("12345", "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
+	// the call to MSIAvailable() means the sender will be invoked twice.
+	reqCount := 0
 	s := DecorateSender(c,
 		(func() SendDecorator {
 			return func(s Sender) Sender {
 				return SenderFunc(func(r *http.Request) (*http.Response, error) {
+					if reqCount == 0 {
+						// first invocation, simply return StatusOK
+						reqCount++
+						return mocks.NewResponse(), nil
+					}
+					// second invocation, perform MSI request validation
 					if r.Method != "GET" {
 						t.Fatalf("adal: ServicePrincipalToken#Refresh did not correctly set HTTP method -- expected %v, received %v", "GET", r.Method)
 					}
@@ -1080,6 +1088,23 @@ func TestNewMultiTenantServicePrincipalToken(t *testing.T) {
 		if ep := mt.AuxiliaryTokens[i].inner.OauthConfig.AuthorizeEndpoint.String(); !strings.Contains(ep, fmt.Sprintf("%s%d", TestAuxTenantPrefix, i)) {
 			t.Fatalf("didn't find auxiliary tenant ID in token %s", ep)
 		}
+	}
+}
+
+func TestMSIAvailableSuccess(t *testing.T) {
+	c := mocks.NewSender()
+	c.AppendResponse(mocks.NewResponse())
+	if !MSIAvailable(context.Background(), c) {
+		t.Fatal("unexpected false")
+	}
+}
+
+func TestMSIAvailableFail(t *testing.T) {
+	c := mocks.NewSender()
+	// introduce a long response delay to simulate the endpoint not being available
+	c.AppendResponseWithDelay(mocks.NewResponse(), 5*time.Second)
+	if MSIAvailable(context.Background(), c) {
+		t.Fatal("unexpected true")
 	}
 }
 

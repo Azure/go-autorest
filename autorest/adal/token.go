@@ -62,6 +62,9 @@ const (
 	// msiEndpoint is the well known endpoint for getting MSI authentications tokens
 	msiEndpoint = "http://169.254.169.254/metadata/identity/oauth2/token"
 
+	// the API version to use for the MSI endpoint
+	msiAPIVersion = "2018-02-01"
+
 	// the default number of attempts to refresh an MSI authentication token
 	defaultMaxMSIRefreshAttempts = 5
 
@@ -70,6 +73,9 @@ const (
 
 	// asMSISecretEnv is the environment variable used to store the request secret on App Service and Functions
 	asMSISecretEnv = "MSI_SECRET"
+
+	// the API version to use for the App Service MSI endpoint
+	appServiceAPIVersion = "2017-09-01"
 )
 
 // OAuthTokenProvider is an interface which should be implemented by an access token retriever
@@ -723,9 +729,9 @@ func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, userAssignedI
 	v.Set("resource", resource)
 	// App Service MSI currently only supports token API version 2017-09-01
 	if isAppService() {
-		v.Set("api-version", "2017-09-01")
+		v.Set("api-version", appServiceAPIVersion)
 	} else {
-		v.Set("api-version", "2018-02-01")
+		v.Set("api-version", msiAPIVersion)
 	}
 	if userAssignedID != nil {
 		v.Set("client_id", *userAssignedID)
@@ -935,6 +941,10 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 	}
 
 	var resp *http.Response
+	if isMSIEndpoint(spt.inner.OauthConfig.TokenEndpoint) && !MSIAvailable(ctx, spt.sender) {
+		// return a TokenRefreshError here so that we don't keep retrying
+		return newTokenRefreshError("the MSI endpoint is not available", nil)
+	}
 	if isIMDS(spt.inner.OauthConfig.TokenEndpoint) {
 		resp, err = retryForIMDS(spt.sender, req, spt.MaxMSIRefreshAttempts)
 	} else {
@@ -1172,4 +1182,18 @@ func NewMultiTenantServicePrincipalToken(multiTenantCfg MultiTenantOAuthConfig, 
 		m.AuxiliaryTokens[i] = aux
 	}
 	return &m, nil
+}
+
+// MSIAvailable returns true if the MSI endpoint is available for authentication.
+func MSIAvailable(ctx context.Context, sender Sender) bool {
+	// this cannot fail, the return sig is due to legacy reasons
+	msiEndpoint, _ := GetMSIVMEndpoint()
+	tempCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
+	defer cancel()
+	req, _ := http.NewRequestWithContext(tempCtx, http.MethodGet, msiEndpoint, nil)
+	q := req.URL.Query()
+	q.Add("api-version", msiAPIVersion)
+	req.URL.RawQuery = q.Encode()
+	_, err := sender.Do(req)
+	return err == nil
 }
