@@ -1091,9 +1091,20 @@ func TestNewMultiTenantServicePrincipalToken(t *testing.T) {
 	}
 }
 
-func TestMSIAvailable(t *testing.T) {
-	if MSIAvailable(context.Background(), http.DefaultClient) {
-		t.Fatal("didn't expect MSI to be available, is the test running on an Azure VM?")
+func TestMSIAvailableSuccess(t *testing.T) {
+	c := mocks.NewSender()
+	c.AppendResponse(mocks.NewResponse())
+	if !MSIAvailable(context.Background(), c) {
+		t.Fatal("unexpected false")
+	}
+}
+
+func TestMSIAvailableFail(t *testing.T) {
+	c := mocks.NewSender()
+	// introduce a long response delay to simulate the endpoint not being available
+	c.AppendResponseWithDelay(mocks.NewResponse(), 5*time.Second)
+	if MSIAvailable(context.Background(), c) {
+		t.Fatal("unexpected true")
 	}
 }
 
