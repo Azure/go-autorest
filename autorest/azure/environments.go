@@ -182,7 +182,7 @@ var (
 			Batch:               "https://batch.chinacloudapi.cn/",
 			OperationalInsights: NotAvailable,
 			Storage:             "https://storage.azure.com/",
-			Synapse:             "https://dev.azuresynapse.azure.cn",
+			Synapse:             "https://dev.azuresynapse.net",
 		},
 	}
 
