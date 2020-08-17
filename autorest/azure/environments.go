@@ -46,6 +46,7 @@ type ResourceIdentifier struct {
 	Batch               string `json:"batch"`
 	OperationalInsights string `json:"operationalInsights"`
 	Storage             string `json:"storage"`
+	Synapse             string `json:"synapse"`
 }
 
 // Environment represents a set of endpoints for each of Azure's Clouds.
@@ -109,6 +110,7 @@ var (
 			Batch:               "https://batch.core.windows.net/",
 			OperationalInsights: "https://api.loganalytics.io",
 			Storage:             "https://storage.azure.com/",
+			Synapse:             "https://dev.azuresynapse.net",
 		},
 	}
 
@@ -144,6 +146,7 @@ var (
 			Batch:               "https://batch.core.usgovcloudapi.net/",
 			OperationalInsights: "https://api.loganalytics.us",
 			Storage:             "https://storage.azure.com/",
+			Synapse:             NotAvailable,
 		},
 	}
 
@@ -179,6 +182,7 @@ var (
 			Batch:               "https://batch.chinacloudapi.cn/",
 			OperationalInsights: NotAvailable,
 			Storage:             "https://storage.azure.com/",
+			Synapse:             "https://dev.azuresynapse.azure.cn",
 		},
 	}
 
@@ -214,6 +218,7 @@ var (
 			Batch:               "https://batch.cloudapi.de/",
 			OperationalInsights: NotAvailable,
 			Storage:             "https://storage.azure.com/",
+			Synapse:             NotAvailable,
 		},
 	}
 )
