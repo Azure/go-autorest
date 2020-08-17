@@ -4,6 +4,7 @@
 
 - In `Future.WaitForCompletionRef()`, if the initial async response includes a `Retry-After` header, sleep for the specified amount of time before starting to poll.
 - Added `APIManagementHostManagementSuffix` field in Azure environment map.
+- Added `SynapseEndpointSuffix` and `ResourceIdentifiers/Synapse` field in Azure environment map.
 
 ## v14.2.0
 
