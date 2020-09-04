@@ -941,9 +941,12 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 	}
 
 	var resp *http.Response
-	if isMSIEndpoint(spt.inner.OauthConfig.TokenEndpoint) && !MSIAvailable(ctx, spt.sender) {
-		// return a TokenRefreshError here so that we don't keep retrying
-		return newTokenRefreshError("the MSI endpoint is not available", nil)
+	if isMSIEndpoint(spt.inner.OauthConfig.TokenEndpoint) {
+		resp, err = getMSIEndpoint(ctx, spt.sender)
+		if err != nil {
+			// return a TokenRefreshError here so that we don't keep retrying
+			return newTokenRefreshError(fmt.Sprintf("the MSI endpoint is not available. Status Code = '%d'. Failed HTTP request to MSI endpoint: %v", resp.StatusCode, err), resp)
+		}
 	}
 	if isIMDS(spt.inner.OauthConfig.TokenEndpoint) {
 		resp, err = retryForIMDS(spt.sender, req, spt.MaxMSIRefreshAttempts)
