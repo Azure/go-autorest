@@ -1183,17 +1183,3 @@ func NewMultiTenantServicePrincipalToken(multiTenantCfg MultiTenantOAuthConfig, 
 	}
 	return &m, nil
 }
-
-// MSIAvailable returns true if the MSI endpoint is available for authentication.
-func MSIAvailable(ctx context.Context, sender Sender) bool {
-	// this cannot fail, the return sig is due to legacy reasons
-	msiEndpoint, _ := GetMSIVMEndpoint()
-	tempCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
-	defer cancel()
-	req, _ := http.NewRequestWithContext(tempCtx, http.MethodGet, msiEndpoint, nil)
-	q := req.URL.Query()
-	q.Add("api-version", msiAPIVersion)
-	req.URL.RawQuery = q.Encode()
-	_, err := sender.Do(req)
-	return err == nil
-}
