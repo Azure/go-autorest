@@ -34,9 +34,3 @@ func getMSIEndpoint(ctx context.Context, sender Sender) (*http.Response, error) 
 	req.URL.RawQuery = q.Encode()
 	return sender.Do(req)
 }
-
-// MSIAvailable returns true if the MSI endpoint is available for authentication.
-func MSIAvailable(ctx context.Context, sender Sender) bool {
-	_, err := getMSIEndpoint(ctx, sender)
-	return err == nil
-}
