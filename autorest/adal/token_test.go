@@ -1109,10 +1109,15 @@ func TestMSIAvailableSlow(t *testing.T) {
 }
 
 func TestMSIAvailableFail(t *testing.T) {
+	expectErr := "failed to make msi http request"
 	c := mocks.NewSender()
-	c.AppendError(fmt.Errorf("failed to make msi http request"))
+	c.AppendAndRepeatError(fmt.Errorf(expectErr), 2)
 	if MSIAvailable(context.Background(), c) {
 		t.Fatal("unexpected true")
+	}
+	_, err := getMSIEndpoint(context.Background(), c)
+	if !strings.Contains(err.Error(), "") {
+		t.Fatalf("expected error: '%s', but got error '%s'", expectErr, err)
 	}
 }
 
