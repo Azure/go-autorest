@@ -947,6 +947,7 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 			// return a TokenRefreshError here so that we don't keep retrying
 			return newTokenRefreshError(fmt.Sprintf("the MSI endpoint is not available. Failed HTTP request to MSI endpoint: %v", err), nil)
 		}
+		resp.Body.Close()
 	}
 	if isIMDS(spt.inner.OauthConfig.TokenEndpoint) {
 		resp, err = retryForIMDS(spt.sender, req, spt.MaxMSIRefreshAttempts)
