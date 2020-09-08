@@ -16,8 +16,13 @@
 
 package adal
 
-// MSIAvailable returns true if the MSI endpoint is available for authentication.
-func MSIAvailable(ctx context.Context, sender Sender) bool {
+import (
+	"context"
+	"net/http"
+	"time"
+)
+
+func getMSIEndpoint(ctx context.Context, sender Sender) (*http.Response, error) {
 	// this cannot fail, the return sig is due to legacy reasons
 	msiEndpoint, _ := GetMSIVMEndpoint()
 	tempCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
@@ -27,6 +32,5 @@ func MSIAvailable(ctx context.Context, sender Sender) bool {
 	q := req.URL.Query()
 	q.Add("api-version", msiAPIVersion)
 	req.URL.RawQuery = q.Encode()
-	_, err := sender.Do(req)
-	return err == nil
+	return sender.Do(req)
 }

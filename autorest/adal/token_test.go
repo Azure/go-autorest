@@ -1099,12 +1099,25 @@ func TestMSIAvailableSuccess(t *testing.T) {
 	}
 }
 
-func TestMSIAvailableFail(t *testing.T) {
+func TestMSIAvailableSlow(t *testing.T) {
 	c := mocks.NewSender()
 	// introduce a long response delay to simulate the endpoint not being available
 	c.AppendResponseWithDelay(mocks.NewResponse(), 5*time.Second)
 	if MSIAvailable(context.Background(), c) {
 		t.Fatal("unexpected true")
+	}
+}
+
+func TestMSIAvailableFail(t *testing.T) {
+	expectErr := "failed to make msi http request"
+	c := mocks.NewSender()
+	c.AppendAndRepeatError(fmt.Errorf(expectErr), 2)
+	if MSIAvailable(context.Background(), c) {
+		t.Fatal("unexpected true")
+	}
+	_, err := getMSIEndpoint(context.Background(), c)
+	if !strings.Contains(err.Error(), "") {
+		t.Fatalf("expected error: '%s', but got error '%s'", expectErr, err)
 	}
 }
 
