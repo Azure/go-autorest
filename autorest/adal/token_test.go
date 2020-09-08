@@ -1110,7 +1110,6 @@ func TestMSIAvailableSlow(t *testing.T) {
 
 func TestMSIAvailableFail(t *testing.T) {
 	c := mocks.NewSender()
-	// introduce a long response delay to simulate the endpoint not being available
 	c.AppendError(fmt.Errorf("failed to make msi http request"))
 	if MSIAvailable(context.Background(), c) {
 		t.Fatal("unexpected true")
