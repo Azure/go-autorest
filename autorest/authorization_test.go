@@ -291,10 +291,16 @@ func TestMultitenantAuthorizationThree(t *testing.T) {
 		p: "primary",
 		a: []string{TestAuxTenent1, TestAuxTenent2, TestAuxTenent3},
 	}
-	mt := NewMultiTenantServicePrincipalTokenAuthorizer(mtSPTProvider)
+	mt := NewMultiTenantBearerAuthorizer(mtSPTProvider)
 	req, err := Prepare(mocks.NewRequest(), mt.WithAuthorization())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	if primary := mt.TokenProvider().PrimaryOAuthToken(); primary != mtSPTProvider.p {
+		t.Fatalf("bad primary authorization token %s", primary)
+	}
+	if aux := strings.Join(mt.TokenProvider().AuxiliaryOAuthTokens(), ","); aux != strings.Join(mtSPTProvider.a, ",") {
+		t.Fatalf("bad auxiliary authorization tokens %s", aux)
 	}
 	if primary := req.Header.Get(headerAuthorization); primary != "Bearer primary" {
 		t.Fatalf("bad primary authorization header %s", primary)
