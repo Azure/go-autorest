@@ -16,9 +16,11 @@ package adal
 
 import (
 	"context"
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
@@ -35,7 +37,6 @@ import (
 	"time"
 
 	"github.com/Azure/go-autorest/autorest/date"
-	"github.com/dgrijalva/jwt-go"
 )
 
 const (
@@ -245,11 +246,20 @@ func (secret *ServicePrincipalCertificateSecret) SignJwt(spt *ServicePrincipalTo
 		return "", err
 	}
 
-	token := jwt.New(jwt.SigningMethodRS256)
-	token.Header["x5t"] = thumbprint
-	x5c := []string{base64.StdEncoding.EncodeToString(secret.Certificate.Raw)}
-	token.Header["x5c"] = x5c
-	token.Claims = jwt.MapClaims{
+	tokenHeader := map[string]interface{}{
+		"typ": "JWT",
+		"alg": "RS256",
+		"x5t": thumbprint,
+		"x5c": []string{base64.StdEncoding.EncodeToString(secret.Certificate.Raw)},
+	}
+
+	headerJSON, err := json.Marshal(tokenHeader)
+	if err != nil {
+		return "", fmt.Errorf("marshal header: %v", err)
+	}
+	header := base64.RawURLEncoding.EncodeToString(headerJSON)
+
+	tokenClaims := map[string]interface{}{
 		"aud": spt.inner.OauthConfig.TokenEndpoint.String(),
 		"iss": spt.inner.ClientID,
 		"sub": spt.inner.ClientID,
@@ -258,8 +268,21 @@ func (secret *ServicePrincipalCertificateSecret) SignJwt(spt *ServicePrincipalTo
 		"exp": time.Now().Add(24 * time.Hour).Unix(),
 	}
 
-	signedString, err := token.SignedString(secret.PrivateKey)
-	return signedString, err
+	claimsJSON, err := json.Marshal(tokenClaims)
+	if err != nil {
+		return "", fmt.Errorf("marshal claims: %v", err)
+	}
+	claims := base64.RawURLEncoding.EncodeToString(claimsJSON)
+	result := header + "." + claims
+	hashedSum := sha256.Sum256([]byte(result))
+
+	signed, err := rsa.SignPKCS1v15(rand.Reader, secret.PrivateKey, crypto.SHA256, hashedSum[:])
+	if err != nil {
+		return "", fmt.Errorf("signing: %v", err)
+	}
+	signature := base64.RawURLEncoding.EncodeToString(signed)
+
+	return result + "." + signature, nil
 }
 
 // SetAuthenticationValues is a method of the interface ServicePrincipalSecret.
