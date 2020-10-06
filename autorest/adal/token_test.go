@@ -36,7 +36,7 @@ import (
 
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/mocks"
-	jwt "github.com/dgrijalva/jwt-go"
+	jwt "github.com/form3tech-oss/jwt-go"
 )
 
 const (
@@ -419,6 +419,22 @@ func TestServicePrincipalTokenCertficateRefreshSetsBody(t *testing.T) {
 		}
 		if _, ok := tok.Header["x5c"]; !ok {
 			t.Fatalf("adal: ServicePrincipalTokenCertificate#Expected client_assertion to have an x5c header")
+		}
+		claims, ok := tok.Claims.(jwt.MapClaims)
+		if !ok {
+			t.Fatalf("expected MapClaims, got %T", tok.Claims)
+		}
+		if err := claims.Valid(); err != nil {
+			t.Fatalf("invalid claim: %v", err)
+		}
+		if aud := claims["aud"]; aud != "https://login.test.com/SomeTenantID/oauth2/token?api-version=1.0" {
+			t.Fatalf("unexpected aud: %s", aud)
+		}
+		if iss := claims["iss"]; iss != "id" {
+			t.Fatalf("unexpected iss: %s", iss)
+		}
+		if sub := claims["sub"]; sub != "id" {
+			t.Fatalf("unexpected sub: %s", sub)
 		}
 	})
 }
