@@ -1,5 +1,7 @@
 # CHANGELOG
 
+**NOTE** Please see a module's release notes for change details.
+
 ## v14.2.1
 
 - In `Future.WaitForCompletionRef()`, if the initial async response includes a `Retry-After` header, sleep for the specified amount of time before starting to poll.
