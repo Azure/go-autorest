@@ -270,7 +270,6 @@ func ExampleWithXML() {
 	t := mocks.T{Name: "Rob Pike", Age: 42}
 
 	r, err := Prepare(&http.Request{},
-		WithHeader("x-foo", "bar"),
 		WithXML(&t))
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
