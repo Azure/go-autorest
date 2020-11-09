@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -542,6 +543,12 @@ func TestParseResourceID_WithValidBasicResourceID(t *testing.T) {
 
 	if got != want {
 		t.Logf("got:  %+v\nwant: %+v", got, want)
+		t.Fail()
+	}
+
+	reGenResourceID := got.String()
+	if !strings.EqualFold(basicResourceID, reGenResourceID) {
+		t.Logf("got:  %+v\nwant: %+v", reGenResourceID, basicResourceID)
 		t.Fail()
 	}
 }
