@@ -164,7 +164,7 @@ func TestServicePrincipalTokenRefreshUsesCustomRefreshFunc(t *testing.T) {
 func TestServicePrincipalTokenRefreshUsesPOST(t *testing.T) {
 	spt := newServicePrincipalToken()
 
-	body := mocks.NewBody(newTokenJSON("12345", "test"))
+	body := mocks.NewBody(newTokenJSON(`"3600"`, "12345", "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
@@ -199,7 +199,7 @@ func TestServicePrincipalTokenFromMSIRefreshUsesGET(t *testing.T) {
 		t.Fatalf("Failed to get MSI SPT: %v", err)
 	}
 
-	body := mocks.NewBody(newTokenJSON("12345", "test"))
+	body := mocks.NewBody(newTokenJSON(`"3600"`, "12345", "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
@@ -239,7 +239,7 @@ func TestServicePrincipalTokenFromMSIRefreshZeroRetry(t *testing.T) {
 	}
 	spt.MaxMSIRefreshAttempts = 1
 
-	body := mocks.NewBody(newTokenJSON("12345", "test"))
+	body := mocks.NewBody(newTokenJSON(`"3600"`, "12345", "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
@@ -271,6 +271,70 @@ func TestServicePrincipalTokenFromMSIRefreshZeroRetry(t *testing.T) {
 		t.Fatalf("adal: ServicePrincipalToken#Refresh returned an unexpected error (%v)", err)
 	}
 
+	if body.IsOpen() {
+		t.Fatalf("the response was not closed!")
+	}
+}
+
+func TestServicePrincipalTokenFromASE(t *testing.T) {
+	os.Setenv("MSI_ENDPOINT", "http://localhost")
+	os.Setenv("MSI_SECRET", "super")
+	defer func() {
+		os.Unsetenv("MSI_ENDPOINT")
+		os.Unsetenv("MSI_SECRET")
+	}()
+	resource := "https://resource"
+	endpoint, _ := GetMSIEndpoint()
+	spt, err := NewServicePrincipalTokenFromMSI(endpoint, resource)
+	if err != nil {
+		t.Fatalf("Failed to get MSI SPT: %v", err)
+	}
+	spt.MaxMSIRefreshAttempts = 1
+	// expires_on is sent in UTC
+	expiresOn := time.Now().UTC().Add(time.Hour)
+	// use int format for expires_in
+	body := mocks.NewBody(newTokenJSON("3600", expiresOn.Format(expiresOnDateFormat), "test"))
+	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
+
+	c := mocks.NewSender()
+	s := DecorateSender(c,
+		(func() SendDecorator {
+			return func(s Sender) Sender {
+				return SenderFunc(func(r *http.Request) (*http.Response, error) {
+					if r.Method != "GET" {
+						t.Fatalf("adal: ServicePrincipalToken#Refresh did not correctly set HTTP method -- expected %v, received %v", "GET", r.Method)
+					}
+					if h := r.Header.Get(metadataHeader); h != "" {
+						t.Fatalf("adal: ServicePrincipalToken#Refresh incorrectly set Metadata header for ASE")
+					}
+					if s := r.Header.Get(secretHeader); s != "super" {
+						t.Fatalf("adal: unexpected secret header value %s", s)
+					}
+					if r.URL.Host != "localhost" {
+						t.Fatalf("adal: unexpected host %s", r.URL.Host)
+					}
+					qp := r.URL.Query()
+					if api := qp.Get("api-version"); api != appServiceAPIVersion {
+						t.Fatalf("adal: unexpected api-version %s", api)
+					}
+					return resp, nil
+				})
+			}
+		})())
+	spt.SetSender(s)
+	err = spt.Refresh()
+	if err != nil {
+		t.Fatalf("adal: ServicePrincipalToken#Refresh returned an unexpected error (%v)", err)
+	}
+	v, err := spt.inner.Token.ExpiresOn.Int64()
+	if err != nil {
+		t.Fatalf("adal: failed to get ExpiresOn %v", err)
+	}
+	// depending on elapsed time it might be slightly less that one hour
+	const hourInSeconds = int64(time.Hour / time.Second)
+	if v > hourInSeconds || v < hourInSeconds-1 {
+		t.Fatalf("adal: expected %v, got %v", int64(time.Hour/time.Second), v)
+	}
 	if body.IsOpen() {
 		t.Fatalf("the response was not closed!")
 	}
@@ -312,7 +376,7 @@ func TestServicePrincipalTokenFromMSIRefreshCancel(t *testing.T) {
 func TestServicePrincipalTokenRefreshSetsMimeType(t *testing.T) {
 	spt := newServicePrincipalToken()
 
-	body := mocks.NewBody(newTokenJSON("12345", "test"))
+	body := mocks.NewBody(newTokenJSON(`"3600"`, "12345", "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
@@ -339,7 +403,7 @@ func TestServicePrincipalTokenRefreshSetsMimeType(t *testing.T) {
 func TestServicePrincipalTokenRefreshSetsURL(t *testing.T) {
 	spt := newServicePrincipalToken()
 
-	body := mocks.NewBody(newTokenJSON("12345", "test"))
+	body := mocks.NewBody(newTokenJSON(`"3600"`, "12345", "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
@@ -363,7 +427,7 @@ func TestServicePrincipalTokenRefreshSetsURL(t *testing.T) {
 }
 
 func testServicePrincipalTokenRefreshSetsBody(t *testing.T, spt *ServicePrincipalToken, f func(*testing.T, []byte)) {
-	body := mocks.NewBody(newTokenJSON("12345", "test"))
+	body := mocks.NewBody(newTokenJSON(`"3600"`, "12345", "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
@@ -499,7 +563,7 @@ func TestServicePrincipalTokenSecretRefreshSetsBody(t *testing.T) {
 func TestServicePrincipalTokenRefreshClosesRequestBody(t *testing.T) {
 	spt := newServicePrincipalToken()
 
-	body := mocks.NewBody(newTokenJSON("12345", "test"))
+	body := mocks.NewBody(newTokenJSON(`"3600"`, "12345", "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
@@ -524,7 +588,7 @@ func TestServicePrincipalTokenRefreshClosesRequestBody(t *testing.T) {
 func TestServicePrincipalTokenRefreshRejectsResponsesWithStatusNotOK(t *testing.T) {
 	spt := newServicePrincipalToken()
 
-	body := mocks.NewBody(newTokenJSON("12345", "test"))
+	body := mocks.NewBody(newTokenJSON(`"3600"`, "12345", "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusUnauthorized, "Unauthorized")
 
 	c := mocks.NewSender()
@@ -592,7 +656,7 @@ func TestServicePrincipalTokenRefreshUnmarshals(t *testing.T) {
 	spt := newServicePrincipalToken()
 
 	expiresOn := strconv.Itoa(int(time.Now().Add(3600 * time.Second).Sub(date.UnixEpoch()).Seconds()))
-	j := newTokenJSON(expiresOn, "resource")
+	j := newTokenJSON(`"3600"`, expiresOn, "resource")
 	resp := mocks.NewResponseWithContent(j)
 	c := mocks.NewSender()
 	s := DecorateSender(c,
@@ -623,7 +687,7 @@ func TestServicePrincipalTokenEnsureFreshRefreshes(t *testing.T) {
 	spt := newServicePrincipalToken()
 	expireToken(&spt.inner.Token)
 
-	body := mocks.NewBody(newTokenJSON("12345", "test"))
+	body := mocks.NewBody(newTokenJSON(`"3600"`, "12345", "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	f := false
@@ -716,7 +780,7 @@ func TestRefreshCallback(t *testing.T) {
 	expiresOn := strconv.Itoa(int(time.Now().Add(3600 * time.Second).Sub(date.UnixEpoch()).Seconds()))
 
 	sender := mocks.NewSender()
-	j := newTokenJSON(expiresOn, "resource")
+	j := newTokenJSON(`"3600"`, expiresOn, "resource")
 	sender.AppendResponse(mocks.NewResponseWithContent(j))
 	spt.SetSender(sender)
 	err := spt.Refresh()
@@ -737,7 +801,7 @@ func TestRefreshCallbackErrorPropagates(t *testing.T) {
 	expiresOn := strconv.Itoa(int(time.Now().Add(3600 * time.Second).Sub(date.UnixEpoch()).Seconds()))
 
 	sender := mocks.NewSender()
-	j := newTokenJSON(expiresOn, "resource")
+	j := newTokenJSON(`"3600"`, expiresOn, "resource")
 	sender.AppendResponse(mocks.NewResponseWithContent(j))
 	spt.SetSender(sender)
 	err := spt.Refresh()
@@ -1137,17 +1201,21 @@ func TestMSIAvailableFail(t *testing.T) {
 	}
 }
 
-func newTokenJSON(expiresOn string, resource string) string {
+func newTokenJSON(expiresIn, expiresOn, resource string) string {
+	nb, err := parseExpiresOn(expiresOn)
+	if err != nil {
+		panic(err)
+	}
 	return fmt.Sprintf(`{
 		"access_token" : "accessToken",
-		"expires_in"   : "3600",
+		"expires_in"   : %s,
 		"expires_on"   : "%s",
 		"not_before"   : "%s",
 		"resource"     : "%s",
 		"token_type"   : "Bearer",
 		"refresh_token": "ABC123"
 		}`,
-		expiresOn, expiresOn, resource)
+		expiresIn, expiresOn, nb, resource)
 }
 
 func newTokenExpiresIn(expireIn time.Duration) *Token {
