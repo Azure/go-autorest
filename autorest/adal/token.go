@@ -78,6 +78,9 @@ const (
 	// the API version to use for the App Service MSI endpoint
 	appServiceAPIVersion = "2017-09-01"
 
+	// secret header used when authenticating against app service MSI endpoint
+	secretHeader = "Secret"
+
 	// the format for expires_on in UTC (applicable to MSI via legacy ASE only)
 	expiresOnDateFormat = "1/2/2006 15:04:05 PM +00:00"
 )
@@ -906,7 +909,7 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 	// Add header when runtime is on App Service or Functions
 	if isASEEndpoint(spt.inner.OauthConfig.TokenEndpoint) {
 		asMSISecret, _ := os.LookupEnv(asMSISecretEnv)
-		req.Header.Add("Secret", asMSISecret)
+		req.Header.Add(secretHeader, asMSISecret)
 	}
 	req = req.WithContext(ctx)
 	if !isIMDS(spt.inner.OauthConfig.TokenEndpoint) {
@@ -1004,16 +1007,8 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 	if err != nil {
 		return fmt.Errorf("adal: Failed to unmarshal the service principal token during refresh. Error = '%v' JSON = '%s'", err, string(rb))
 	}
-	var expiresOn json.Number
-	if _, err := strconv.ParseInt(token.ExpiresOn, 10, 64); err == nil {
-		// this is the number of seconds case
-		expiresOn = json.Number(token.ExpiresOn)
-	} else if eo, err := time.Parse(expiresOnDateFormat, token.ExpiresOn); err == nil {
-		// convert the expiration date to the number of seconds from now
-		dur := eo.Sub(time.Now().UTC())
-		expiresOn = json.Number(strconv.FormatInt(int64(dur.Round(time.Second).Seconds()), 10))
-	} else {
-		// unknown format
+	expiresOn, err := parseExpiresOn(token.ExpiresOn)
+	if err != nil {
 		return err
 	}
 	spt.inner.Token.AccessToken = token.AccessToken
@@ -1025,6 +1020,21 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 	spt.inner.Token.Type = token.Type
 
 	return spt.InvokeRefreshCallbacks(spt.inner.Token)
+}
+
+// converts expires_on to the number of seconds
+func parseExpiresOn(s string) (json.Number, error) {
+	if _, err := strconv.ParseInt(s, 10, 64); err == nil {
+		// this is the number of seconds case, no conversion required
+		return json.Number(s), nil
+	} else if eo, err := time.Parse(expiresOnDateFormat, s); err == nil {
+		// convert the expiration date to the number of seconds from now
+		dur := eo.Sub(time.Now().UTC())
+		return json.Number(strconv.FormatInt(int64(dur.Round(time.Second).Seconds()), 10)), nil
+	} else {
+		// unknown format
+		return json.Number(""), err
+	}
 }
 
 // retry logic specific to retrieving a token from the IMDS endpoint

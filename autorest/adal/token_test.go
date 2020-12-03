@@ -276,12 +276,16 @@ func TestServicePrincipalTokenFromMSIRefreshZeroRetry(t *testing.T) {
 	}
 }
 
-func TestServicePrincipalTokenFromMSIExpiresOnDate(t *testing.T) {
+func TestServicePrincipalTokenFromASE(t *testing.T) {
+	os.Setenv("MSI_ENDPOINT", "http://localhost")
+	os.Setenv("MSI_SECRET", "super")
+	defer func() {
+		os.Unsetenv("MSI_ENDPOINT")
+		os.Unsetenv("MSI_SECRET")
+	}()
 	resource := "https://resource"
-	cb := func(token Token) error { return nil }
-
-	endpoint, _ := GetMSIVMEndpoint()
-	spt, err := NewServicePrincipalTokenFromMSI(endpoint, resource, cb)
+	endpoint, _ := GetMSIEndpoint()
+	spt, err := NewServicePrincipalTokenFromMSI(endpoint, resource)
 	if err != nil {
 		t.Fatalf("Failed to get MSI SPT: %v", err)
 	}
@@ -293,23 +297,25 @@ func TestServicePrincipalTokenFromMSIExpiresOnDate(t *testing.T) {
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
-	// the call to MSIAvailable() means the sender will be invoked twice.
-	reqCount := 0
 	s := DecorateSender(c,
 		(func() SendDecorator {
 			return func(s Sender) Sender {
 				return SenderFunc(func(r *http.Request) (*http.Response, error) {
-					if reqCount == 0 {
-						// first invocation, simply return StatusOK
-						reqCount++
-						return mocks.NewResponse(), nil
-					}
-					// second invocation, perform MSI request validation
 					if r.Method != "GET" {
 						t.Fatalf("adal: ServicePrincipalToken#Refresh did not correctly set HTTP method -- expected %v, received %v", "GET", r.Method)
 					}
-					if h := r.Header.Get("Metadata"); h != "true" {
-						t.Fatalf("adal: ServicePrincipalToken#Refresh did not correctly set Metadata header for MSI")
+					if h := r.Header.Get(metadataHeader); h != "" {
+						t.Fatalf("adal: ServicePrincipalToken#Refresh incorrectly set Metadata header for ASE")
+					}
+					if s := r.Header.Get(secretHeader); s != "super" {
+						t.Fatalf("adal: unexpected secret header value %s", s)
+					}
+					if r.URL.Host != "localhost" {
+						t.Fatalf("adal: unexpected host %s", r.URL.Host)
+					}
+					qp := r.URL.Query()
+					if api := qp.Get("api-version"); api != appServiceAPIVersion {
+						t.Fatalf("adal: unexpected api-version %s", api)
 					}
 					return resp, nil
 				})
@@ -868,36 +874,6 @@ func TestNewServicePrincipalTokenFromMSIWithUserAssignedID(t *testing.T) {
 	}
 }
 
-func TestNewServicePrincipalTokenFromMSIWithUserAssignedIDASE(t *testing.T) {
-	const (
-		resource = "https://resource"
-		userID   = "abc123"
-	)
-	os.Setenv("MSI_ENDPOINT", "http://foo")
-	os.Setenv("MSI_SECRET", "super")
-	defer func() {
-		os.Unsetenv("MSI_ENDPOINT")
-		os.Unsetenv("MSI_SECRET")
-	}()
-	spt, err := NewServicePrincipalTokenFromMSIWithUserAssignedID("http://msiendpoint/", resource, userID)
-	if err != nil {
-		t.Fatalf("Failed to get MSI SPT: %v", err)
-	}
-
-	// check some of the SPT fields
-	if _, ok := spt.inner.Secret.(*ServicePrincipalMSISecret); !ok {
-		t.Fatal("SPT secret was not of MSI type")
-	}
-
-	if spt.inner.Resource != resource {
-		t.Fatal("SPT came back with incorrect resource")
-	}
-
-	if spt.inner.ClientID != userID {
-		t.Fatal("SPT had incorrect client ID")
-	}
-}
-
 func TestNewServicePrincipalTokenFromMSIWithIdentityResourceID(t *testing.T) {
 	const (
 		resource           = "https://resource"
@@ -1226,6 +1202,10 @@ func TestMSIAvailableFail(t *testing.T) {
 }
 
 func newTokenJSON(expiresIn, expiresOn, resource string) string {
+	nb, err := parseExpiresOn(expiresOn)
+	if err != nil {
+		panic(err)
+	}
 	return fmt.Sprintf(`{
 		"access_token" : "accessToken",
 		"expires_in"   : %s,
@@ -1235,7 +1215,7 @@ func newTokenJSON(expiresIn, expiresOn, resource string) string {
 		"token_type"   : "Bearer",
 		"refresh_token": "ABC123"
 		}`,
-		expiresIn, expiresOn, expiresOn, resource)
+		expiresIn, expiresOn, nb, resource)
 }
 
 func newTokenExpiresIn(expireIn time.Duration) *Token {
