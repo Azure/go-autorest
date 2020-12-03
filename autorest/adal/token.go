@@ -30,6 +30,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -76,6 +77,9 @@ const (
 
 	// the API version to use for the App Service MSI endpoint
 	appServiceAPIVersion = "2017-09-01"
+
+	// the format for expires_on in UTC (applicable to MSI via legacy ASE only)
+	expiresOnDateFormat = "1/2/2006 15:04:05 PM +00:00"
 )
 
 // OAuthTokenProvider is an interface which should be implemented by an access token retriever
@@ -727,14 +731,16 @@ func newServicePrincipalTokenFromMSI(msiEndpoint, resource string, userAssignedI
 
 	v := url.Values{}
 	v.Set("resource", resource)
-	// App Service MSI currently only supports token API version 2017-09-01
-	if isAppService() {
+	// we only support token API version 2017-09-01 for app services
+	clientIDParam := "client_id"
+	if isASEEndpoint(*msiEndpointURL) {
 		v.Set("api-version", appServiceAPIVersion)
+		clientIDParam = "clientid"
 	} else {
 		v.Set("api-version", msiAPIVersion)
 	}
 	if userAssignedID != nil {
-		v.Set("client_id", *userAssignedID)
+		v.Set(clientIDParam, *userAssignedID)
 	}
 	if identityResourceID != nil {
 		v.Set("mi_res_id", *identityResourceID)
@@ -892,7 +898,6 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 		spt.inner.Token = *token
 		return spt.InvokeRefreshCallbacks(spt.inner.Token)
 	}
-
 	req, err := http.NewRequest(http.MethodPost, spt.inner.OauthConfig.TokenEndpoint.String(), nil)
 	if err != nil {
 		return fmt.Errorf("adal: Failed to build the refresh request. Error = '%v'", err)
@@ -937,7 +942,10 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 
 	if _, ok := spt.inner.Secret.(*ServicePrincipalMSISecret); ok {
 		req.Method = http.MethodGet
-		req.Header.Set(metadataHeader, "true")
+		// the metadata header isn't applicable for ASE
+		if !isASEEndpoint(spt.inner.OauthConfig.TokenEndpoint) {
+			req.Header.Set(metadataHeader, "true")
+		}
 	}
 
 	var resp *http.Response
@@ -964,9 +972,9 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 
 	if resp.StatusCode != http.StatusOK {
 		if err != nil {
-			return newTokenRefreshError(fmt.Sprintf("adal: Refresh request failed. Status Code = '%d'. Failed reading response body: %v", resp.StatusCode, err), resp)
+			return newTokenRefreshError(fmt.Sprintf("adal: Refresh request failed. Status Code = '%d'. Failed reading response body: %v Endpoint %s", resp.StatusCode, err, req.URL.String()), resp)
 		}
-		return newTokenRefreshError(fmt.Sprintf("adal: Refresh request failed. Status Code = '%d'. Response body: %s", resp.StatusCode, string(rb)), resp)
+		return newTokenRefreshError(fmt.Sprintf("adal: Refresh request failed. Status Code = '%d'. Response body: %s Endpoint %s", resp.StatusCode, string(rb), req.URL.String()), resp)
 	}
 
 	// for the following error cases don't return a TokenRefreshError.  the operation succeeded
@@ -979,15 +987,44 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 	if len(strings.Trim(string(rb), " ")) == 0 {
 		return fmt.Errorf("adal: Empty service principal token received during refresh")
 	}
-	var token Token
+	token := struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+
+		// AAD returns expires_in as a string, ADFS returns it as an int
+		ExpiresIn json.Number `json:"expires_in"`
+		// expires_on can be in two formats, a UTC time stamp or the number of seconds.
+		ExpiresOn string      `json:"expires_on"`
+		NotBefore json.Number `json:"not_before"`
+
+		Resource string `json:"resource"`
+		Type     string `json:"token_type"`
+	}{}
 	err = json.Unmarshal(rb, &token)
 	if err != nil {
 		return fmt.Errorf("adal: Failed to unmarshal the service principal token during refresh. Error = '%v' JSON = '%s'", err, string(rb))
 	}
+	var expiresOn json.Number
+	if _, err := strconv.ParseInt(token.ExpiresOn, 10, 64); err == nil {
+		// this is the number of seconds case
+		expiresOn = json.Number(token.ExpiresOn)
+	} else if eo, err := time.Parse(expiresOnDateFormat, token.ExpiresOn); err == nil {
+		// convert the expiration date to the number of seconds from now
+		dur := eo.Sub(time.Now().UTC())
+		expiresOn = json.Number(strconv.FormatInt(int64(dur.Round(time.Second).Seconds()), 10))
+	} else {
+		// unknown format
+		return err
+	}
+	spt.inner.Token.AccessToken = token.AccessToken
+	spt.inner.Token.RefreshToken = token.RefreshToken
+	spt.inner.Token.ExpiresIn = token.ExpiresIn
+	spt.inner.Token.ExpiresOn = expiresOn
+	spt.inner.Token.NotBefore = token.NotBefore
+	spt.inner.Token.Resource = token.Resource
+	spt.inner.Token.Type = token.Type
 
-	spt.inner.Token = token
-
-	return spt.InvokeRefreshCallbacks(token)
+	return spt.InvokeRefreshCallbacks(spt.inner.Token)
 }
 
 // retry logic specific to retrieving a token from the IMDS endpoint
