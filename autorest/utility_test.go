@@ -28,6 +28,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/mocks"
 )
 
@@ -373,6 +374,37 @@ func (s someFatalError) Temporary() bool {
 func TestIsTemporaryNetworkErrorFalse(t *testing.T) {
 	if IsTemporaryNetworkError(someFatalError{}) {
 		t.Fatal("expected someFatalError to be a fatal network error")
+	}
+}
+
+type tokenRefreshError struct{}
+
+func (t tokenRefreshError) Error() string {
+	return "empty"
+}
+
+func (t tokenRefreshError) Response() *http.Response {
+	return nil
+}
+
+var _ adal.TokenRefreshError = (*tokenRefreshError)(nil)
+
+func TestIsTokenRefreshError(t *testing.T) {
+	err := errors.New("not a TRE")
+	if IsTokenRefreshError(err) {
+		t.Fatal("string error shouldn't be a TokenRefreshError")
+	}
+	err = tokenRefreshError{}
+	if !IsTokenRefreshError(err) {
+		t.Fatal("expected a TokenRefreshError")
+	}
+	err = NewError("package", "method", "failed")
+	if IsTokenRefreshError(err) {
+		t.Fatal("DetailedError shouldn't be a TokenRefreshError")
+	}
+	err = NewErrorWithError(tokenRefreshError{}, "package", "method", nil, "failed")
+	if !IsTokenRefreshError(err) {
+		t.Fatal("expected a wrapped TokenRefreshError")
 	}
 }
 
