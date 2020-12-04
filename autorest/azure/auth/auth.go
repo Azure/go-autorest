@@ -610,6 +610,7 @@ type ClientCertificateConfig struct {
 	CertificatePath     string
 	CertificatePassword string
 	TenantID            string
+	AuxTenants          []string
 	AADEndpoint         string
 	Resource            string
 }
@@ -631,13 +632,37 @@ func (ccc ClientCertificateConfig) ServicePrincipalToken() (*adal.ServicePrincip
 	return adal.NewServicePrincipalTokenFromCertificate(*oauthConfig, ccc.ClientID, certificate, rsaPrivateKey, ccc.Resource)
 }
 
+// MultiTenantServicePrincipalToken creates a MultiTenantServicePrincipalToken from client certificate.
+func (ccc ClientCertificateConfig) MultiTenantServicePrincipalToken() (*adal.MultiTenantServicePrincipalToken, error) {
+	oauthConfig, err := adal.NewMultiTenantOAuthConfig(ccc.AADEndpoint, ccc.TenantID, ccc.AuxTenants, adal.OAuthOptions{})
+	if err != nil {
+		return nil, err
+	}
+	certData, err := ioutil.ReadFile(ccc.CertificatePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read the certificate file (%s): %v", ccc.CertificatePath, err)
+	}
+	certificate, rsaPrivateKey, err := adal.DecodePfxCertificateData(certData, ccc.CertificatePassword)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode pkcs12 certificate while creating spt: %v", err)
+	}
+	return adal.NewMultiTenantServicePrincipalTokenFromCertificate(oauthConfig, ccc.ClientID, certificate, rsaPrivateKey, ccc.Resource)
+}
+
 // Authorizer gets an authorizer object from client certificate.
 func (ccc ClientCertificateConfig) Authorizer() (autorest.Authorizer, error) {
-	spToken, err := ccc.ServicePrincipalToken()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get oauth token from certificate auth: %v", err)
+	if len(ccc.AuxTenants) == 0 {
+		spToken, err := ccc.ServicePrincipalToken()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get oauth token from certificate auth: %v", err)
+		}
+		return autorest.NewBearerAuthorizer(spToken), nil
 	}
-	return autorest.NewBearerAuthorizer(spToken), nil
+	mtSPT, err := ccc.MultiTenantServicePrincipalToken()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get multitenant SPT from certificate auth: %v", err)
+	}
+	return autorest.NewMultiTenantServicePrincipalTokenAuthorizer(mtSPT), nil
 }
 
 // DeviceFlowConfig provides the options to get a bearer authorizer using device flow authentication.
