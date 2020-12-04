@@ -1195,6 +1195,55 @@ func NewMultiTenantServicePrincipalToken(multiTenantCfg MultiTenantOAuthConfig, 
 	return &m, nil
 }
 
+// NewMultiTenantServicePrincipalTokenFromCertificate creates a new MultiTenantServicePrincipalToken with the specified certificate credentials and resource.
+func NewMultiTenantServicePrincipalTokenFromCertificate(multiTenantCfg MultiTenantOAuthConfig, clientID string, certificate *x509.Certificate, privateKey *rsa.PrivateKey, resource string) (*MultiTenantServicePrincipalToken, error) {
+	if err := validateStringParam(clientID, "clientID"); err != nil {
+		return nil, err
+	}
+	if err := validateStringParam(resource, "resource"); err != nil {
+		return nil, err
+	}
+	if certificate == nil {
+		return nil, fmt.Errorf("parameter 'certificate' cannot be nil")
+	}
+	if privateKey == nil {
+		return nil, fmt.Errorf("parameter 'privateKey' cannot be nil")
+	}
+	auxTenants := multiTenantCfg.AuxiliaryTenants()
+	m := MultiTenantServicePrincipalToken{
+		AuxiliaryTokens: make([]*ServicePrincipalToken, len(auxTenants)),
+	}
+	primary, err := NewServicePrincipalTokenWithSecret(
+		*multiTenantCfg.PrimaryTenant(),
+		clientID,
+		resource,
+		&ServicePrincipalCertificateSecret{
+			PrivateKey:  privateKey,
+			Certificate: certificate,
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create SPT for primary tenant: %v", err)
+	}
+	m.PrimaryToken = primary
+	for i := range auxTenants {
+		aux, err := NewServicePrincipalTokenWithSecret(
+			*auxTenants[i],
+			clientID,
+			resource,
+			&ServicePrincipalCertificateSecret{
+				PrivateKey:  privateKey,
+				Certificate: certificate,
+			},
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create SPT for auxiliary tenant: %v", err)
+		}
+		m.AuxiliaryTokens[i] = aux
+	}
+	return &m, nil
+}
+
 // MSIAvailable returns true if the MSI endpoint is available for authentication.
 func MSIAvailable(ctx context.Context, sender Sender) bool {
 	resp, err := getMSIEndpoint(ctx, sender)

@@ -1171,6 +1171,26 @@ func TestNewMultiTenantServicePrincipalToken(t *testing.T) {
 	}
 }
 
+func TestNewMultiTenantServicePrincipalTokenFromCertificate(t *testing.T) {
+	cfg, err := NewMultiTenantOAuthConfig(TestActiveDirectoryEndpoint, TestTenantID, TestAuxTenantIDs, OAuthOptions{})
+	if err != nil {
+		t.Fatalf("autorest/adal: unexpected error while creating multitenant config: %v", err)
+	}
+	cert, key := newTestCertificate(t)
+	mt, err := NewMultiTenantServicePrincipalTokenFromCertificate(cfg, "clientID", cert, key, "resource")
+	if err != nil {
+		t.Fatalf("autorest/adal: unexpected error while creating multitenant service principal token: %v", err)
+	}
+	if !strings.Contains(mt.PrimaryToken.inner.OauthConfig.AuthorizeEndpoint.String(), TestTenantID) {
+		t.Fatal("didn't find primary tenant ID in primary SPT")
+	}
+	for i := range mt.AuxiliaryTokens {
+		if ep := mt.AuxiliaryTokens[i].inner.OauthConfig.AuthorizeEndpoint.String(); !strings.Contains(ep, fmt.Sprintf("%s%d", TestAuxTenantPrefix, i)) {
+			t.Fatalf("didn't find auxiliary tenant ID in token %s", ep)
+		}
+	}
+}
+
 func TestMSIAvailableSuccess(t *testing.T) {
 	c := mocks.NewSender()
 	c.AppendResponse(mocks.NewResponse())
@@ -1255,7 +1275,7 @@ func newServicePrincipalTokenManual() *ServicePrincipalToken {
 	return spt
 }
 
-func newServicePrincipalTokenCertificate(t *testing.T) *ServicePrincipalToken {
+func newTestCertificate(t *testing.T) (*x509.Certificate, *rsa.PrivateKey) {
 	template := x509.Certificate{
 		SerialNumber:          big.NewInt(0),
 		Subject:               pkix.Name{CommonName: "test"},
@@ -1273,6 +1293,11 @@ func newServicePrincipalTokenCertificate(t *testing.T) *ServicePrincipalToken {
 	if err != nil {
 		t.Fatal(err)
 	}
+	return certificate, privateKey
+}
+
+func newServicePrincipalTokenCertificate(t *testing.T) *ServicePrincipalToken {
+	certificate, privateKey := newTestCertificate(t)
 
 	spt, _ := NewServicePrincipalTokenFromCertificate(TestOAuthConfig, "id", certificate, privateKey, "resource")
 	return spt
