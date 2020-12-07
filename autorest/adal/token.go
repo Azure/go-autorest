@@ -135,6 +135,9 @@ type Token struct {
 
 	Resource string `json:"resource"`
 	Type     string `json:"token_type"`
+
+	//reference to pop key if AccessToken is of pop type
+	poPKey PoPKey
 }
 
 func newToken() Token {
@@ -369,6 +372,8 @@ type ServicePrincipalToken struct {
 	// MaxMSIRefreshAttempts is the maximum number of attempts to refresh an MSI token.
 	// Settings this to a value less than 1 will use the default value.
 	MaxMSIRefreshAttempts int
+	// If subsequent access tokens are to be obtained w/ pop semantics
+	enablePoP bool
 }
 
 // MarshalTokenJSON returns the marshalled inner token.
@@ -893,6 +898,7 @@ func isASEEndpoint(endpoint url.URL) bool {
 }
 
 func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource string) error {
+	var poPKey PoPKey
 	if spt.customRefreshFunc != nil {
 		token, err := spt.customRefreshFunc(ctx, resource)
 		if err != nil {
@@ -916,6 +922,11 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 		v := url.Values{}
 		v.Set("client_id", spt.inner.ClientID)
 		v.Set("resource", resource)
+		if spt.enablePoP == true {
+			v.Set("token_type", "pop")
+			poPKey = getSwPoPKey()
+			v.Set("req_cnf", poPKey.ReqCnf())
+		}
 
 		if spt.inner.Token.RefreshToken != "" {
 			v.Set("grant_type", OAuthGrantTypeRefreshToken)
@@ -1018,6 +1029,11 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 	spt.inner.Token.NotBefore = token.NotBefore
 	spt.inner.Token.Resource = token.Resource
 	spt.inner.Token.Type = token.Type
+
+	//if we managed to get a pop token from AAD, add reference to pop key
+	if token.Type == "pop" {
+		spt.inner.Token.poPKey = poPKey
+	}
 
 	return spt.InvokeRefreshCallbacks(spt.inner.Token)
 }

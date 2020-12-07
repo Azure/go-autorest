@@ -257,6 +257,24 @@ if (err == nil) {
 }
 ```
 
+### Acquire PoP token
+
+An instance of ServicePrincipalToken can optionally be enabled to acquire PoP based access tokens. 
+```Go
+// enable pop on subsequent Refresh()'ed acccess tokens
+spt.EnablePoP()
+err  = spt.Refresh()
+...
+
+...
+// to acquire a pop access token bound to a particular host
+err = spt.EnsureFresh()
+if (err == nil) {
+    popToken, err := spt.Token().AcquirePoPTokenForHost("my.host.com")
+}
+```
+
+
 ### Command Line Tool
 
 A command line tool is available in `cmd/adal.go` that can acquire a token for a given resource. It supports all flows mentioned above.
