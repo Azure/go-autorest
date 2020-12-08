@@ -87,6 +87,52 @@ func TestTokenWillExpireIn(t *testing.T) {
 	}
 }
 
+func TestParseExpiresOn(t *testing.T) {
+	// get current time, round to nearest second, and add one hour
+	n := time.Now().UTC().Round(time.Second).Add(time.Hour)
+	amPM := "AM"
+	if n.Hour() > 12 {
+		amPM = "PM"
+	}
+	testcases := []struct {
+		Name   string
+		String string
+		Value  int64
+	}{
+		{
+			Name:   "integer",
+			String: "3600",
+			Value:  3600,
+		},
+		{
+			Name:   "timestamp with AM/PM",
+			String: fmt.Sprintf("%d/%d/%d %d:%02d:%02d %s +00:00", n.Month(), n.Day(), n.Year(), n.Hour(), n.Minute(), n.Second(), amPM),
+			Value:  3600,
+		},
+		{
+			Name:   "timestamp without AM/PM",
+			String: fmt.Sprintf("%d/%d/%d %d:%02d:%02d +00:00", n.Month(), n.Day(), n.Year(), n.Hour(), n.Minute(), n.Second()),
+			Value:  3600,
+		},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.Name, func(subT *testing.T) {
+			jn, err := parseExpiresOn(tc.String)
+			if err != nil {
+				subT.Error(err)
+			}
+			i, err := jn.Int64()
+			if err != nil {
+				subT.Error(err)
+			}
+			if i != tc.Value {
+				subT.Logf("expected %d, got %d", tc.Value, i)
+				subT.Fail()
+			}
+		})
+	}
+}
+
 func TestServicePrincipalTokenSetAutoRefresh(t *testing.T) {
 	spt := newServicePrincipalToken()
 
