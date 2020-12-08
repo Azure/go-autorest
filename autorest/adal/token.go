@@ -81,8 +81,11 @@ const (
 	// secret header used when authenticating against app service MSI endpoint
 	secretHeader = "Secret"
 
-	// the format for expires_on in UTC (applicable to MSI via legacy ASE only)
-	expiresOnDateFormat = "1/2/2006 15:04:05 PM +00:00"
+	// the format for expires_on in UTC with AM/PM
+	expiresOnDateFormatPM = "1/2/2006 15:04:05 PM +00:00"
+
+	// the format for expires_on in UTC without AM/PM
+	expiresOnDateFormat = "1/2/2006 15:04:05 +00:00"
 )
 
 // OAuthTokenProvider is an interface which should be implemented by an access token retriever
@@ -1024,13 +1027,18 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 
 // converts expires_on to the number of seconds
 func parseExpiresOn(s string) (json.Number, error) {
+	// convert the expiration date to the number of seconds from now
+	timeToDuration := func(t time.Time) json.Number {
+		dur := t.Sub(time.Now().UTC())
+		return json.Number(strconv.FormatInt(int64(dur.Round(time.Second).Seconds()), 10))
+	}
 	if _, err := strconv.ParseInt(s, 10, 64); err == nil {
 		// this is the number of seconds case, no conversion required
 		return json.Number(s), nil
+	} else if eo, err := time.Parse(expiresOnDateFormatPM, s); err == nil {
+		return timeToDuration(eo), nil
 	} else if eo, err := time.Parse(expiresOnDateFormat, s); err == nil {
-		// convert the expiration date to the number of seconds from now
-		dur := eo.Sub(time.Now().UTC())
-		return json.Number(strconv.FormatInt(int64(dur.Round(time.Second).Seconds()), 10)), nil
+		return timeToDuration(eo), nil
 	} else {
 		// unknown format
 		return json.Number(""), err
