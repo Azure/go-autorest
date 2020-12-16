@@ -114,12 +114,21 @@ func TestParseExpiresOn(t *testing.T) {
 			String: fmt.Sprintf("%d/%d/%d %d:%02d:%02d +00:00", n.Month(), n.Day(), n.Year(), n.Hour(), n.Minute(), n.Second()),
 			Value:  3600,
 		},
+		{
+			Name:   "empty",
+			String: "",
+			Value:  0,
+		},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.Name, func(subT *testing.T) {
 			jn, err := parseExpiresOn(tc.String)
 			if err != nil {
 				subT.Error(err)
+			}
+			if jn.String() == "" && tc.String == "" {
+				// empty case, exit early
+				return
 			}
 			i, err := jn.Int64()
 			if err != nil {

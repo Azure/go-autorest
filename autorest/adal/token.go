@@ -1006,13 +1006,14 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 		Resource string `json:"resource"`
 		Type     string `json:"token_type"`
 	}{}
+	// return a TokenRefreshError in the follow error cases as the token is in an unexpected format
 	err = json.Unmarshal(rb, &token)
 	if err != nil {
-		return fmt.Errorf("adal: Failed to unmarshal the service principal token during refresh. Error = '%v' JSON = '%s'", err, string(rb))
+		return newTokenRefreshError(fmt.Sprintf("adal: Failed to unmarshal the service principal token during refresh. Error = '%v' JSON = '%s'", err, string(rb)), resp)
 	}
 	expiresOn, err := parseExpiresOn(token.ExpiresOn)
 	if err != nil {
-		return err
+		return newTokenRefreshError(fmt.Sprintf("adal: failed to parse expires_on: %v value '%s'", err, token.ExpiresOn), resp)
 	}
 	spt.inner.Token.AccessToken = token.AccessToken
 	spt.inner.Token.RefreshToken = token.RefreshToken
@@ -1027,6 +1028,10 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 
 // converts expires_on to the number of seconds
 func parseExpiresOn(s string) (json.Number, error) {
+	// ADFS can return empty string for this
+	if s == "" {
+		return json.Number(""), nil
+	}
 	// convert the expiration date to the number of seconds from now
 	timeToDuration := func(t time.Time) json.Number {
 		dur := t.Sub(time.Now().UTC())
