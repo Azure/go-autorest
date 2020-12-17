@@ -1006,13 +1006,17 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 		Resource string `json:"resource"`
 		Type     string `json:"token_type"`
 	}{}
+	// return a TokenRefreshError in the follow error cases as the token is in an unexpected format
 	err = json.Unmarshal(rb, &token)
 	if err != nil {
-		return fmt.Errorf("adal: Failed to unmarshal the service principal token during refresh. Error = '%v' JSON = '%s'", err, string(rb))
+		return newTokenRefreshError(fmt.Sprintf("adal: Failed to unmarshal the service principal token during refresh. Error = '%v' JSON = '%s'", err, string(rb)), resp)
 	}
-	expiresOn, err := parseExpiresOn(token.ExpiresOn)
-	if err != nil {
-		return err
+	expiresOn := json.Number("")
+	// ADFS doesn't include the expires_on field
+	if token.ExpiresOn != "" {
+		if expiresOn, err = parseExpiresOn(token.ExpiresOn); err != nil {
+			return newTokenRefreshError(fmt.Sprintf("adal: failed to parse expires_on: %v value '%s'", err, token.ExpiresOn), resp)
+		}
 	}
 	spt.inner.Token.AccessToken = token.AccessToken
 	spt.inner.Token.RefreshToken = token.RefreshToken

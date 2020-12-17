@@ -386,6 +386,69 @@ func TestServicePrincipalTokenFromASE(t *testing.T) {
 	}
 }
 
+func TestServicePrincipalTokenFromADFS(t *testing.T) {
+	os.Setenv("MSI_ENDPOINT", "http://localhost")
+	os.Setenv("MSI_SECRET", "super")
+	defer func() {
+		os.Unsetenv("MSI_ENDPOINT")
+		os.Unsetenv("MSI_SECRET")
+	}()
+	resource := "https://resource"
+	endpoint, _ := GetMSIEndpoint()
+	spt, err := NewServicePrincipalTokenFromMSI(endpoint, resource)
+	if err != nil {
+		t.Fatalf("Failed to get MSI SPT: %v", err)
+	}
+	spt.MaxMSIRefreshAttempts = 1
+	const expiresIn = 3600
+	body := mocks.NewBody(newADFSTokenJSON(expiresIn))
+	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
+
+	c := mocks.NewSender()
+	s := DecorateSender(c,
+		(func() SendDecorator {
+			return func(s Sender) Sender {
+				return SenderFunc(func(r *http.Request) (*http.Response, error) {
+					if r.Method != "GET" {
+						t.Fatalf("adal: ServicePrincipalToken#Refresh did not correctly set HTTP method -- expected %v, received %v", "GET", r.Method)
+					}
+					if h := r.Header.Get(metadataHeader); h != "" {
+						t.Fatalf("adal: ServicePrincipalToken#Refresh incorrectly set Metadata header for ASE")
+					}
+					if s := r.Header.Get(secretHeader); s != "super" {
+						t.Fatalf("adal: unexpected secret header value %s", s)
+					}
+					if r.URL.Host != "localhost" {
+						t.Fatalf("adal: unexpected host %s", r.URL.Host)
+					}
+					qp := r.URL.Query()
+					if api := qp.Get("api-version"); api != appServiceAPIVersion {
+						t.Fatalf("adal: unexpected api-version %s", api)
+					}
+					return resp, nil
+				})
+			}
+		})())
+	spt.SetSender(s)
+	err = spt.Refresh()
+	if err != nil {
+		t.Fatalf("adal: ServicePrincipalToken#Refresh returned an unexpected error (%v)", err)
+	}
+	i, err := spt.inner.Token.ExpiresIn.Int64()
+	if err != nil {
+		t.Fatalf("unexpected parsing of expires_in: %v", err)
+	}
+	if i != expiresIn {
+		t.Fatalf("unexpected expires_in %d", i)
+	}
+	if spt.inner.Token.ExpiresOn.String() != "" {
+		t.Fatal("expected empty expires_on")
+	}
+	if body.IsOpen() {
+		t.Fatalf("the response was not closed!")
+	}
+}
+
 func TestServicePrincipalTokenFromMSIRefreshCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	endpoint, _ := GetMSIVMEndpoint()
@@ -1282,6 +1345,15 @@ func newTokenJSON(expiresIn, expiresOn, resource string) string {
 		"refresh_token": "ABC123"
 		}`,
 		expiresIn, expiresOn, nb, resource)
+}
+
+func newADFSTokenJSON(expiresIn int) string {
+	return fmt.Sprintf(`{
+		"access_token" : "accessToken",
+		"expires_in"   : %d,
+		"token_type"   : "Bearer"
+		}`,
+		expiresIn)
 }
 
 func newTokenExpiresIn(expireIn time.Duration) *Token {
