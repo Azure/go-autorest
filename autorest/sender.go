@@ -106,7 +106,11 @@ func SendWithSender(s Sender, r *http.Request, decorators ...SendDecorator) (*ht
 	return DecorateSender(s, decorators...).Do(r)
 }
 
-func sender(renengotiation tls.RenegotiationSupport) Sender {
+// SenderFactory creates a sender instance
+type SenderFactory func(renengotiation tls.RenegotiationSupport) (*http.Client, error)
+
+// DefaultSenderFactory creates a sender instance suitable for Azure
+func DefaultSenderFactory(renengotiation tls.RenegotiationSupport) (*http.Client, error) {
 	// Use behaviour compatible with DefaultTransport, but require TLS minimum version.
 	defaultTransport := http.DefaultTransport.(*http.Transport)
 	transport := &http.Transport{
@@ -125,8 +129,28 @@ func sender(renengotiation tls.RenegotiationSupport) Sender {
 	if tracing.IsEnabled() {
 		roundTripper = tracing.NewTransport(transport)
 	}
-	j, _ := cookiejar.New(nil)
-	return &http.Client{Jar: j, Transport: roundTripper}
+	j, err := cookiejar.New(nil)
+	if err != nil {
+		return nil, err
+	}
+	return &http.Client{Jar: j, Transport: roundTripper}, nil
+}
+
+// SenderFactoryInstance used to a create a sender instance
+var SenderFactoryInstance SenderFactory = DefaultSenderFactory
+
+func sender(renengotiation tls.RenegotiationSupport) Sender {
+	// note that we can't init defaultSenders in init() since it will
+	// execute before calling code has had a chance to enable tracing
+	defaultSenders[renengotiation].init.Do(func() {
+		// Use behaviour compatible with DefaultTransport, but require TLS minimum version.
+		sender, err := SenderFactoryInstance(renengotiation)
+		if err != nil {
+			panic(fmt.Errorf("Failed to initialize sender instance: %v", err))
+		}
+		defaultSenders[renengotiation].sender = sender
+	})
+	return defaultSenders[renengotiation].sender
 }
 
 // AfterDelay returns a SendDecorator that delays for the passed time.Duration before
