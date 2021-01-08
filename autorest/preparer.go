@@ -127,7 +127,7 @@ func WithHeader(header string, value string) PrepareDecorator {
 		return PreparerFunc(func(r *http.Request) (*http.Request, error) {
 			r, err := p.Prepare(r)
 			if err == nil {
-				setHeader(r, http.CanonicalHeaderKey(header), value)
+				SetHeader(r, http.CanonicalHeaderKey(header), value)
 			}
 			return r, err
 		})
@@ -292,7 +292,7 @@ func WithFormData(v url.Values) PrepareDecorator {
 			if err == nil {
 				s := v.Encode()
 
-				setHeader(r, http.CanonicalHeaderKey(headerContentType), mimeTypeFormPost)
+				SetHeader(r, http.CanonicalHeaderKey(headerContentType), mimeTypeFormPost)
 				r.ContentLength = int64(len(s))
 				r.Body = ioutil.NopCloser(strings.NewReader(s))
 			}
@@ -328,7 +328,7 @@ func WithMultiPartFormData(formDataParameters map[string]interface{}) PrepareDec
 				if err = writer.Close(); err != nil {
 					return r, err
 				}
-				setHeader(r, http.CanonicalHeaderKey(headerContentType), writer.FormDataContentType())
+				SetHeader(r, http.CanonicalHeaderKey(headerContentType), writer.FormDataContentType())
 				r.Body = ioutil.NopCloser(bytes.NewReader(body.Bytes()))
 				r.ContentLength = int64(body.Len())
 				return r, err
@@ -433,7 +433,7 @@ func WithXML(v interface{}) PrepareDecorator {
 					bytesWithHeader := []byte(withHeader)
 
 					r.ContentLength = int64(len(bytesWithHeader))
-					setHeader(r, headerContentLength, fmt.Sprintf("%d", len(bytesWithHeader)))
+					SetHeader(r, headerContentLength, fmt.Sprintf("%d", len(bytesWithHeader)))
 					r.Body = ioutil.NopCloser(bytes.NewReader(bytesWithHeader))
 				}
 			}
