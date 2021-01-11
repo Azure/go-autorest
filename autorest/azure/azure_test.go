@@ -315,6 +315,40 @@ func TestWithErrorUnlessStatusCode_FoundAzureFullError(t *testing.T) {
 
 }
 
+func TestWithErrorUnlessStatusCode_LiteralNullValueInResponse(t *testing.T) {
+	// As found in the Log Analytics Cluster API
+	// API Bug: https://github.com/Azure/azure-rest-api-specs/issues/12331
+	j := `null`
+	r := mocks.NewResponseWithContent(j)
+	mocks.SetResponseHeader(r, HeaderContentType, "application/json; charset=utf-8")
+	r.Request = mocks.NewRequest()
+	r.StatusCode = http.StatusInternalServerError
+	r.Status = http.StatusText(r.StatusCode)
+
+	err := autorest.Respond(r,
+		WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByClosing())
+	if err == nil {
+		t.Fatalf("azure: returned nil error for proper error response")
+	}
+	azErr, ok := err.(*RequestError)
+	if !ok {
+		t.Fatalf("azure: returned error is not azure.RequestError: %T", err)
+	}
+
+	expected := &ServiceError{
+		Code:    "Unknown",
+		Message: "Unknown service error",
+		Details: []map[string]interface{}{
+			{"HttpResponse.Body": "null"},
+		},
+	}
+
+	if !reflect.DeepEqual(expected, azErr.ServiceError) {
+		t.Fatalf("azure: service error is not unmarshaled properly. expected=%q\ngot=%q", expected, azErr.ServiceError)
+	}
+}
+
 func TestWithErrorUnlessStatusCode_NoAzureError(t *testing.T) {
 	j := `{
 		"Status":"NotFound"
