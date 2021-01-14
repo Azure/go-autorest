@@ -163,7 +163,7 @@ func (se *ServiceError) UnmarshalJSON(b []byte) error {
 			}
 		}
 	} else if c, ok := sei.InnerError.(string); ok {
-		se.InnerError = map[string]interface{}{c: ""}
+		se.InnerError = map[string]interface{}{"error": c}
 	} else if sei.InnerError != nil {
 		// stuff into InnerError
 		se.InnerError = map[string]interface{}{

@@ -587,7 +587,7 @@ func TestRequestErrorString_WithErrorNonConforming2(t *testing.T) {
 		t.Fatalf("azure: returned nil error for proper error response")
 	}
 	azErr, _ := err.(*RequestError)
-	expected := "autorest/azure: Service returned an error. Status=500 Code=\"InternalError\" Message=\"Conflict\" Details=[{\"code\":\"conflict1\",\"message\":\"error message1\"}] InnerError={\"something bad happened\":\"\"}"
+	expected := "autorest/azure: Service returned an error. Status=500 Code=\"InternalError\" Message=\"Conflict\" Details=[{\"code\":\"conflict1\",\"message\":\"error message1\"}] InnerError={\"error\":\"something bad happened\"}"
 	if expected != azErr.Error() {
 		t.Fatalf("azure: send wrong RequestError.\nexpected=%v\ngot=%v", expected, azErr.Error())
 	}
