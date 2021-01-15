@@ -531,11 +531,14 @@ func TestRequestErrorString_WithError(t *testing.T) {
 }
 
 func TestRequestErrorString_WithErrorNonConforming(t *testing.T) {
+	// here details is an object, it should be an array of objects
+	// and innererror is an array of objects (should be one object)
 	j := `{
 		"error": {
 			"code": "InternalError",
 			"message": "Conflict",
-			"details": {"code": "conflict1", "message":"error message1"}
+			"details": {"code": "conflict1", "message":"error message1"},
+			"innererror": [{ "customKey": "customValue" }]
 		}
 	}`
 	uuid := "71FDB9F4-5E49-4C12-B266-DE7B4FD999A6"
@@ -553,9 +556,159 @@ func TestRequestErrorString_WithErrorNonConforming(t *testing.T) {
 		t.Fatalf("azure: returned nil error for proper error response")
 	}
 	azErr, _ := err.(*RequestError)
-	expected := "autorest/azure: Service returned an error. Status=500 Code=\"InternalError\" Message=\"Conflict\" Details=[{\"code\":\"conflict1\",\"message\":\"error message1\"}]"
+	expected := "autorest/azure: Service returned an error. Status=500 Code=\"InternalError\" Message=\"Conflict\" Details=[{\"code\":\"conflict1\",\"message\":\"error message1\"}] InnerError={\"customKey\":\"customValue\"}"
 	if expected != azErr.Error() {
 		t.Fatalf("azure: send wrong RequestError.\nexpected=%v\ngot=%v", expected, azErr.Error())
+	}
+}
+
+func TestRequestErrorString_WithErrorNonConforming2(t *testing.T) {
+	// here innererror is a string (it should be a JSON object)
+	j := `{
+		"error": {
+			"code": "InternalError",
+			"message": "Conflict",
+			"details": {"code": "conflict1", "message":"error message1"},
+			"innererror": "something bad happened"
+		}
+	}`
+	uuid := "71FDB9F4-5E49-4C12-B266-DE7B4FD999A6"
+	r := mocks.NewResponseWithContent(j)
+	mocks.SetResponseHeader(r, HeaderRequestID, uuid)
+	r.Request = mocks.NewRequest()
+	r.StatusCode = http.StatusInternalServerError
+	r.Status = http.StatusText(r.StatusCode)
+
+	err := autorest.Respond(r,
+		WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByClosing())
+
+	if err == nil {
+		t.Fatalf("azure: returned nil error for proper error response")
+	}
+	azErr, _ := err.(*RequestError)
+	expected := "autorest/azure: Service returned an error. Status=500 Code=\"InternalError\" Message=\"Conflict\" Details=[{\"code\":\"conflict1\",\"message\":\"error message1\"}] InnerError={\"error\":\"something bad happened\"}"
+	if expected != azErr.Error() {
+		t.Fatalf("azure: send wrong RequestError.\nexpected=%v\ngot=%v", expected, azErr.Error())
+	}
+}
+
+func TestRequestErrorString_WithErrorNonConforming3(t *testing.T) {
+	// here details is an object, it should be an array of objects
+	// and innererror is an array of objects (should be one object)
+	j := `{
+		"error": {
+			"code": "InternalError",
+			"message": "Conflict",
+			"details": {"code": "conflict1", "message":"error message1"},
+			"innererror": [{ "customKey": "customValue" }, { "customKey2": "customValue2" }]
+		}
+	}`
+	uuid := "71FDB9F4-5E49-4C12-B266-DE7B4FD999A6"
+	r := mocks.NewResponseWithContent(j)
+	mocks.SetResponseHeader(r, HeaderRequestID, uuid)
+	r.Request = mocks.NewRequest()
+	r.StatusCode = http.StatusInternalServerError
+	r.Status = http.StatusText(r.StatusCode)
+
+	err := autorest.Respond(r,
+		WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByClosing())
+
+	if err == nil {
+		t.Fatalf("azure: returned nil error for proper error response")
+	}
+	azErr, _ := err.(*RequestError)
+	expected := "autorest/azure: Service returned an error. Status=500 Code=\"InternalError\" Message=\"Conflict\" Details=[{\"code\":\"conflict1\",\"message\":\"error message1\"}] InnerError={\"multi\":[{\"customKey\":\"customValue\"},{\"customKey2\":\"customValue2\"}]}"
+	if expected != azErr.Error() {
+		t.Fatalf("azure: send wrong RequestError.\nexpected=%v\ngot=%v", expected, azErr.Error())
+	}
+}
+
+func TestRequestErrorString_WithErrorNonConforming4(t *testing.T) {
+	// here details is a string, it should be an array of objects
+	j := `{
+		"error": {
+			"code": "InternalError",
+			"message": "Conflict",
+			"details": "something bad happened"
+		}
+	}`
+	uuid := "71FDB9F4-5E49-4C12-B266-DE7B4FD999A6"
+	r := mocks.NewResponseWithContent(j)
+	mocks.SetResponseHeader(r, HeaderRequestID, uuid)
+	r.Request = mocks.NewRequest()
+	r.StatusCode = http.StatusInternalServerError
+	r.Status = http.StatusText(r.StatusCode)
+
+	err := autorest.Respond(r,
+		WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByClosing())
+
+	if err == nil {
+		t.Fatalf("azure: returned nil error for proper error response")
+	}
+	azErr, _ := err.(*RequestError)
+	expected := "autorest/azure: Service returned an error. Status=500 Code=\"InternalError\" Message=\"Conflict\" Details=[{\"raw\":\"something bad happened\"}]"
+	if expected != azErr.Error() {
+		t.Fatalf("azure: send wrong RequestError.\nexpected=%v\ngot=%v", expected, azErr.Error())
+	}
+}
+
+func TestRequestErrorString_WithErrorNonConforming5(t *testing.T) {
+	// here innererror is a number (it should be a JSON object)
+	j := `{
+		"error": {
+			"code": "InternalError",
+			"message": "Conflict",
+			"details": {"code": "conflict1", "message":"error message1"},
+			"innererror": 500
+		}
+	}`
+	uuid := "71FDB9F4-5E49-4C12-B266-DE7B4FD999A6"
+	r := mocks.NewResponseWithContent(j)
+	mocks.SetResponseHeader(r, HeaderRequestID, uuid)
+	r.Request = mocks.NewRequest()
+	r.StatusCode = http.StatusInternalServerError
+	r.Status = http.StatusText(r.StatusCode)
+
+	err := autorest.Respond(r,
+		WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByClosing())
+
+	if err == nil {
+		t.Fatalf("azure: returned nil error for proper error response")
+	}
+	azErr, _ := err.(*RequestError)
+	expected := "autorest/azure: Service returned an error. Status=500 Code=\"InternalError\" Message=\"Conflict\" Details=[{\"code\":\"conflict1\",\"message\":\"error message1\"}] InnerError={\"raw\":500}"
+	if expected != azErr.Error() {
+		t.Fatalf("azure: send wrong RequestError.\nexpected=%v\ngot=%v", expected, azErr.Error())
+	}
+}
+
+func TestRequestErrorString_WithErrorNonConforming6(t *testing.T) {
+	// here code is a number, it should be a string
+	j := `{
+			"code": 409,
+			"message": "Conflict",
+			"details": "something bad happened"
+		}`
+	uuid := "71FDB9F4-5E49-4C12-B266-DE7B4FD999A6"
+	r := mocks.NewResponseWithContent(j)
+	mocks.SetResponseHeader(r, HeaderRequestID, uuid)
+	r.Request = mocks.NewRequest()
+	r.StatusCode = http.StatusInternalServerError
+	r.Status = http.StatusText(r.StatusCode)
+
+	err := autorest.Respond(r,
+		WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByClosing())
+
+	if err == nil {
+		t.Fatalf("azure: returned nil error for proper error response")
+	}
+	if _, ok := err.(*RequestError); ok {
+		t.Fatal("unexpected RequestError when unmarshalling fails")
 	}
 }
 
