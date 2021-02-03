@@ -44,6 +44,13 @@ const (
 	defaultManualFormData = "client_id=id&grant_type=refresh_token&refresh_token=refreshtoken&resource=resource"
 )
 
+func init() {
+	// fake that the IMDS endpoint is available
+	msiAvailableHook = func(ctx context.Context, sender Sender) bool {
+		return true
+	}
+}
+
 func TestTokenExpires(t *testing.T) {
 	tt := time.Now().Add(5 * time.Second)
 	tk := newTokenExpiresAt(tt)
@@ -289,17 +296,10 @@ func TestServicePrincipalTokenFromMSIRefreshZeroRetry(t *testing.T) {
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
-	// the call to MSIAvailable() means the sender will be invoked twice.
-	reqCount := 0
 	s := DecorateSender(c,
 		(func() SendDecorator {
 			return func(s Sender) Sender {
 				return SenderFunc(func(r *http.Request) (*http.Response, error) {
-					if reqCount == 0 {
-						// first invocation, simply return StatusOK
-						reqCount++
-						return mocks.NewResponse(), nil
-					}
 					// second invocation, perform MSI request validation
 					if r.Method != "GET" {
 						t.Fatalf("adal: ServicePrincipalToken#Refresh did not correctly set HTTP method -- expected %v, received %v", "GET", r.Method)
@@ -1052,9 +1052,17 @@ func TestGetVMEndpoint(t *testing.T) {
 
 func TestGetAppServiceEndpoint(t *testing.T) {
 	const testEndpoint = "http://172.16.1.2:8081/msi/token"
+	const aseSecret = "the_secret"
 	if err := os.Setenv(msiEndpointEnv, testEndpoint); err != nil {
 		t.Fatalf("os.Setenv: %v", err)
 	}
+	if err := os.Setenv(msiSecretEnv, aseSecret); err != nil {
+		t.Fatalf("os.Setenv: %v", err)
+	}
+	defer func() {
+		os.Unsetenv(msiEndpointEnv)
+		os.Unsetenv(msiSecretEnv)
+	}()
 
 	endpoint, err := GetMSIAppServiceEndpoint()
 	if err != nil {
@@ -1063,10 +1071,6 @@ func TestGetAppServiceEndpoint(t *testing.T) {
 
 	if endpoint != testEndpoint {
 		t.Fatal("Didn't get correct endpoint")
-	}
-
-	if err := os.Unsetenv(msiEndpointEnv); err != nil {
-		t.Fatalf("os.Unsetenv: %v", err)
 	}
 }
 
@@ -1133,8 +1137,8 @@ func TestClientSecretWithASESet(t *testing.T) {
 		os.Unsetenv(msiSecretEnv)
 	}()
 	spt := newServicePrincipalToken()
-	if spt.msi != msiTypeUnavailable {
-		t.Fatal("isIMDS should return false for client secret token even when ASE is enabled")
+	if _, ok := spt.inner.Secret.(*ServicePrincipalMSISecret); ok {
+		t.Fatal("should not have MSI secret for client secret token even when ASE is enabled")
 	}
 }
 

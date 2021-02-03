@@ -292,6 +292,8 @@ func (secret ServicePrincipalCertificateSecret) MarshalJSON() ([]byte, error) {
 
 // ServicePrincipalMSISecret implements ServicePrincipalSecret for machines running the MSI Extension.
 type ServicePrincipalMSISecret struct {
+	msi              msiType
+	clientResourceID string
 }
 
 // SetAuthenticationValues is a method of the interface ServicePrincipalSecret.
@@ -369,7 +371,6 @@ type ServicePrincipalToken struct {
 	sender            Sender
 	customRefreshFunc TokenRefresh
 	refreshCallbacks  []TokenRefreshCallback
-	msi               msiType
 	// MaxMSIRefreshAttempts is the maximum number of attempts to refresh an MSI token.
 	// Settings this to a value less than 1 will use the default value.
 	MaxMSIRefreshAttempts int
@@ -436,14 +437,13 @@ func (spt *ServicePrincipalToken) UnmarshalJSON(data []byte) error {
 
 // internal type used for marshalling/unmarshalling
 type servicePrincipalToken struct {
-	Token            Token                  `json:"token"`
-	Secret           ServicePrincipalSecret `json:"secret"`
-	OauthConfig      OAuthConfig            `json:"oauth"`
-	ClientID         string                 `json:"clientID"`
-	ClientResourceID string                 `json:"clientResID"`
-	Resource         string                 `json:"resource"`
-	AutoRefresh      bool                   `json:"autoRefresh"`
-	RefreshWithin    time.Duration          `json:"refreshWithin"`
+	Token         Token                  `json:"token"`
+	Secret        ServicePrincipalSecret `json:"secret"`
+	OauthConfig   OAuthConfig            `json:"oauth"`
+	ClientID      string                 `json:"clientID"`
+	Resource      string                 `json:"resource"`
+	AutoRefresh   bool                   `json:"autoRefresh"`
+	RefreshWithin time.Duration          `json:"refreshWithin"`
 }
 
 func validateOAuthConfig(oac OAuthConfig) error {
@@ -698,7 +698,7 @@ func getMSIType() (msiType, string, error) {
 		}
 		// if ONLY the env var MSI_ENDPOINT is set the msiType is CloudShell
 		return msiTypeCloudShell, endpointEnvVar, nil
-	} else if MSIAvailable(context.Background(), defaultSender) {
+	} else if msiAvailableHook(context.Background(), defaultSender) {
 		// if MSI_ENDPOINT is NOT set AND the IMDS endpoint is available the msiType is IMDS. This will timeout after 500 milliseconds
 		return msiTypeIMDS, msiEndpoint, nil
 	} else {
@@ -804,17 +804,18 @@ func newServicePrincipalTokenFromMSI(resource string, userAssignedID string, ide
 			OauthConfig: OAuthConfig{
 				TokenEndpoint: *msiEndpointURL,
 			},
-			Secret:           &ServicePrincipalMSISecret{},
-			Resource:         resource,
-			AutoRefresh:      true,
-			RefreshWithin:    defaultRefresh,
-			ClientID:         userAssignedID,
-			ClientResourceID: identityResourceID,
+			Secret: &ServicePrincipalMSISecret{
+				msi:              msiType,
+				clientResourceID: identityResourceID,
+			},
+			Resource:      resource,
+			AutoRefresh:   true,
+			RefreshWithin: defaultRefresh,
+			ClientID:      userAssignedID,
 		},
 		refreshLock:           &sync.RWMutex{},
 		sender:                sender(),
 		refreshCallbacks:      callbacks,
-		msi:                   msiType,
 		MaxMSIRefreshAttempts: defaultMaxMSIRefreshAttempts,
 	}
 
@@ -929,7 +930,30 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 	}
 	req.Header.Add("User-Agent", UserAgent())
 	req = req.WithContext(ctx)
-	if spt.msi == msiTypeUnavailable {
+	var resp *http.Response
+	if msiSPT, ok := spt.inner.Secret.(*ServicePrincipalMSISecret); ok {
+		req.Method = http.MethodGet
+		switch msiSPT.msi {
+		case msiTypeAppServiceV20170901:
+			req.Header.Set("secret", os.Getenv(msiSecretEnv))
+			break
+		case msiTypeCloudShell:
+			req.Header.Set("Metadata", "true")
+			data := url.Values{}
+			data.Set("resource", spt.inner.Resource)
+			if spt.inner.ClientID != "" {
+				data.Set("client_id", spt.inner.ClientID)
+			} else if msiSPT.clientResourceID != "" {
+				data.Set("msi_res_id", msiSPT.clientResourceID)
+			}
+			req.Body = ioutil.NopCloser(strings.NewReader(data.Encode()))
+			break
+		case msiTypeIMDS:
+			req.Header.Set("Metadata", "true")
+			break
+		}
+		resp, err = retryForIMDS(spt.sender, req, spt.MaxMSIRefreshAttempts)
+	} else {
 		v := url.Values{}
 		v.Set("client_id", spt.inner.ClientID)
 		v.Set("resource", resource)
@@ -958,28 +982,9 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 		req.ContentLength = int64(len(s))
 		req.Header.Set(contentType, mimeTypeFormPost)
 		req.Body = body
-	} else if spt.msi == msiTypeIMDS {
-		req.Header.Set("Metadata", "true")
-	} else if spt.msi == msiTypeAppServiceV20170901 {
-		req.Header.Set("secret", os.Getenv(msiSecretEnv))
-	} else if spt.msi == msiTypeCloudShell {
-		req.Header.Set("Metadata", "true")
-		data := url.Values{}
-		data.Set("resource", spt.inner.Resource)
-		if spt.inner.ClientID != "" {
-			data.Set("client_id", spt.inner.ClientID)
-		} else if spt.inner.ClientResourceID != "" {
-			data.Set("msi_res_id", spt.inner.ClientResourceID)
-		}
-		req.Body = ioutil.NopCloser(strings.NewReader(data.Encode()))
-	}
-
-	var resp *http.Response
-	if spt.msi != msiTypeUnavailable {
-		resp, err = retryForIMDS(spt.sender, req, spt.MaxMSIRefreshAttempts)
-	} else {
 		resp, err = spt.sender.Do(req)
 	}
+
 	if err != nil {
 		// don't return a TokenRefreshError here; this will allow retry logic to apply
 		return fmt.Errorf("adal: Failed to execute the refresh request. Error = '%v'", err)
@@ -1275,4 +1280,9 @@ func MSIAvailable(ctx context.Context, sender Sender) bool {
 		resp.Body.Close()
 	}
 	return err == nil
+}
+
+// used for testing purposes
+var msiAvailableHook = func(ctx context.Context, sender Sender) bool {
+	return MSIAvailable(ctx, sender)
 }
