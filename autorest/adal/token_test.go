@@ -91,7 +91,7 @@ func TestParseExpiresOn(t *testing.T) {
 	// get current time, round to nearest second, and add one hour
 	n := time.Now().UTC().Round(time.Second).Add(time.Hour)
 	amPM := "AM"
-	if n.Hour() > 12 {
+	if n.Hour() >= 12 {
 		amPM = "PM"
 	}
 	testcases := []struct {
@@ -1052,7 +1052,7 @@ func TestGetVMEndpoint(t *testing.T) {
 
 func TestGetAppServiceEndpoint(t *testing.T) {
 	const testEndpoint = "http://172.16.1.2:8081/msi/token"
-	if err := os.Setenv(asMSIEndpointEnv, testEndpoint); err != nil {
+	if err := os.Setenv(msiEndpointEnv, testEndpoint); err != nil {
 		t.Fatalf("os.Setenv: %v", err)
 	}
 
@@ -1065,7 +1065,7 @@ func TestGetAppServiceEndpoint(t *testing.T) {
 		t.Fatal("Didn't get correct endpoint")
 	}
 
-	if err := os.Unsetenv(asMSIEndpointEnv); err != nil {
+	if err := os.Unsetenv(msiEndpointEnv); err != nil {
 		t.Fatalf("os.Unsetenv: %v", err)
 	}
 }
@@ -1077,11 +1077,11 @@ func TestGetMSIEndpoint(t *testing.T) {
 	)
 
 	// Test VM well-known endpoint is returned
-	if err := os.Unsetenv(asMSIEndpointEnv); err != nil {
+	if err := os.Unsetenv(msiEndpointEnv); err != nil {
 		t.Fatalf("os.Unsetenv: %v", err)
 	}
 
-	if err := os.Unsetenv(asMSISecretEnv); err != nil {
+	if err := os.Unsetenv(msiSecretEnv); err != nil {
 		t.Fatalf("os.Unsetenv: %v", err)
 	}
 
@@ -1095,11 +1095,11 @@ func TestGetMSIEndpoint(t *testing.T) {
 	}
 
 	// Test App Service endpoint is returned
-	if err := os.Setenv(asMSIEndpointEnv, testEndpoint); err != nil {
+	if err := os.Setenv(msiEndpointEnv, testEndpoint); err != nil {
 		t.Fatalf("os.Setenv: %v", err)
 	}
 
-	if err := os.Setenv(asMSISecretEnv, testSecret); err != nil {
+	if err := os.Setenv(msiSecretEnv, testSecret); err != nil {
 		t.Fatalf("os.Setenv: %v", err)
 	}
 
@@ -1112,25 +1112,25 @@ func TestGetMSIEndpoint(t *testing.T) {
 		t.Fatal("Didn't get correct endpoint")
 	}
 
-	if err := os.Unsetenv(asMSIEndpointEnv); err != nil {
+	if err := os.Unsetenv(msiEndpointEnv); err != nil {
 		t.Fatalf("os.Unsetenv: %v", err)
 	}
 
-	if err := os.Unsetenv(asMSISecretEnv); err != nil {
+	if err := os.Unsetenv(msiSecretEnv); err != nil {
 		t.Fatalf("os.Unsetenv: %v", err)
 	}
 }
 
 func TestClientSecretWithASESet(t *testing.T) {
-	if err := os.Setenv(asMSIEndpointEnv, "http://172.16.1.2:8081/msi/token"); err != nil {
+	if err := os.Setenv(msiEndpointEnv, "http://172.16.1.2:8081/msi/token"); err != nil {
 		t.Fatalf("os.Setenv: %v", err)
 	}
-	if err := os.Setenv(asMSISecretEnv, "the_secret"); err != nil {
+	if err := os.Setenv(msiSecretEnv, "the_secret"); err != nil {
 		t.Fatalf("os.Setenv: %v", err)
 	}
 	defer func() {
-		os.Unsetenv(asMSIEndpointEnv)
-		os.Unsetenv(asMSISecretEnv)
+		os.Unsetenv(msiEndpointEnv)
+		os.Unsetenv(msiSecretEnv)
 	}()
 	spt := newServicePrincipalToken()
 	if isIMDS(spt.inner.OauthConfig.TokenEndpoint) {
