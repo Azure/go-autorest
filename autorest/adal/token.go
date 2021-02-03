@@ -698,7 +698,7 @@ func getMSIType() (msiType, string, error) {
 		}
 		// if ONLY the env var MSI_ENDPOINT is set the msiType is CloudShell
 		return msiTypeCloudShell, endpointEnvVar, nil
-	} else if msiAvailableHook(context.Background(), defaultSender) {
+	} else if msiAvailableHook(context.Background(), sender()) {
 		// if MSI_ENDPOINT is NOT set AND the IMDS endpoint is available the msiType is IMDS. This will timeout after 500 milliseconds
 		return msiTypeIMDS, msiEndpoint, nil
 	} else {
