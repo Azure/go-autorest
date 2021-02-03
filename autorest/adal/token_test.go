@@ -360,7 +360,7 @@ func TestServicePrincipalTokenFromASE(t *testing.T) {
 						t.Fatalf("adal: unexpected host %s", r.URL.Host)
 					}
 					qp := r.URL.Query()
-					if api := qp.Get("api-version"); api != appServiceAPIVersion {
+					if api := qp.Get("api-version"); api != appServiceAPIVersion2017 {
 						t.Fatalf("adal: unexpected api-version %s", api)
 					}
 					return resp, nil
@@ -422,7 +422,7 @@ func TestServicePrincipalTokenFromADFS(t *testing.T) {
 						t.Fatalf("adal: unexpected host %s", r.URL.Host)
 					}
 					qp := r.URL.Query()
-					if api := qp.Get("api-version"); api != appServiceAPIVersion {
+					if api := qp.Get("api-version"); api != appServiceAPIVersion2017 {
 						t.Fatalf("adal: unexpected api-version %s", api)
 					}
 					return resp, nil
@@ -1133,7 +1133,7 @@ func TestClientSecretWithASESet(t *testing.T) {
 		os.Unsetenv(msiSecretEnv)
 	}()
 	spt := newServicePrincipalToken()
-	if isIMDS(spt.inner.OauthConfig.TokenEndpoint) {
+	if spt.msi != msiTypeUnavailable {
 		t.Fatal("isIMDS should return false for client secret token even when ASE is enabled")
 	}
 }
@@ -1184,7 +1184,7 @@ func TestMarshalServicePrincipalCertificateSecret(t *testing.T) {
 }
 
 func TestMarshalServicePrincipalMSISecret(t *testing.T) {
-	spt, err := newServicePrincipalTokenFromMSI("http://msiendpoint/", "https://resource", nil, nil)
+	spt, err := newServicePrincipalTokenFromMSI("http://msiendpoint/", "https://resource", "", nil)
 	if err != nil {
 		t.Fatalf("failed to get MSI SPT: %+v", err)
 	}
