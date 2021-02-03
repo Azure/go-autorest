@@ -932,9 +932,9 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 	req = req.WithContext(ctx)
 	var resp *http.Response
 	if msiSecret, ok := spt.inner.Secret.(*ServicePrincipalMSISecret); ok {
-		req.Method = http.MethodGet
 		switch msiSecret.msiType {
 		case msiTypeAppServiceV20170901:
+			req.Method = http.MethodGet
 			req.Header.Set("secret", os.Getenv(msiSecretEnv))
 			break
 		case msiTypeCloudShell:
@@ -947,8 +947,10 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 				data.Set("msi_res_id", msiSecret.clientResourceID)
 			}
 			req.Body = ioutil.NopCloser(strings.NewReader(data.Encode()))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			break
 		case msiTypeIMDS:
+			req.Method = http.MethodGet
 			req.Header.Set("Metadata", "true")
 			break
 		}

@@ -281,6 +281,48 @@ func TestServicePrincipalTokenFromMSIRefreshUsesGET(t *testing.T) {
 	}
 }
 
+func TestServicePrincipalTokenFromMSICloudshell(t *testing.T) {
+	os.Setenv(msiEndpointEnv, "http://dummy")
+	defer func() {
+		os.Unsetenv(msiEndpointEnv)
+	}()
+	spt, err := NewServicePrincipalTokenFromMSI("", "https://resource")
+	if err != nil {
+		t.Fatalf("Failed to get MSI SPT: %v", err)
+	}
+
+	body := mocks.NewBody(newTokenJSON(`"3600"`, "12345", "test"))
+	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
+
+	c := mocks.NewSender()
+	s := DecorateSender(c,
+		(func() SendDecorator {
+			return func(s Sender) Sender {
+				return SenderFunc(func(r *http.Request) (*http.Response, error) {
+					if r.Method != http.MethodPost {
+						t.Fatalf("adal: cloudshell did not correctly set HTTP method -- expected %v, received %v", "GET", r.Method)
+					}
+					if h := r.Header.Get("Metadata"); h != "true" {
+						t.Fatalf("adal: cloudshell did not correctly set Metadata header")
+					}
+					if h := r.Header.Get("Content-Type"); h != "application/x-www-form-urlencoded" {
+						t.Fatalf("adal: cloudshell did not correctly set Content-Type header")
+					}
+					return resp, nil
+				})
+			}
+		})())
+	spt.SetSender(s)
+	err = spt.Refresh()
+	if err != nil {
+		t.Fatalf("adal: ServicePrincipalToken#Refresh returned an unexpected error (%v)", err)
+	}
+
+	if body.IsOpen() {
+		t.Fatalf("the response was not closed!")
+	}
+}
+
 func TestServicePrincipalTokenFromMSIRefreshZeroRetry(t *testing.T) {
 	resource := "https://resource"
 	cb := func(token Token) error { return nil }
