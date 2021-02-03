@@ -292,7 +292,7 @@ func (secret ServicePrincipalCertificateSecret) MarshalJSON() ([]byte, error) {
 
 // ServicePrincipalMSISecret implements ServicePrincipalSecret for machines running the MSI Extension.
 type ServicePrincipalMSISecret struct {
-	msi              msiType
+	msiType          msiType
 	clientResourceID string
 }
 
@@ -708,13 +708,13 @@ func getMSIType() (msiType, string, error) {
 }
 
 // GetMSIVMEndpoint gets the MSI endpoint on Virtual Machines.
-// Deprecated: use GetMSIEndpoint() instead.
+// Deprecated: NewServicePrincipalTokenFromMSI() and variants will automatically detect the endpoint.
 func GetMSIVMEndpoint() (string, error) {
 	return msiEndpoint, nil
 }
 
 // GetMSIAppServiceEndpoint get the MSI endpoint for App Service and Functions
-// Deprecated: use GetMSIEndpoint() instead.
+// Deprecated: NewServicePrincipalTokenFromMSI() and variants will automatically detect the endpoint.
 func GetMSIAppServiceEndpoint() (string, error) {
 	msiType, endpoint, err := getMSIType()
 	if err != nil {
@@ -805,7 +805,7 @@ func newServicePrincipalTokenFromMSI(resource string, userAssignedID string, ide
 				TokenEndpoint: *msiEndpointURL,
 			},
 			Secret: &ServicePrincipalMSISecret{
-				msi:              msiType,
+				msiType:          msiType,
 				clientResourceID: identityResourceID,
 			},
 			Resource:      resource,
@@ -931,9 +931,9 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 	req.Header.Add("User-Agent", UserAgent())
 	req = req.WithContext(ctx)
 	var resp *http.Response
-	if msiSPT, ok := spt.inner.Secret.(*ServicePrincipalMSISecret); ok {
+	if msiSecret, ok := spt.inner.Secret.(*ServicePrincipalMSISecret); ok {
 		req.Method = http.MethodGet
-		switch msiSPT.msi {
+		switch msiSecret.msiType {
 		case msiTypeAppServiceV20170901:
 			req.Header.Set("secret", os.Getenv(msiSecretEnv))
 			break
@@ -943,8 +943,8 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 			data.Set("resource", spt.inner.Resource)
 			if spt.inner.ClientID != "" {
 				data.Set("client_id", spt.inner.ClientID)
-			} else if msiSPT.clientResourceID != "" {
-				data.Set("msi_res_id", msiSPT.clientResourceID)
+			} else if msiSecret.clientResourceID != "" {
+				data.Set("msi_res_id", msiSecret.clientResourceID)
 			}
 			req.Body = ioutil.NopCloser(strings.NewReader(data.Encode()))
 			break
