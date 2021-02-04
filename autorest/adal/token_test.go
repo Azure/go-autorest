@@ -243,11 +243,8 @@ func TestServicePrincipalTokenRefreshUsesPOST(t *testing.T) {
 	}
 }
 
-func TestServicePrincipalTokenFromMSIRefreshUsesGET(t *testing.T) {
-	resource := "https://resource"
-	cb := func(token Token) error { return nil }
-
-	spt, err := NewServicePrincipalTokenFromMSI("http://msiendpoint/", resource, cb)
+func TestNewServicePrincipalTokenFromManagedIdentity(t *testing.T) {
+	spt, err := NewServicePrincipalTokenFromManagedIdentity("https://resource", nil)
 	if err != nil {
 		t.Fatalf("Failed to get MSI SPT: %v", err)
 	}
