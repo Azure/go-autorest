@@ -44,6 +44,13 @@ const (
 	defaultManualFormData = "client_id=id&grant_type=refresh_token&refresh_token=refreshtoken&resource=resource"
 )
 
+func init() {
+	// fake that the IMDS endpoint is available
+	msiAvailableHook = func(ctx context.Context, sender Sender) bool {
+		return true
+	}
+}
+
 func TestTokenExpires(t *testing.T) {
 	tt := time.Now().Add(5 * time.Second)
 	tk := newTokenExpiresAt(tt)
@@ -91,7 +98,7 @@ func TestParseExpiresOn(t *testing.T) {
 	// get current time, round to nearest second, and add one hour
 	n := time.Now().UTC().Round(time.Second).Add(time.Hour)
 	amPM := "AM"
-	if n.Hour() > 12 {
+	if n.Hour() >= 12 {
 		amPM = "PM"
 	}
 	testcases := []struct {
@@ -236,11 +243,8 @@ func TestServicePrincipalTokenRefreshUsesPOST(t *testing.T) {
 	}
 }
 
-func TestServicePrincipalTokenFromMSIRefreshUsesGET(t *testing.T) {
-	resource := "https://resource"
-	cb := func(token Token) error { return nil }
-
-	spt, err := NewServicePrincipalTokenFromMSI("http://msiendpoint/", resource, cb)
+func TestNewServicePrincipalTokenFromManagedIdentity(t *testing.T) {
+	spt, err := NewServicePrincipalTokenFromManagedIdentity("https://resource", nil)
 	if err != nil {
 		t.Fatalf("Failed to get MSI SPT: %v", err)
 	}
@@ -258,6 +262,48 @@ func TestServicePrincipalTokenFromMSIRefreshUsesGET(t *testing.T) {
 					}
 					if h := r.Header.Get("Metadata"); h != "true" {
 						t.Fatalf("adal: ServicePrincipalToken#Refresh did not correctly set Metadata header for MSI")
+					}
+					return resp, nil
+				})
+			}
+		})())
+	spt.SetSender(s)
+	err = spt.Refresh()
+	if err != nil {
+		t.Fatalf("adal: ServicePrincipalToken#Refresh returned an unexpected error (%v)", err)
+	}
+
+	if body.IsOpen() {
+		t.Fatalf("the response was not closed!")
+	}
+}
+
+func TestServicePrincipalTokenFromMSICloudshell(t *testing.T) {
+	os.Setenv(msiEndpointEnv, "http://dummy")
+	defer func() {
+		os.Unsetenv(msiEndpointEnv)
+	}()
+	spt, err := NewServicePrincipalTokenFromMSI("", "https://resource")
+	if err != nil {
+		t.Fatalf("Failed to get MSI SPT: %v", err)
+	}
+
+	body := mocks.NewBody(newTokenJSON(`"3600"`, "12345", "test"))
+	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
+
+	c := mocks.NewSender()
+	s := DecorateSender(c,
+		(func() SendDecorator {
+			return func(s Sender) Sender {
+				return SenderFunc(func(r *http.Request) (*http.Response, error) {
+					if r.Method != http.MethodPost {
+						t.Fatalf("adal: cloudshell did not correctly set HTTP method -- expected %v, received %v", "GET", r.Method)
+					}
+					if h := r.Header.Get("Metadata"); h != "true" {
+						t.Fatalf("adal: cloudshell did not correctly set Metadata header")
+					}
+					if h := r.Header.Get("Content-Type"); h != "application/x-www-form-urlencoded" {
+						t.Fatalf("adal: cloudshell did not correctly set Content-Type header")
 					}
 					return resp, nil
 				})
@@ -289,17 +335,10 @@ func TestServicePrincipalTokenFromMSIRefreshZeroRetry(t *testing.T) {
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	c := mocks.NewSender()
-	// the call to MSIAvailable() means the sender will be invoked twice.
-	reqCount := 0
 	s := DecorateSender(c,
 		(func() SendDecorator {
 			return func(s Sender) Sender {
 				return SenderFunc(func(r *http.Request) (*http.Response, error) {
-					if reqCount == 0 {
-						// first invocation, simply return StatusOK
-						reqCount++
-						return mocks.NewResponse(), nil
-					}
 					// second invocation, perform MSI request validation
 					if r.Method != "GET" {
 						t.Fatalf("adal: ServicePrincipalToken#Refresh did not correctly set HTTP method -- expected %v, received %v", "GET", r.Method)
@@ -330,8 +369,7 @@ func TestServicePrincipalTokenFromASE(t *testing.T) {
 		os.Unsetenv("MSI_SECRET")
 	}()
 	resource := "https://resource"
-	endpoint, _ := GetMSIEndpoint()
-	spt, err := NewServicePrincipalTokenFromMSI(endpoint, resource)
+	spt, err := NewServicePrincipalTokenFromMSI("", resource)
 	if err != nil {
 		t.Fatalf("Failed to get MSI SPT: %v", err)
 	}
@@ -360,7 +398,7 @@ func TestServicePrincipalTokenFromASE(t *testing.T) {
 						t.Fatalf("adal: unexpected host %s", r.URL.Host)
 					}
 					qp := r.URL.Query()
-					if api := qp.Get("api-version"); api != appServiceAPIVersion {
+					if api := qp.Get("api-version"); api != appServiceAPIVersion2017 {
 						t.Fatalf("adal: unexpected api-version %s", api)
 					}
 					return resp, nil
@@ -422,7 +460,7 @@ func TestServicePrincipalTokenFromADFS(t *testing.T) {
 						t.Fatalf("adal: unexpected host %s", r.URL.Host)
 					}
 					qp := r.URL.Query()
-					if api := qp.Get("api-version"); api != appServiceAPIVersion {
+					if api := qp.Get("api-version"); api != appServiceAPIVersion2017 {
 						t.Fatalf("adal: unexpected api-version %s", api)
 					}
 					return resp, nil
@@ -1052,9 +1090,17 @@ func TestGetVMEndpoint(t *testing.T) {
 
 func TestGetAppServiceEndpoint(t *testing.T) {
 	const testEndpoint = "http://172.16.1.2:8081/msi/token"
-	if err := os.Setenv(asMSIEndpointEnv, testEndpoint); err != nil {
+	const aseSecret = "the_secret"
+	if err := os.Setenv(msiEndpointEnv, testEndpoint); err != nil {
 		t.Fatalf("os.Setenv: %v", err)
 	}
+	if err := os.Setenv(msiSecretEnv, aseSecret); err != nil {
+		t.Fatalf("os.Setenv: %v", err)
+	}
+	defer func() {
+		os.Unsetenv(msiEndpointEnv)
+		os.Unsetenv(msiSecretEnv)
+	}()
 
 	endpoint, err := GetMSIAppServiceEndpoint()
 	if err != nil {
@@ -1063,10 +1109,6 @@ func TestGetAppServiceEndpoint(t *testing.T) {
 
 	if endpoint != testEndpoint {
 		t.Fatal("Didn't get correct endpoint")
-	}
-
-	if err := os.Unsetenv(asMSIEndpointEnv); err != nil {
-		t.Fatalf("os.Unsetenv: %v", err)
 	}
 }
 
@@ -1077,11 +1119,11 @@ func TestGetMSIEndpoint(t *testing.T) {
 	)
 
 	// Test VM well-known endpoint is returned
-	if err := os.Unsetenv(asMSIEndpointEnv); err != nil {
+	if err := os.Unsetenv(msiEndpointEnv); err != nil {
 		t.Fatalf("os.Unsetenv: %v", err)
 	}
 
-	if err := os.Unsetenv(asMSISecretEnv); err != nil {
+	if err := os.Unsetenv(msiSecretEnv); err != nil {
 		t.Fatalf("os.Unsetenv: %v", err)
 	}
 
@@ -1095,11 +1137,11 @@ func TestGetMSIEndpoint(t *testing.T) {
 	}
 
 	// Test App Service endpoint is returned
-	if err := os.Setenv(asMSIEndpointEnv, testEndpoint); err != nil {
+	if err := os.Setenv(msiEndpointEnv, testEndpoint); err != nil {
 		t.Fatalf("os.Setenv: %v", err)
 	}
 
-	if err := os.Setenv(asMSISecretEnv, testSecret); err != nil {
+	if err := os.Setenv(msiSecretEnv, testSecret); err != nil {
 		t.Fatalf("os.Setenv: %v", err)
 	}
 
@@ -1112,29 +1154,29 @@ func TestGetMSIEndpoint(t *testing.T) {
 		t.Fatal("Didn't get correct endpoint")
 	}
 
-	if err := os.Unsetenv(asMSIEndpointEnv); err != nil {
+	if err := os.Unsetenv(msiEndpointEnv); err != nil {
 		t.Fatalf("os.Unsetenv: %v", err)
 	}
 
-	if err := os.Unsetenv(asMSISecretEnv); err != nil {
+	if err := os.Unsetenv(msiSecretEnv); err != nil {
 		t.Fatalf("os.Unsetenv: %v", err)
 	}
 }
 
 func TestClientSecretWithASESet(t *testing.T) {
-	if err := os.Setenv(asMSIEndpointEnv, "http://172.16.1.2:8081/msi/token"); err != nil {
+	if err := os.Setenv(msiEndpointEnv, "http://172.16.1.2:8081/msi/token"); err != nil {
 		t.Fatalf("os.Setenv: %v", err)
 	}
-	if err := os.Setenv(asMSISecretEnv, "the_secret"); err != nil {
+	if err := os.Setenv(msiSecretEnv, "the_secret"); err != nil {
 		t.Fatalf("os.Setenv: %v", err)
 	}
 	defer func() {
-		os.Unsetenv(asMSIEndpointEnv)
-		os.Unsetenv(asMSISecretEnv)
+		os.Unsetenv(msiEndpointEnv)
+		os.Unsetenv(msiSecretEnv)
 	}()
 	spt := newServicePrincipalToken()
-	if isIMDS(spt.inner.OauthConfig.TokenEndpoint) {
-		t.Fatal("isIMDS should return false for client secret token even when ASE is enabled")
+	if _, ok := spt.inner.Secret.(*ServicePrincipalMSISecret); ok {
+		t.Fatal("should not have MSI secret for client secret token even when ASE is enabled")
 	}
 }
 
@@ -1184,7 +1226,7 @@ func TestMarshalServicePrincipalCertificateSecret(t *testing.T) {
 }
 
 func TestMarshalServicePrincipalMSISecret(t *testing.T) {
-	spt, err := newServicePrincipalTokenFromMSI("http://msiendpoint/", "https://resource", nil, nil)
+	spt, err := newServicePrincipalTokenFromMSI("http://msiendpoint/", "https://resource", "", "")
 	if err != nil {
 		t.Fatalf("failed to get MSI SPT: %+v", err)
 	}
