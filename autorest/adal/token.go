@@ -778,7 +778,11 @@ type ManagedIdentityOptions struct {
 	IdentityResourceID string
 }
 
-//NewServicePrincipalTokenFromManagedIdentity creates a ServicePrincipalToken using a managed identity.
+// NewServicePrincipalTokenFromManagedIdentity creates a ServicePrincipalToken using a managed identity.
+// It supports the following managed identity environments.
+// - App Service Environment (API version 2017-09-01 only)
+// - Cloud shell
+// - IMDS with a system or user assigned identity
 func NewServicePrincipalTokenFromManagedIdentity(resource string, options *ManagedIdentityOptions, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	if options == nil {
 		options = &ManagedIdentityOptions{}
