@@ -708,12 +708,14 @@ func getMSIType() (msiType, string, error) {
 }
 
 // GetMSIVMEndpoint gets the MSI endpoint on Virtual Machines.
+// NOTE: this always returns the IMDS endpoint, it does not work for app services or cloud shell.
 // Deprecated: NewServicePrincipalTokenFromMSI() and variants will automatically detect the endpoint.
 func GetMSIVMEndpoint() (string, error) {
 	return msiEndpoint, nil
 }
 
-// GetMSIAppServiceEndpoint get the MSI endpoint for App Service and Functions
+// GetMSIAppServiceEndpoint get the MSI endpoint for App Service and Functions.
+// It will return an error when not running in an app service/functions environment.
 // Deprecated: NewServicePrincipalTokenFromMSI() and variants will automatically detect the endpoint.
 func GetMSIAppServiceEndpoint() (string, error) {
 	msiType, endpoint, err := getMSIType()
@@ -737,32 +739,54 @@ func GetMSIEndpoint() (string, error) {
 
 // NewServicePrincipalTokenFromMSI creates a ServicePrincipalToken via the MSI VM Extension.
 // It will use the system assigned identity when creating the token.
-// NOTE: the msiEndpoint parameter is deprecated and will be ignored.
+// msiEndpoint - empty string, or pass a non-empty string to override the default value.
+// Deprecated: use NewServicePrincipalTokenFromManagedIdentity() instead.
 func NewServicePrincipalTokenFromMSI(msiEndpoint, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
-	return newServicePrincipalTokenFromMSI(resource, "", "", callbacks...)
+	return newServicePrincipalTokenFromMSI(msiEndpoint, resource, "", "", callbacks...)
 }
 
 // NewServicePrincipalTokenFromMSIWithUserAssignedID creates a ServicePrincipalToken via the MSI VM Extension.
 // It will use the clientID of specified user assigned identity when creating the token.
-// NOTE: the msiEndpoint parameter is deprecated and will be ignored.
+// msiEndpoint - empty string, or pass a non-empty string to override the default value.
+// Deprecated: use NewServicePrincipalTokenFromManagedIdentity() instead.
 func NewServicePrincipalTokenFromMSIWithUserAssignedID(msiEndpoint, resource string, userAssignedID string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	if err := validateStringParam(userAssignedID, "userAssignedID"); err != nil {
 		return nil, err
 	}
-	return newServicePrincipalTokenFromMSI(resource, userAssignedID, "", callbacks...)
+	return newServicePrincipalTokenFromMSI(msiEndpoint, resource, userAssignedID, "", callbacks...)
 }
 
 // NewServicePrincipalTokenFromMSIWithIdentityResourceID creates a ServicePrincipalToken via the MSI VM Extension.
 // It will use the azure resource id of user assigned identity when creating the token.
-// NOTE: the msiEndpoint parameter is deprecated and will be ignored.
+// msiEndpoint - empty string, or pass a non-empty string to override the default value.
+// Deprecated: use NewServicePrincipalTokenFromManagedIdentity() instead.
 func NewServicePrincipalTokenFromMSIWithIdentityResourceID(msiEndpoint, resource string, identityResourceID string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	if err := validateStringParam(identityResourceID, "identityResourceID"); err != nil {
 		return nil, err
 	}
-	return newServicePrincipalTokenFromMSI(resource, "", identityResourceID, callbacks...)
+	return newServicePrincipalTokenFromMSI(msiEndpoint, resource, "", identityResourceID, callbacks...)
 }
 
-func newServicePrincipalTokenFromMSI(resource string, userAssignedID string, identityResourceID string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+// ManagedIdentityOptions contains optional values for configuring managed identity authentication.
+type ManagedIdentityOptions struct {
+	// ClientID is the user-assigned identity to use during authentication.
+	// It is mutually exclusive with IdentityResourceID.
+	ClientID string
+
+	// IdentityResourceID is the resource ID of the user-assigned identity to use during authentication.
+	// It is mutually exclusive with ClientID.
+	IdentityResourceID string
+}
+
+//NewServicePrincipalTokenFromManagedIdentity creates a ServicePrincipalToken using a managed identity.
+func NewServicePrincipalTokenFromManagedIdentity(resource string, options *ManagedIdentityOptions, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+	if options == nil {
+		options = &ManagedIdentityOptions{}
+	}
+	return newServicePrincipalTokenFromMSI("", resource, options.ClientID, options.IdentityResourceID, callbacks...)
+}
+
+func newServicePrincipalTokenFromMSI(msiEndpoint, resource, userAssignedID, identityResourceID string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	if err := validateStringParam(resource, "resource"); err != nil {
 		return nil, err
 	}
@@ -772,6 +796,9 @@ func newServicePrincipalTokenFromMSI(resource string, userAssignedID string, ide
 	msiType, endpoint, err := getMSIType()
 	if err != nil {
 		return nil, err
+	}
+	if msiEndpoint != "" {
+		endpoint = msiEndpoint
 	}
 	msiEndpointURL, err := url.Parse(endpoint)
 	if err != nil {

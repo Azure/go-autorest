@@ -372,8 +372,7 @@ func TestServicePrincipalTokenFromASE(t *testing.T) {
 		os.Unsetenv("MSI_SECRET")
 	}()
 	resource := "https://resource"
-	endpoint, _ := GetMSIEndpoint()
-	spt, err := NewServicePrincipalTokenFromMSI(endpoint, resource)
+	spt, err := NewServicePrincipalTokenFromMSI("", resource)
 	if err != nil {
 		t.Fatalf("Failed to get MSI SPT: %v", err)
 	}
@@ -1230,7 +1229,7 @@ func TestMarshalServicePrincipalCertificateSecret(t *testing.T) {
 }
 
 func TestMarshalServicePrincipalMSISecret(t *testing.T) {
-	spt, err := newServicePrincipalTokenFromMSI("http://msiendpoint/", "https://resource", "", nil)
+	spt, err := newServicePrincipalTokenFromMSI("http://msiendpoint/", "https://resource", "", "")
 	if err != nil {
 		t.Fatalf("failed to get MSI SPT: %+v", err)
 	}
