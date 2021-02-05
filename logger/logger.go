@@ -56,7 +56,7 @@ const (
 	// LogDebug tells a logger to log all LogDebug, LogInfo, LogWarning, LogError, LogPanic and LogFatal entries passed to it.
 	LogDebug
 
-	// LogAuth is a special case of LogDebug, it tells a logger to also log the response body of an authentication request.
+	// LogAuth is a special case of LogDebug, it tells a logger to also log the body of an authentication request and response.
 	// NOTE: this can disclose sensitive information, use with care.
 	LogAuth
 )
