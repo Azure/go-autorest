@@ -152,10 +152,8 @@ func TestEnvGetMSI(t *testing.T) {
 		t.Fail()
 	}
 	cfg := settings.GetMSI()
-	_, err = cfg.Authorizer()
-	if err != nil {
-		t.Logf("failed to get authorizer for MSI: %v", err)
-		t.Fail()
+	if cfg.Resource == "" {
+		t.Fatal("unexpected empty resource")
 	}
 }
 
