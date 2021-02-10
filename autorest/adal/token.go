@@ -1030,9 +1030,11 @@ func (spt *ServicePrincipalToken) refreshInternal(ctx context.Context, resource 
 		resp, err = spt.sender.Do(req)
 	}
 
+	// don't return a TokenRefreshError here; this will allow retry logic to apply
 	if err != nil {
-		// don't return a TokenRefreshError here; this will allow retry logic to apply
 		return fmt.Errorf("adal: Failed to execute the refresh request. Error = '%v'", err)
+	} else if resp == nil {
+		return fmt.Errorf("adal: received nil response and error")
 	}
 
 	logger.Instance.WriteResponse(resp, logger.Filter{Body: authBodyFilter})
