@@ -262,7 +262,7 @@ func DoRetryForAttempts(attempts int, backoff time.Duration) SendDecorator {
 		return SenderFunc(func(r *http.Request) (resp *http.Response, err error) {
 			rr := NewRetriableRequest(r)
 			for attempt := 0; attempt < attempts; attempt++ {
-				err = rr.Prepare()
+				err = rr.PrepareWithRetryHeader(attempt)
 				if err != nil {
 					return resp, err
 				}
@@ -314,7 +314,7 @@ func doRetryForStatusCodesImpl(s Sender, r *http.Request, count429 bool, attempt
 	rr := NewRetriableRequest(r)
 	// Increment to add the first call (attempts denotes number of retries)
 	for attempt, delayCount := 0, 0; attempt < attempts+1; {
-		err = rr.Prepare()
+		err = rr.PrepareWithRetryHeader(attempt)
 		if err != nil {
 			return
 		}
@@ -382,7 +382,7 @@ func DoRetryForDuration(d time.Duration, backoff time.Duration) SendDecorator {
 			rr := NewRetriableRequest(r)
 			end := time.Now().Add(d)
 			for attempt := 0; time.Now().Before(end); attempt++ {
-				err = rr.Prepare()
+				err = rr.PrepareWithRetryHeader(attempt)
 				if err != nil {
 					return resp, err
 				}

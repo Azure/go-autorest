@@ -19,6 +19,12 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strconv"
+)
+
+const (
+	// HeaderRetryAttempt is the header
+	HeaderRetryAttempt = "x-retry-attempt"
 )
 
 // NewRetriableRequest returns a wrapper around an HTTP request that support retry logic.
@@ -29,6 +35,13 @@ func NewRetriableRequest(req *http.Request) *RetriableRequest {
 // Request returns the wrapped HTTP request.
 func (rr *RetriableRequest) Request() *http.Request {
 	return rr.req
+}
+
+// PrepareWithRetryHeader adds retry attempt headers to the request and
+// signals the request is about to be sent
+func (rr *RetriableRequest) PrepareWithRetryHeader(attempt int) (error) {
+	setHeader(rr.req, http.CanonicalHeaderKey(HeaderRetryAttempt), strconv.Itoa(attempt))
+	return rr.Prepare()
 }
 
 func (rr *RetriableRequest) prepareFromByteReader() (err error) {
