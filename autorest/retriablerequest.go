@@ -39,7 +39,7 @@ func (rr *RetriableRequest) Request() *http.Request {
 
 // PrepareWithRetryHeader adds retry attempt headers to the request and
 // signals the request is about to be sent
-func (rr *RetriableRequest) PrepareWithRetryHeader(attempt int) (error) {
+func (rr *RetriableRequest) PrepareWithRetryHeader(attempt int) error {
 	setHeader(rr.req, http.CanonicalHeaderKey(HeaderRetryAttempt), strconv.Itoa(attempt))
 	return rr.Prepare()
 }
