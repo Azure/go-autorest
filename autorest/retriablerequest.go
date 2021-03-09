@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	// HeaderRetryAttempt is the header
+	// HeaderRetryAttempt is the header containing retry attempt count
 	HeaderRetryAttempt = "x-retry-attempt"
 )
 
