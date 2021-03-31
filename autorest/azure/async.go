@@ -221,6 +221,7 @@ func (f *Future) WaitForCompletionRef(ctx context.Context, client autorest.Clien
 		}
 	}
 	done, err := f.DoneWithContext(ctx, client)
+	var lastRetryAfter time.Duration
 	for attempts := 0; !done; done, err = f.DoneWithContext(ctx, client) {
 		if attempts >= client.RetryAttempts {
 			return autorest.NewErrorWithError(err, "Future", "WaitForCompletion", f.pt.latestResponse(), "the number of retries has been exceeded")
@@ -230,10 +231,17 @@ func (f *Future) WaitForCompletionRef(ctx context.Context, client autorest.Clien
 		var delayAttempt int
 		var delay time.Duration
 		if err == nil {
-			// check for Retry-After delay, if not present use the client's polling delay
-			var ok bool
-			delay, ok = f.GetPollingDelay()
-			if !ok {
+			// check for Retry-After delay
+			currRetryAfeter, ok := f.GetPollingDelay()
+			if ok {
+				// use the provided retry-after and cache it
+				delay = currRetryAfeter
+				lastRetryAfter = currRetryAfeter
+			} else if lastRetryAfter > 0 {
+				// no retry-after but we do have a cached value, use it
+				delay = lastRetryAfter
+			} else {
+				// no retry-after or cached value, use client polling delay
 				delay = client.PollingDelay
 			}
 		} else {
