@@ -47,6 +47,10 @@ var testEnvironment1 = Environment{
 	KeyVaultEndpoint:             "--key-vault--endpoint--",
 	GraphEndpoint:                "--graph-endpoint--",
 	StorageEndpointSuffix:        "--storage-endpoint-suffix--",
+	CosmosDBDNSSuffix:            "--cosmos-db-dns-suffix--",
+	MariaDBDNSSuffix:             "--maria-db-dns-suffix--",
+	MySQLDatabaseDNSSuffix:       "--mysql-database-dns-suffix--",
+	PostgresqlDatabaseDNSSuffix:  "--postgresql-database-dns-suffix--",
 	SQLDatabaseDNSSuffix:         "--sql-database-dns-suffix--",
 	TrafficManagerDNSSuffix:      "--traffic-manager-dns-suffix--",
 	KeyVaultDNSSuffix:            "--key-vault-dns-suffix--",
@@ -206,6 +210,10 @@ func TestDeserializeEnvironment(t *testing.T) {
 		"resourceManagerEndpoint": "--resource-manager-endpoint--",
 		"serviceBusEndpointSuffix": "--service-bus-endpoint-suffix--",
 		"serviceManagementEndpoint": "--service-management-endpoint--",
+		"cosmosDBDNSSuffix": "--cosmos-db-dns-suffix--",
+		"mariaDBDNSSuffix": "--maria-db-dns-suffix--",
+		"mySqlDatabaseDNSSuffix": "--mysql-database-dns-suffix--",
+		"postgresqlDatabaseDNSSuffix": "--postgresql-database-dns-suffix--",
 		"sqlDatabaseDNSSuffix": "--sql-database-dns-suffix--",
 		"storageEndpointSuffix": "--storage-endpoint-suffix--",
 		"trafficManagerDNSSuffix": "--traffic-manager-dns-suffix--",
@@ -260,6 +268,18 @@ func TestDeserializeEnvironment(t *testing.T) {
 	if "--storage-endpoint-suffix--" != testSubject.StorageEndpointSuffix {
 		t.Errorf("Expected StorageEndpointSuffix to be \"--storage-endpoint-suffix--\", but got %q", testSubject.StorageEndpointSuffix)
 	}
+	if "--cosmos-db-dns-suffix--" != testSubject.CosmosDBDNSSuffix {
+		t.Errorf("Expected cosmos-db-dns-suffix to be \"--cosmos-db-dns-suffix--\", but got %q", testSubject.CosmosDBDNSSuffix)
+	}
+	if "--maria-db-dns-suffix--" != testSubject.MariaDBDNSSuffix {
+		t.Errorf("Expected maria-db-dns-suffix to be \"--maria-db-dns-suffix--\", but got %q", testSubject.MariaDBDNSSuffix)
+	}
+	if "--mysql-database-dns-suffix--" != testSubject.MySQLDatabaseDNSSuffix {
+		t.Errorf("Expected mysql-database-dns-suffix to be \"--mysql-database-dns-suffix--\", but got %q", testSubject.MySQLDatabaseDNSSuffix)
+	}
+	if "--postgresql-database-dns-suffix--" != testSubject.PostgresqlDatabaseDNSSuffix {
+		t.Errorf("Expected postgresql-database-dns-suffix to be \"--postgresql-database-dns-suffix--\", but got %q", testSubject.PostgresqlDatabaseDNSSuffix)
+	}
 	if "--sql-database-dns-suffix--" != testSubject.SQLDatabaseDNSSuffix {
 		t.Errorf("Expected sql-database-dns-suffix to be \"--sql-database-dns-suffix--\", but got %q", testSubject.SQLDatabaseDNSSuffix)
 	}
@@ -308,6 +328,10 @@ func TestRoundTripSerialization(t *testing.T) {
 		GraphEndpoint:                "--graph-endpoint--",
 		ServiceBusEndpoint:           "--service-bus-endpoint--",
 		StorageEndpointSuffix:        "--storage-endpoint-suffix--",
+		CosmosDBDNSSuffix:            "--cosmos-db-dns-suffix--",
+		MariaDBDNSSuffix:             "--maria-db-dns-suffix--",
+		MySQLDatabaseDNSSuffix:       "--mysql-database-dns-suffix--",
+		PostgresqlDatabaseDNSSuffix:  "--postgresql-database-dns-suffix--",
 		SQLDatabaseDNSSuffix:         "--sql-database-dns-suffix--",
 		TrafficManagerDNSSuffix:      "--traffic-manager-dns-suffix--",
 		KeyVaultDNSSuffix:            "--key-vault-dns-suffix--",
@@ -367,6 +391,18 @@ func TestRoundTripSerialization(t *testing.T) {
 	}
 	if env.StorageEndpointSuffix != testSubject.StorageEndpointSuffix {
 		t.Errorf("Expected StorageEndpointSuffix to be %q, but got %q", env.StorageEndpointSuffix, testSubject.StorageEndpointSuffix)
+	}
+	if env.CosmosDBDNSSuffix != testSubject.CosmosDBDNSSuffix {
+		t.Errorf("Expected CosmosDBDNSSuffix to be %q, but got %q", env.CosmosDBDNSSuffix, testSubject.CosmosDBDNSSuffix)
+	}
+	if env.MariaDBDNSSuffix != testSubject.MariaDBDNSSuffix {
+		t.Errorf("Expected MariaDBDNSSuffix to be %q, but got %q", env.MariaDBDNSSuffix, testSubject.MariaDBDNSSuffix)
+	}
+	if env.MySQLDatabaseDNSSuffix != testSubject.MySQLDatabaseDNSSuffix {
+		t.Errorf("Expected MySQLDatabaseDNSSuffix to be %q, but got %q", env.MySQLDatabaseDNSSuffix, testSubject.MySQLDatabaseDNSSuffix)
+	}
+	if env.PostgresqlDatabaseDNSSuffix != testSubject.PostgresqlDatabaseDNSSuffix {
+		t.Errorf("Expected PostgresqlDatabaseDNSSuffix to be %q, but got %q", env.PostgresqlDatabaseDNSSuffix, testSubject.PostgresqlDatabaseDNSSuffix)
 	}
 	if env.SQLDatabaseDNSSuffix != testSubject.SQLDatabaseDNSSuffix {
 		t.Errorf("Expected SQLDatabaseDNSSuffix to be %q, but got %q", env.SQLDatabaseDNSSuffix, testSubject.SQLDatabaseDNSSuffix)
