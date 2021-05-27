@@ -33,6 +33,7 @@ const (
 	graphResourceID      = "--graph-resource-id--"
 	keyvaultResourceID   = "--keyvault-resource-id--"
 	opInsightsResourceID = "--operational-insights-resource-id--"
+	ossRDBMSResourceID   = "--oss-rdbms-resource-id--"
 )
 
 // This correlates to the expected contents of ./testdata/test_environment_1.json
@@ -65,6 +66,7 @@ var testEnvironment1 = Environment{
 		Graph:               graphResourceID,
 		KeyVault:            keyvaultResourceID,
 		OperationalInsights: opInsightsResourceID,
+		OSSRDBMS:            ossRDBMSResourceID,
 	},
 }
 
@@ -225,7 +227,8 @@ func TestDeserializeEnvironment(t *testing.T) {
 			"datalake": "` + datalakeResourceID + `",
 			"graph": "` + graphResourceID + `",
 			"keyVault": "` + keyvaultResourceID + `",
-			"operationalInsights": "` + opInsightsResourceID + `"
+			"operationalInsights": "` + opInsightsResourceID + `",
+			"ossRDBMS": "` + ossRDBMSResourceID + `"
 		}
 	}`
 
@@ -313,6 +316,9 @@ func TestDeserializeEnvironment(t *testing.T) {
 	if opInsightsResourceID != testSubject.ResourceIdentifiers.OperationalInsights {
 		t.Errorf("Expected ResourceIdentifiers.OperationalInsights to be "+opInsightsResourceID+", but got %q", testSubject.ResourceIdentifiers.OperationalInsights)
 	}
+	if ossRDBMSResourceID != testSubject.ResourceIdentifiers.OSSRDBMS {
+		t.Errorf("Expected ResourceIdentifiers.OperationalInsights to be "+ossRDBMSResourceID+", but got %q", testSubject.ResourceIdentifiers.OSSRDBMS)
+	}
 }
 
 func TestRoundTripSerialization(t *testing.T) {
@@ -345,6 +351,7 @@ func TestRoundTripSerialization(t *testing.T) {
 			Graph:               graphResourceID,
 			KeyVault:            keyvaultResourceID,
 			OperationalInsights: opInsightsResourceID,
+			OSSRDBMS:            ossRDBMSResourceID,
 		},
 	}
 
@@ -439,6 +446,9 @@ func TestRoundTripSerialization(t *testing.T) {
 	}
 	if env.ResourceIdentifiers.OperationalInsights != testSubject.ResourceIdentifiers.OperationalInsights {
 		t.Errorf("Expected ResourceIdentifiers.OperationalInsights to be %q, but got %q", env.ResourceIdentifiers.OperationalInsights, testSubject.ResourceIdentifiers.OperationalInsights)
+	}
+	if env.ResourceIdentifiers.OSSRDBMS != testSubject.ResourceIdentifiers.OSSRDBMS {
+		t.Errorf("Expected ResourceIdentifiers.OSSRDBMS to be %q, but got %q", env.ResourceIdentifiers.OSSRDBMS, testSubject.ResourceIdentifiers.OSSRDBMS)
 	}
 }
 
