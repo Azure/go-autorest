@@ -45,6 +45,7 @@ type ResourceIdentifier struct {
 	Datalake            string `json:"datalake"`
 	Batch               string `json:"batch"`
 	OperationalInsights string `json:"operationalInsights"`
+	OSSRDBMS            string `json:"ossRDBMS"`
 	Storage             string `json:"storage"`
 	Synapse             string `json:"synapse"`
 	ServiceBus          string `json:"serviceBus"`
@@ -116,6 +117,7 @@ var (
 			Datalake:            "https://datalake.azure.net/",
 			Batch:               "https://batch.core.windows.net/",
 			OperationalInsights: "https://api.loganalytics.io",
+			OSSRDBMS:            "https://ossrdbms-aad.database.windows.net",
 			Storage:             "https://storage.azure.com/",
 			Synapse:             "https://dev.azuresynapse.net",
 			ServiceBus:          "https://servicebus.azure.net/",
@@ -156,6 +158,7 @@ var (
 			Datalake:            NotAvailable,
 			Batch:               "https://batch.core.usgovcloudapi.net/",
 			OperationalInsights: "https://api.loganalytics.us",
+			OSSRDBMS:            "https://ossrdbms-aad.database.usgovcloudapi.net",
 			Storage:             "https://storage.azure.com/",
 			Synapse:             NotAvailable,
 			ServiceBus:          "https://servicebus.azure.net/",
@@ -196,6 +199,7 @@ var (
 			Datalake:            NotAvailable,
 			Batch:               "https://batch.chinacloudapi.cn/",
 			OperationalInsights: NotAvailable,
+			OSSRDBMS:            "https://ossrdbms-aad.database.chinacloudapi.cn",
 			Storage:             "https://storage.azure.com/",
 			Synapse:             "https://dev.azuresynapse.net",
 			ServiceBus:          "https://servicebus.azure.net/",
@@ -236,6 +240,7 @@ var (
 			Datalake:            NotAvailable,
 			Batch:               "https://batch.cloudapi.de/",
 			OperationalInsights: NotAvailable,
+			OSSRDBMS:            "https://ossrdbms-aad.database.cloudapi.de",
 			Storage:             "https://storage.azure.com/",
 			Synapse:             NotAvailable,
 			ServiceBus:          "https://servicebus.azure.net/",

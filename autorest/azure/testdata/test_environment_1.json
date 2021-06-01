@@ -26,6 +26,7 @@
         "datalake": "--datalake-resource-id--",
         "graph": "--graph-resource-id--",
         "keyVault": "--keyvault-resource-id--",
-        "operationalInsights": "--operational-insights-resource-id--"
+        "operationalInsights": "--operational-insights-resource-id--",
+        "ossRDBMS": "--oss-rdbms-resource-id--"
     }
 }
