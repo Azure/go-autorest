@@ -32,7 +32,7 @@ func DoRetryWithRegistration(client autorest.Client) autorest.SendDecorator {
 		return autorest.SenderFunc(func(r *http.Request) (resp *http.Response, err error) {
 			rr := autorest.NewRetriableRequest(r)
 			for currentAttempt := 0; currentAttempt < client.RetryAttempts; currentAttempt++ {
-				err = rr.Prepare()
+				err = rr.PrepareWithRetryHeader(currentAttempt)
 				if err != nil {
 					return resp, err
 				}
