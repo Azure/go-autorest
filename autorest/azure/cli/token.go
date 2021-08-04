@@ -124,14 +124,6 @@ func LoadTokens(path string) ([]Token, error) {
 
 // GetTokenFromCLI gets a token using Azure CLI 2.0 for local development scenarios.
 func GetTokenFromCLI(resource string) (*Token, error) {
-	// This is the path that a developer can set to tell this class what the install path for Azure CLI is.
-	const azureCLIPath = "AzureCLIPath"
-
-	// The default install paths are used to find Azure CLI. This is for security, so that any path in the calling program's Path environment is not used to execute Azure CLI.
-	azureCLIDefaultPathWindows := fmt.Sprintf("%s\\Microsoft SDKs\\Azure\\CLI2\\wbin; %s\\Microsoft SDKs\\Azure\\CLI2\\wbin", os.Getenv("ProgramFiles(x86)"), os.Getenv("ProgramFiles"))
-
-	// Default path for non-Windows.
-	const azureCLIDefaultPath = "/bin:/sbin:/usr/bin:/usr/local/bin"
 
 	// Validate resource, since it gets sent as a command line argument to Azure CLI
 	const invalidResourceErrorTemplate = "Resource %s is not in expected format. Only alphanumeric characters, [dot], [colon], [hyphen], and [forward slash] are allowed."
@@ -142,6 +134,27 @@ func GetTokenFromCLI(resource string) (*Token, error) {
 	if !match {
 		return nil, fmt.Errorf(invalidResourceErrorTemplate, resource)
 	}
+
+	return AdvancedGetTokenFromCLI(GetAccessTokenParams{Resource: resource})
+}
+
+type GetAccessTokenParams struct {
+	Resource     string
+	ResourceType string
+	Subscription string
+	Tenant       string
+}
+
+// GetTokenFromCLI gets a token using Azure CLI 2.0 for local development scenarios.
+func AdvancedGetTokenFromCLI(params GetAccessTokenParams) (*Token, error) {
+	// This is the path that a developer can set to tell this class what the install path for Azure CLI is.
+	const azureCLIPath = "AzureCLIPath"
+
+	// The default install paths are used to find Azure CLI. This is for security, so that any path in the calling program's Path environment is not used to execute Azure CLI.
+	azureCLIDefaultPathWindows := fmt.Sprintf("%s\\Microsoft SDKs\\Azure\\CLI2\\wbin; %s\\Microsoft SDKs\\Azure\\CLI2\\wbin", os.Getenv("ProgramFiles(x86)"), os.Getenv("ProgramFiles"))
+
+	// Default path for non-Windows.
+	const azureCLIDefaultPath = "/bin:/sbin:/usr/bin:/usr/local/bin"
 
 	// Execute Azure CLI to get token
 	var cliCmd *exec.Cmd
@@ -155,7 +168,20 @@ func GetTokenFromCLI(resource string) (*Token, error) {
 		cliCmd.Env = os.Environ()
 		cliCmd.Env = append(cliCmd.Env, fmt.Sprintf("PATH=%s:%s", os.Getenv(azureCLIPath), azureCLIDefaultPath))
 	}
-	cliCmd.Args = append(cliCmd.Args, "account", "get-access-token", "-o", "json", "--resource", resource)
+
+	cliCmd.Args = append(cliCmd.Args, "account", "get-access-token", "-o", "json")
+	if params.Resource != "" {
+		cliCmd.Args = append(cliCmd.Args, "--resource", params.Resource)
+	}
+	if params.ResourceType != "" {
+		cliCmd.Args = append(cliCmd.Args, "--resource-type", params.ResourceType)
+	}
+	if params.Subscription != "" {
+		cliCmd.Args = append(cliCmd.Args, "--subscription", params.Subscription)
+	}
+	if params.Tenant != "" {
+		cliCmd.Args = append(cliCmd.Args, "--tenant", params.Tenant)
+	}
 
 	var stderr bytes.Buffer
 	cliCmd.Stderr = &stderr
