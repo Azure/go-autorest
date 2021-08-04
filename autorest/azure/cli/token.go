@@ -138,6 +138,7 @@ func GetTokenFromCLI(resource string) (*Token, error) {
 	return AdvancedGetTokenFromCLI(GetAccessTokenParams{Resource: resource})
 }
 
+// GetAccessTokenParams is the parameter struct of AdvancedGetTokenFromCLI
 type GetAccessTokenParams struct {
 	Resource     string
 	ResourceType string
@@ -145,7 +146,7 @@ type GetAccessTokenParams struct {
 	Tenant       string
 }
 
-// GetTokenFromCLI gets a token using Azure CLI 2.0 for local development scenarios.
+// AdvancedGetTokenFromCLI gets a token using Azure CLI 2.0 for local development scenarios.
 func AdvancedGetTokenFromCLI(params GetAccessTokenParams) (*Token, error) {
 	// This is the path that a developer can set to tell this class what the install path for Azure CLI is.
 	const azureCLIPath = "AzureCLIPath"
