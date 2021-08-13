@@ -1,4 +1,5 @@
 variables:
+  GO111MODULE: 'auto'
   GOPATH: '$(system.defaultWorkingDirectory)/work'
   sdkPath: '$(GOPATH)/src/github.com/$(build.repository.name)'
 
@@ -8,12 +9,16 @@ jobs:
 
     strategy:
       matrix:
-        Linux_Go113:
+        Linux_Go115:
           vm.image: 'ubuntu-18.04'
-          go.version: '1.13'
-        Linux_Go114:
+          go.version: '1.15'
+        Linux_Go116:
           vm.image: 'ubuntu-18.04'
-          go.version: '1.14'
+          go.version: '1.16'
+        Linux_Go117:
+          vm.image: 'ubuntu-18.04'
+          go.version: '1.17'
+          current_go: 'true'
 
     pool:
       vmImage: '$(vm.image)'
@@ -37,11 +42,11 @@ jobs:
           set -e
           curl -sSL https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
           dep ensure -v
-          go install ./vendor/golang.org/x/lint/golint
-          go get github.com/jstemmer/go-junit-report
-          go get github.com/axw/gocov/gocov
-          go get github.com/AlekSi/gocov-xml
-          go get -u github.com/matm/gocov-html
+          GO111MODULE=on go get golang.org/x/lint/golint@latest
+          GO111MODULE=on go get github.com/jstemmer/go-junit-report@latest
+          GO111MODULE=on go get github.com/axw/gocov/gocov@latest
+          GO111MODULE=on go get github.com/AlekSi/gocov-xml@latest
+          GO111MODULE=on go get github.com/matm/gocov-html@latest
         workingDirectory: '$(sdkPath)'
         displayName: 'Install Dependencies'
 
@@ -81,7 +86,7 @@ jobs:
         workingDirectory: '$(sdkPath)'
         displayName: 'Format Check'
         failOnStderr: true
-        condition: succeededOrFailed()
+        condition: and(succeededOrFailed(), eq(variables['current_go'], 'true'))
 
       - script: |
           golint ./autorest/... >&2
