@@ -39,6 +39,12 @@ required = ["golang.org/x/lint/golint"]
   version = "1.1.0"
 
 [[constraint]]
+  name = "github.com/golang-jwt/jwt"
+  # NOTE: cannot move to github.com/golang-jwt/jwt/v4 yet, because go dep is not
+  #       compatible with v2+ go modules that do not use a v<version> directory.
+  version = "<4.0.0"
+
+[[constraint]]
   name = "github.com/mitchellh/go-homedir"
   version = "1.1.0"
 
@@ -53,7 +59,3 @@ required = ["golang.org/x/lint/golint"]
 [[constraint]]
   branch = "master"
   name = "golang.org/x/crypto"
-
-[[constraint]]
-  name = "github.com/form3tech-oss/jwt-go"
-  version = "3.2.2"

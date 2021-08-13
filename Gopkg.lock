@@ -41,11 +41,11 @@
   version = "v1.1.0"
 
 [[projects]]
-  digest = "1:3be7b7206a3fd8686175fd974eb33a1c9dd109c149bdf19801e32b8f48733530"
-  name = "github.com/form3tech-oss/jwt-go"
+  digest = "1:12ec4f6802cbeeb97618997973d510d53150a3650ab91cf6084a5255187af720"
+  name = "github.com/golang-jwt/jwt"
   packages = ["."]
   pruneopts = "UT"
-  revision = "9162a5abdbc046b7c8b03ee90052cee67e25caa7"
+  revision = "4bbdd8ac624fc7a9ef7aec841c43d99b5fe65a29"
   version = "v3.2.2"
 
 [[projects]]
@@ -310,7 +310,7 @@
   input-imports = [
     "contrib.go.opencensus.io/exporter/ocagent",
     "github.com/dimchansky/utfbom",
-    "github.com/form3tech-oss/jwt-go",
+    "github.com/golang-jwt/jwt",
     "github.com/mitchellh/go-homedir",
     "github.com/stretchr/testify/require",
     "go.opencensus.io/plugin/ochttp",
