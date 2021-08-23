@@ -46,7 +46,6 @@ jobs:
           go get github.com/axw/gocov/gocov@latest
           go get github.com/AlekSi/gocov-xml@latest
           go get github.com/matm/gocov-html@latest
-          go get github.com/wadey/gocovmerge@latest
         workingDirectory: '$(sdkPath)'
         displayName: 'Install Dependencies'
 
@@ -72,13 +71,11 @@ jobs:
           for module in $modules; do
             pushd "$(dirname $module)";
               go test -race -v -coverprofile=coverage.txt -covermode atomic ./... 2>&1 | go-junit-report > report.xml;
+              gocov convert coverage.txt > coverage.json;
+              gocov-xml < coverage.json > coverage.xml;
+              gocov-html < coverage.json > coverage.html;
             popd;
           done
-          gocovmerge $(find . -name coverage.txt) > ./autorest/mergedCoverage.txt
-          pushd autorest
-          gocov convert mergedCoverage.txt > coverage.json
-          gocov-xml < coverage.json > coverage.xml
-          gocov-html < coverage.json > coverage.html
         workingDirectory: '$(sdkPath)'
         displayName: 'Run Tests'
 
@@ -116,5 +113,5 @@ jobs:
       - task: PublishCodeCoverageResults@1
         inputs:
           codeCoverageTool: Cobertura 
-          summaryFileLocation: $(sdkPath)/autorest/coverage.xml
-          additionalCodeCoverageFiles: $(sdkPath)/autorest/coverage.html
+          summaryFileLocation: $(sdkPath)/autorest/**/coverage.xml
+          additionalCodeCoverageFiles: $(sdkPath)/autorest/**/coverage.html
