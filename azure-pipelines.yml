@@ -1,5 +1,5 @@
 variables:
-  GO111MODULE: 'on'
+  GO111MODULE: 'auto'
   GOPATH: '$(system.defaultWorkingDirectory)/work'
   sdkPath: '$(GOPATH)/src/github.com/$(build.repository.name)'
 
@@ -40,6 +40,7 @@ jobs:
 
       - script: |
           set -e
+          export GO111MODULE=on
           go get golang.org/x/lint/golint@latest
           go get github.com/jstemmer/go-junit-report@latest
           go get github.com/axw/gocov/gocov@latest
@@ -71,9 +72,9 @@ jobs:
           for module in $modules; do
             pushd "$(dirname $module)";
               go test -race -v -coverprofile=coverage.txt -covermode atomic ./... 2>&1 | go-junit-report > report.xml;
+              gocovmerge "$(sdkPath)/mergedCoverage.txt" coverage.txt > "$(sdkPath)/mergedCoverage.txt"
             popd;
           done
-          gocovmerge $(find . -name coverage.txt) > mergedCoverage.txt
           gocov convert mergedCoverage.txt > coverage.json
           gocov-xml < coverage.json > coverage.xml
           gocov-html < coverage.json > coverage.html
