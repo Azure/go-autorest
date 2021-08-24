@@ -135,7 +135,7 @@ type GetAccessTokenParams struct {
 	Tenant       string
 }
 
-// AdvancedGetTokenFromCLI gets a token using Azure CLI 2.0 for local development scenarios.
+// GetTokenFromCLIWithParams gets a token using Azure CLI 2.0 for local development scenarios.
 func GetTokenFromCLIWithParams(params GetAccessTokenParams) (*Token, error) {
 	cliCmd := GetAzureCLICommand()
 
