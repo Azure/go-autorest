@@ -40,36 +40,42 @@ jobs:
 
       - script: |
           set -e
-          curl -sSL https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-          dep ensure -v
-          GO111MODULE=on go get golang.org/x/lint/golint@latest
-          GO111MODULE=on go get github.com/jstemmer/go-junit-report@latest
-          GO111MODULE=on go get github.com/axw/gocov/gocov@latest
-          GO111MODULE=on go get github.com/AlekSi/gocov-xml@latest
-          GO111MODULE=on go get github.com/matm/gocov-html@latest
+          export GO111MODULE=on
+          go get golang.org/x/lint/golint@latest
+          go get github.com/jstemmer/go-junit-report@latest
+          go get github.com/axw/gocov/gocov@latest
+          go get github.com/AlekSi/gocov-xml@latest
+          go get github.com/matm/gocov-html@latest
         workingDirectory: '$(sdkPath)'
         displayName: 'Install Dependencies'
 
       - script: |
-          go vet ./autorest/...
-          go vet ./logger/...
-          go vet ./tracing/...
+          modules=$(find . -name go.mod)
+          for module in $modules; do
+            pushd "$(dirname $module)" && go vet ./... && popd;
+          done
         workingDirectory: '$(sdkPath)'
         displayName: 'Vet'
 
       - script: |
-          go build -v ./autorest/...
-          go build -v ./logger/...
-          go build -v ./tracing/...
+          modules=$(find . -name go.mod)
+          for module in $modules; do
+            pushd "$(dirname $module)" && go build -v ./... && popd;
+          done
         workingDirectory: '$(sdkPath)'
         displayName: 'Build'
 
       - script: |
           set -e
-          go test -race -v -coverprofile=coverage.txt -covermode atomic ./autorest/... ./logger/... ./tracing/... 2>&1 | go-junit-report > report.xml
-          gocov convert coverage.txt > coverage.json
-          gocov-xml < coverage.json > coverage.xml
-          gocov-html < coverage.json > coverage.html
+          modules=$(find . -name go.mod)
+          for module in $modules; do
+            pushd "$(dirname $module)";
+              go test -race -v -coverprofile=coverage.txt -covermode atomic ./... 2>&1 | go-junit-report > report.xml;
+              gocov convert coverage.txt > coverage.json;
+              gocov-xml < coverage.json > coverage.xml;
+              gocov-html < coverage.json > coverage.html;
+            popd;
+          done
         workingDirectory: '$(sdkPath)'
         displayName: 'Run Tests'
 
@@ -89,9 +95,10 @@ jobs:
         condition: and(succeededOrFailed(), eq(variables['current_go'], 'true'))
 
       - script: |
-          golint ./autorest/... >&2
-          golint ./logger/... >&2
-          golint ./tracing/... >&2
+          modules=$(find . -name go.mod)
+          for module in $modules; do
+            pushd "$(dirname $module)" && golint ./... >&2 && popd;
+          done
         workingDirectory: '$(sdkPath)'
         displayName: 'Linter Check'
         failOnStderr: true
@@ -100,11 +107,11 @@ jobs:
       - task: PublishTestResults@2
         inputs:
           testRunner: JUnit
-          testResultsFiles: $(sdkPath)/report.xml
+          testResultsFiles: $(sdkPath)/**/report.xml
           failTaskOnFailedTests: true
 
       - task: PublishCodeCoverageResults@1
         inputs:
           codeCoverageTool: Cobertura 
-          summaryFileLocation: $(sdkPath)/coverage.xml
-          additionalCodeCoverageFiles: $(sdkPath)/coverage.html
+          summaryFileLocation: $(sdkPath)/autorest/**/coverage.xml
+          additionalCodeCoverageFiles: $(sdkPath)/autorest/**/coverage.html
