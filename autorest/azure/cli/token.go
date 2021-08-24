@@ -195,7 +195,7 @@ func validateParameter(param string) error {
 	return nil
 }
 
-// GetAzureCliCommand can be used to run arbitrary Azure CLI command
+// GetAzureCLICommand can be used to run arbitrary Azure CLI command
 func GetAzureCLICommand() *exec.Cmd {
 	// This is the path that a developer can set to tell this class what the install path for Azure CLI is.
 	const azureCLIPath = "AzureCLIPath"
