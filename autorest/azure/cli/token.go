@@ -183,8 +183,8 @@ func GetTokenFromCLIWithParams(params GetAccessTokenParams) (*Token, error) {
 }
 
 func validateParameter(param string) error {
-	// Validate resource, since it gets sent as a command line argument to Azure CLI
-	const invalidResourceErrorTemplate = "Resource %s is not in expected format. Only alphanumeric characters, [dot], [colon], [hyphen], and [forward slash] are allowed."
+	// Validate parameters, since it gets sent as a command line argument to Azure CLI
+	const invalidResourceErrorTemplate = "Parameter %s is not in expected format. Only alphanumeric characters, [dot], [colon], [hyphen], and [forward slash] are allowed."
 	match, err := regexp.MatchString("^[0-9a-zA-Z-.:/]+$", param)
 	if err != nil {
 		return err
