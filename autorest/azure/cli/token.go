@@ -137,7 +137,7 @@ type GetAccessTokenParams struct {
 
 // AdvancedGetTokenFromCLI gets a token using Azure CLI 2.0 for local development scenarios.
 func GetTokenFromCLIWithParams(params GetAccessTokenParams) (*Token, error) {
-	cliCmd := GetAzureCliCommand()
+	cliCmd := GetAzureCLICommand()
 
 	cliCmd.Args = append(cliCmd.Args, "account", "get-access-token", "-o", "json")
 	if params.Resource != "" {
@@ -196,7 +196,7 @@ func validateParameter(param string) error {
 }
 
 // GetAzureCliCommand can be used to run arbitrary Azure CLI command
-func GetAzureCliCommand() *exec.Cmd {
+func GetAzureCLICommand() *exec.Cmd {
 	// This is the path that a developer can set to tell this class what the install path for Azure CLI is.
 	const azureCLIPath = "AzureCLIPath"
 
