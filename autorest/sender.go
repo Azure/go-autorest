@@ -143,7 +143,8 @@ func sender(renengotiation tls.RenegotiationSupport) Sender {
 			TLSHandshakeTimeout:   10 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
 			TLSClientConfig: &tls.Config{
-				MinVersion: tls.VersionTLS12,
+				MinVersion:    tls.VersionTLS12,
+				Renegotiation: renengotiation,
 			},
 		}
 		var roundTripper http.RoundTripper = transport
