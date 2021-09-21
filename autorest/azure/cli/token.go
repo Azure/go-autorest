@@ -170,7 +170,7 @@ func GetTokenFromCLIWithParams(params GetAccessTokenParams) (*Token, error) {
 
 	output, err := cliCmd.Output()
 	if err != nil {
-		if _, ok := err.(*exec.ExitError); ok {
+		if stderr.Len() > 0 {
 			return nil, fmt.Errorf("Invoking Azure CLI failed with the following error: %s", stderr.String())
 		}
 
