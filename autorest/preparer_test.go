@@ -405,12 +405,12 @@ func TestCreatePreparerRunsDecoratorsInOrder(t *testing.T) {
 }
 
 func TestWithBaseURLEncodeQueryParams(t *testing.T) {
-	p := CreatePreparer(WithBaseURL("https://contoso.com/path?$qp1=something/else&$qp2=do/this"))
+	p := CreatePreparer(WithBaseURL("https://contoso.com/path?$qp1=something/else&$qp2=do/this&$skipToken=US1:0637720028736481134:ad5b2d5b;AS1:-1:FFFFFFFF"))
 	r, err := p.Prepare(&http.Request{})
 	if err != nil {
 		t.Fatalf("autorest: CreatePreparer failed (%v)", err)
 	}
-	want := "https://contoso.com/path?%24qp1=something%2Felse&%24qp2=do%2Fthis"
+	want := "https://contoso.com/path?%24qp1=something%2Felse&%24qp2=do%2Fthis&%24skipToken=US1%3A0637720028736481134%3Aad5b2d5b%3BAS1%3A-1%3AFFFFFFFF"
 	if u := r.URL.String(); u != want {
 		t.Fatalf("unexpected URL, got %s, want %s", u, want)
 	}
