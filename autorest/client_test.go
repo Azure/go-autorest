@@ -169,10 +169,7 @@ func TestAddToUserAgent(t *testing.T) {
 	ua := "UserAgent"
 	c := NewClientWithUserAgent(ua)
 	ext := "extension"
-	err := c.AddToUserAgent(ext)
-	if err != nil {
-		t.Fatalf("autorest: AddToUserAgent returned error -- expected nil, received %s", err)
-	}
+	c.AddToUserAgent(ext)
 	completeUA := fmt.Sprintf("%s %s %s", UserAgent(), ua, ext)
 
 	if c.UserAgent != completeUA {
@@ -180,11 +177,7 @@ func TestAddToUserAgent(t *testing.T) {
 			completeUA, c.UserAgent)
 	}
 
-	err = c.AddToUserAgent("")
-	if err == nil {
-		t.Fatalf("autorest: AddToUserAgent didn't return error -- expected %s, received nil",
-			fmt.Errorf("Extension was empty, User Agent stayed as %s", c.UserAgent))
-	}
+	c.AddToUserAgent("")
 	if c.UserAgent != completeUA {
 		t.Fatalf("autorest: AddToUserAgent failed to not add an empty extension to the UserAgent -- expected %s, received %s",
 			completeUA, c.UserAgent)

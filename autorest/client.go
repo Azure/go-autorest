@@ -222,12 +222,10 @@ func newClient(ua string, renegotiation tls.RenegotiationSupport) Client {
 }
 
 // AddToUserAgent adds an extension to the current user agent
-func (c *Client) AddToUserAgent(extension string) error {
+func (c *Client) AddToUserAgent(extension string) {
 	if extension != "" {
 		c.UserAgent = fmt.Sprintf("%s %s", c.UserAgent, extension)
-		return nil
 	}
-	return fmt.Errorf("Extension was empty, User Agent stayed as %s", c.UserAgent)
 }
 
 // Do implements the Sender interface by invoking the active Sender after applying authorization.
