@@ -182,7 +182,7 @@ var Instance Writer
 // default log level
 var logLevel = LogNone
 
-// Level returns the value specified in AZURE_GO_AUTOREST_LOG_LEVEL.
+// Level returns the value specified in AZURE_GO_SDK_LOG_LEVEL.
 // If no value was specified the default value is LogNone.
 // Custom loggers can call this to retrieve the configured log level.
 func Level() LevelType {
