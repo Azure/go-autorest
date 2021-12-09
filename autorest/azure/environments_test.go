@@ -34,6 +34,7 @@ const (
 	keyvaultResourceID   = "--keyvault-resource-id--"
 	opInsightsResourceID = "--operational-insights-resource-id--"
 	ossRDBMSResourceID   = "--oss-rdbms-resource-id--"
+	cosmosDBResourceID   = "--cosmosdb-resource-id--"
 )
 
 // This correlates to the expected contents of ./testdata/test_environment_1.json
@@ -67,6 +68,7 @@ var testEnvironment1 = Environment{
 		KeyVault:            keyvaultResourceID,
 		OperationalInsights: opInsightsResourceID,
 		OSSRDBMS:            ossRDBMSResourceID,
+		CosmosDB:            cosmosDBResourceID,
 	},
 }
 
@@ -79,7 +81,6 @@ func TestEnvironment_EnvironmentFromURL_NoOverride_Success(t *testing.T) {
 	defer ts.Close()
 
 	got, err := EnvironmentFromURL(ts.URL)
-
 	if err != nil {
 		t.Error(err)
 	}
@@ -101,7 +102,6 @@ func TestEnvironment_EnvironmentFromURL_OverrideStorageSuffix_Success(t *testing
 		Value: "fakeStorageSuffix",
 	}
 	got, err := EnvironmentFromURL(ts.URL, overrideProperty)
-
 	if err != nil {
 		t.Error(err)
 	}
@@ -228,7 +228,8 @@ func TestDeserializeEnvironment(t *testing.T) {
 			"graph": "` + graphResourceID + `",
 			"keyVault": "` + keyvaultResourceID + `",
 			"operationalInsights": "` + opInsightsResourceID + `",
-			"ossRDBMS": "` + ossRDBMSResourceID + `"
+			"ossRDBMS": "` + ossRDBMSResourceID + `",
+			"cosmosDB": "` + cosmosDBResourceID + `"
 		}
 	}`
 
@@ -319,6 +320,9 @@ func TestDeserializeEnvironment(t *testing.T) {
 	if ossRDBMSResourceID != testSubject.ResourceIdentifiers.OSSRDBMS {
 		t.Errorf("Expected ResourceIdentifiers.OperationalInsights to be "+ossRDBMSResourceID+", but got %q", testSubject.ResourceIdentifiers.OSSRDBMS)
 	}
+	if cosmosDBResourceID != testSubject.ResourceIdentifiers.CosmosDB {
+		t.Errorf("Expected ResourceIdentifiers.CosmosDB to be "+cosmosDBResourceID+", but got %q", testSubject.ResourceIdentifiers.CosmosDB)
+	}
 }
 
 func TestRoundTripSerialization(t *testing.T) {
@@ -352,6 +356,7 @@ func TestRoundTripSerialization(t *testing.T) {
 			KeyVault:            keyvaultResourceID,
 			OperationalInsights: opInsightsResourceID,
 			OSSRDBMS:            ossRDBMSResourceID,
+			CosmosDB:            cosmosDBResourceID,
 		},
 	}
 
@@ -449,6 +454,9 @@ func TestRoundTripSerialization(t *testing.T) {
 	}
 	if env.ResourceIdentifiers.OSSRDBMS != testSubject.ResourceIdentifiers.OSSRDBMS {
 		t.Errorf("Expected ResourceIdentifiers.OSSRDBMS to be %q, but got %q", env.ResourceIdentifiers.OSSRDBMS, testSubject.ResourceIdentifiers.OSSRDBMS)
+	}
+	if env.ResourceIdentifiers.CosmosDB != testSubject.ResourceIdentifiers.CosmosDB {
+		t.Errorf("Expected ResourceIdentifiers.CosmosDB to be %q, but got %q", env.ResourceIdentifiers.CosmosDB, testSubject.ResourceIdentifiers.CosmosDB)
 	}
 }
 
