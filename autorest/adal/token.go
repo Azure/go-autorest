@@ -1316,8 +1316,11 @@ func NewMultiTenantServicePrincipalTokenFromCertificate(multiTenantCfg MultiTena
 }
 
 // MSIAvailable returns true if the MSI endpoint is available for authentication.
-func MSIAvailable(ctx context.Context, sender Sender) bool {
-	resp, err := getMSIEndpoint(ctx, sender)
+func MSIAvailable(ctx context.Context, s Sender) bool {
+	if s == nil {
+		s = sender()
+	}
+	resp, err := getMSIEndpoint(ctx, s)
 	if err == nil {
 		resp.Body.Close()
 	}
