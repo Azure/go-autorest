@@ -676,8 +676,6 @@ const (
 
 func (m msiType) String() string {
 	switch m {
-	case msiTypeUnavailable:
-		return "unavailable"
 	case msiTypeAppServiceV20170901:
 		return "AppServiceV20170901"
 	case msiTypeCloudShell:
@@ -699,13 +697,9 @@ func getMSIType() (msiType, string, error) {
 		}
 		// if ONLY the env var MSI_ENDPOINT is set the msiType is CloudShell
 		return msiTypeCloudShell, endpointEnvVar, nil
-	} else if msiAvailableHook(context.Background(), sender()) {
-		// if MSI_ENDPOINT is NOT set AND the IMDS endpoint is available the msiType is IMDS. This will timeout after 500 milliseconds
-		return msiTypeIMDS, msiEndpoint, nil
-	} else {
-		// if MSI_ENDPOINT is NOT set and IMDS endpoint is not available Managed Identity is not available
-		return msiTypeUnavailable, "", errors.New("MSI not available")
 	}
+	// if MSI_ENDPOINT is NOT set assume the msiType is IMDS
+	return msiTypeIMDS, msiEndpoint, nil
 }
 
 // GetMSIVMEndpoint gets the MSI endpoint on Virtual Machines.
@@ -1328,9 +1322,4 @@ func MSIAvailable(ctx context.Context, sender Sender) bool {
 		resp.Body.Close()
 	}
 	return err == nil
-}
-
-// used for testing purposes
-var msiAvailableHook = func(ctx context.Context, sender Sender) bool {
-	return MSIAvailable(ctx, sender)
 }

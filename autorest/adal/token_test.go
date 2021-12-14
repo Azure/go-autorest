@@ -44,13 +44,6 @@ const (
 	defaultManualFormData = "client_id=id&grant_type=refresh_token&refresh_token=refreshtoken&resource=resource"
 )
 
-func init() {
-	// fake that the IMDS endpoint is available
-	msiAvailableHook = func(ctx context.Context, sender Sender) bool {
-		return true
-	}
-}
-
 func TestTokenExpires(t *testing.T) {
 	tt := time.Now().Add(5 * time.Second)
 	tk := newTokenExpiresAt(tt)
