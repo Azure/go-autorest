@@ -384,7 +384,6 @@ func (secret ServicePrincipalFederatedSecret) MarshalJSON() ([]byte, error) {
 	return nil, errors.New("marshalling ServicePrincipalFederatedSecret is not supported")
 }
 
-
 // ServicePrincipalToken encapsulates a Token created for a Service Principal.
 type ServicePrincipalToken struct {
 	inner             servicePrincipalToken
