@@ -741,9 +741,15 @@ type MSIConfig struct {
 
 // ServicePrincipalToken creates a ServicePrincipalToken from MSI.
 func (mc MSIConfig) ServicePrincipalToken() (*adal.ServicePrincipalToken, error) {
-	spToken, err := adal.NewServicePrincipalTokenFromManagedIdentity(mc.Resource, &adal.ManagedIdentityOptions{
-		ClientID: mc.ClientID,
-	})
+	mio := adal.ManagedIdentityOptions{}
+
+	if strings.Contains(mc.ClientID, "/Microsoft.ManagedIdentity/userAssignedIdentities/") {
+		mio.IdentityResourceID = mc.ClientID
+	} else {
+		mio.ClientID = mc.ClientID
+	}
+
+	spToken, err := adal.NewServicePrincipalTokenFromManagedIdentity(mc.Resource, &mio)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get oauth token from MSI: %v", err)
 	}
