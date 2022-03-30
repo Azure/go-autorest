@@ -7,6 +7,7 @@
     "activeDirectoryEndpoint":      "--active-directory-endpoint--",
     "galleryEndpoint":              "--gallery-endpoint--",
     "keyVaultEndpoint":             "--key-vault--endpoint--",
+    "managedHSMEndpoint":           "--managed-hsm-endpoint--",
     "graphEndpoint":                "--graph-endpoint--",
     "storageEndpointSuffix":        "--storage-endpoint-suffix--",
     "cosmosDBDNSSuffix":            "--cosmos-db-dns-suffix--",
@@ -16,6 +17,7 @@
     "sqlDatabaseDNSSuffix":         "--sql-database-dns-suffix--",
     "trafficManagerDNSSuffix":      "--traffic-manager-dns-suffix--",
     "keyVaultDNSSuffix":            "--key-vault-dns-suffix--",
+    "managedHSMDNSSuffix":          "--managed-hsm-dns-suffix--",
     "serviceBusEndpointSuffix":     "--service-bus-endpoint-suffix--",
     "serviceManagementVMDNSSuffix": "--asm-vm-dns-suffix--",
     "resourceManagerVMDNSSuffix":   "--arm-vm-dns-suffix--",
@@ -28,6 +30,8 @@
         "keyVault": "--keyvault-resource-id--",
         "operationalInsights": "--operational-insights-resource-id--",
         "ossRDBMS": "--oss-rdbms-resource-id--",
-        "cosmosDB": "--cosmosdb-resource-id--"
+        "cosmosDB": "--cosmosdb-resource-id--",
+        "managedHSM": "--managed-hsm-resource-id--"
     }
 }
+
