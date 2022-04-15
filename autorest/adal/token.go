@@ -367,14 +367,14 @@ func (secret ServicePrincipalAuthorizationCodeSecret) MarshalJSON() ([]byte, err
 
 // ServicePrincipalFederatedSecret implements ServicePrincipalSecret for Federated JWTs.
 type ServicePrincipalFederatedSecret struct {
-	Jwt string
+	jwt string
 }
 
 // SetAuthenticationValues is a method of the interface ServicePrincipalSecret.
 // It will populate the form submitted during OAuth Token Acquisition using a JWT signed by an OIDC issuer.
 func (secret *ServicePrincipalFederatedSecret) SetAuthenticationValues(spt *ServicePrincipalToken, v *url.Values) error {
 
-	v.Set("client_assertion", secret.Jwt)
+	v.Set("client_assertion", secret.jwt)
 	v.Set("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
 	return nil
 }
@@ -705,7 +705,7 @@ func NewServicePrincipalTokenFromFederatedToken(oauthConfig OAuthConfig, clientI
 		clientID,
 		resource,
 		&ServicePrincipalFederatedSecret{
-			Jwt: jwt,
+			jwt: jwt,
 		},
 		callbacks...,
 	)
