@@ -170,7 +170,7 @@ var (
 		ContainerRegistryDNSSuffix:   "azurecr.us",
 		TokenAudience:                "https://management.usgovcloudapi.net/",
 		APIManagementHostNameSuffix:  "azure-api.us",
-		SynapseEndpointSuffix:        ".dev.azuresynapse.usgovcloudapi.net",
+		SynapseEndpointSuffix:        "dev.azuresynapse.usgovcloudapi.net",
 		DatalakeSuffix:               NotAvailable,
 		ResourceIdentifiers: ResourceIdentifier{
 			Graph:               "https://graph.windows.net/",
