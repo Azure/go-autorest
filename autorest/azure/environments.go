@@ -35,7 +35,8 @@ var environments = map[string]Environment{
 	"AZURECHINACLOUD":        ChinaCloud,
 	"AZUREGERMANCLOUD":       GermanCloud,
 	"AZUREPUBLICCLOUD":       PublicCloud,
-	"AZUREUSGOVERNMENTCLOUD": USGovernmentCloud,
+	"AZUREUSGOVERNMENT":      USGovernmentCloud,
+	"AZUREUSGOVERNMENTCLOUD": USGovernmentCloud, //TODO: deprecate
 }
 
 // ResourceIdentifier contains a set of Azure resource IDs.

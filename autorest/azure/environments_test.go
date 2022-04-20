@@ -196,6 +196,16 @@ func TestEnvironmentFromName(t *testing.T) {
 		t.Errorf("Expected to get USGovernmentCloud for %q", name)
 	}
 
+	name = "azureusgovernment"
+	if env, _ := EnvironmentFromName(name); env != USGovernmentCloud {
+		t.Errorf("Expected to get USGovernmentCloud for %q", name)
+	}
+
+	name = "AzureUSGovernment"
+	if env, _ := EnvironmentFromName(name); env != USGovernmentCloud {
+		t.Errorf("Expected to get USGovernmentCloud for %q", name)
+	}
+
 	name = "thisisnotarealcloudenv"
 	if _, err := EnvironmentFromName(name); err == nil {
 		t.Errorf("Expected to get an error for %q", name)
