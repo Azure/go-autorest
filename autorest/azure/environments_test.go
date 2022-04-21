@@ -176,6 +176,11 @@ func TestEnvironmentFromName(t *testing.T) {
 		t.Errorf("Expected to get GermanCloud for %q", name)
 	}
 
+	name = "AzureCloud"
+	if env, _ := EnvironmentFromName(name); env != PublicCloud {
+		t.Errorf("Expected to get PublicCloud for %q", name)
+	}
+
 	name = "azurepubliccloud"
 	if env, _ := EnvironmentFromName(name); env != PublicCloud {
 		t.Errorf("Expected to get PublicCloud for %q", name)
