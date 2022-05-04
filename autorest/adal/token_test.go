@@ -1396,6 +1396,32 @@ func TestMSIAvailableSuccess(t *testing.T) {
 	}
 }
 
+func TestMSIAvailableAppService(t *testing.T) {
+	os.Setenv("MSI_ENDPOINT", "http://localhost")
+	os.Setenv("MSI_SECRET", "super")
+	defer func() {
+		os.Unsetenv("MSI_ENDPOINT")
+		os.Unsetenv("MSI_SECRET")
+	}()
+	c := mocks.NewSender()
+	c.AppendResponse(mocks.NewResponse())
+	available := MSIAvailable(context.Background(), c)
+
+	if !available {
+		t.Fatal("expected MSI to be available")
+	}
+}
+
+func TestMSIAvailableIMDS(t *testing.T) {
+	c := mocks.NewSender()
+	c.AppendResponse(mocks.NewResponse())
+	available := MSIAvailable(context.Background(), c)
+
+	if !available {
+		t.Fatal("expected MSI to be available")
+	}
+}
+
 func TestMSIAvailableSlow(t *testing.T) {
 	c := mocks.NewSender()
 	// introduce a long response delay to simulate the endpoint not being available
