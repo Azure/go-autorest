@@ -26,6 +26,7 @@ import (
 	"go.opencensus.io/plugin/ochttp/propagation/tracecontext"
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/trace"
+	_ "gopkg.in/yaml.v2" // allows us to explicitly update the version without updating other dependencies
 )
 
 func init() {

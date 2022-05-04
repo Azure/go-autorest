@@ -35,6 +35,7 @@ const (
 	opInsightsResourceID = "--operational-insights-resource-id--"
 	ossRDBMSResourceID   = "--oss-rdbms-resource-id--"
 	cosmosDBResourceID   = "--cosmosdb-resource-id--"
+	managedHSMResourceID = "--managed-hsm-resource-id--"
 )
 
 // This correlates to the expected contents of ./testdata/test_environment_1.json
@@ -47,6 +48,7 @@ var testEnvironment1 = Environment{
 	ActiveDirectoryEndpoint:      "--active-directory-endpoint--",
 	GalleryEndpoint:              "--gallery-endpoint--",
 	KeyVaultEndpoint:             "--key-vault--endpoint--",
+	ManagedHSMEndpoint:           "--managed-hsm-endpoint--",
 	GraphEndpoint:                "--graph-endpoint--",
 	StorageEndpointSuffix:        "--storage-endpoint-suffix--",
 	CosmosDBDNSSuffix:            "--cosmos-db-dns-suffix--",
@@ -56,6 +58,7 @@ var testEnvironment1 = Environment{
 	SQLDatabaseDNSSuffix:         "--sql-database-dns-suffix--",
 	TrafficManagerDNSSuffix:      "--traffic-manager-dns-suffix--",
 	KeyVaultDNSSuffix:            "--key-vault-dns-suffix--",
+	ManagedHSMDNSSuffix:          "--managed-hsm-dns-suffix--",
 	ServiceBusEndpointSuffix:     "--service-bus-endpoint-suffix--",
 	ServiceManagementVMDNSSuffix: "--asm-vm-dns-suffix--",
 	ResourceManagerVMDNSSuffix:   "--arm-vm-dns-suffix--",
@@ -69,6 +72,7 @@ var testEnvironment1 = Environment{
 		OperationalInsights: opInsightsResourceID,
 		OSSRDBMS:            ossRDBMSResourceID,
 		CosmosDB:            cosmosDBResourceID,
+		ManagedHSM:          managedHSMResourceID,
 	},
 }
 
@@ -172,6 +176,11 @@ func TestEnvironmentFromName(t *testing.T) {
 		t.Errorf("Expected to get GermanCloud for %q", name)
 	}
 
+	name = "AzureCloud"
+	if env, _ := EnvironmentFromName(name); env != PublicCloud {
+		t.Errorf("Expected to get PublicCloud for %q", name)
+	}
+
 	name = "azurepubliccloud"
 	if env, _ := EnvironmentFromName(name); env != PublicCloud {
 		t.Errorf("Expected to get PublicCloud for %q", name)
@@ -192,6 +201,16 @@ func TestEnvironmentFromName(t *testing.T) {
 		t.Errorf("Expected to get USGovernmentCloud for %q", name)
 	}
 
+	name = "azureusgovernment"
+	if env, _ := EnvironmentFromName(name); env != USGovernmentCloud {
+		t.Errorf("Expected to get USGovernmentCloud for %q", name)
+	}
+
+	name = "AzureUSGovernment"
+	if env, _ := EnvironmentFromName(name); env != USGovernmentCloud {
+		t.Errorf("Expected to get USGovernmentCloud for %q", name)
+	}
+
 	name = "thisisnotarealcloudenv"
 	if _, err := EnvironmentFromName(name); err == nil {
 		t.Errorf("Expected to get an error for %q", name)
@@ -207,6 +226,8 @@ func TestDeserializeEnvironment(t *testing.T) {
 		"serviceBusEndpoint": "--service-bus-endpoint--",
 		"keyVaultDNSSuffix": "--key-vault-dns-suffix--",
 		"keyVaultEndpoint": "--key-vault-endpoint--",
+		"managedHSMDNSSuffix": "--managed-hsm-dns-suffix--",
+		"managedHSMEndpoint": "--managed-hsm-endpoint--",
 		"managementPortalURL": "--management-portal-url--",
 		"publishSettingsURL": "--publish-settings-url--",
 		"resourceManagerEndpoint": "--resource-manager-endpoint--",
@@ -229,7 +250,8 @@ func TestDeserializeEnvironment(t *testing.T) {
 			"keyVault": "` + keyvaultResourceID + `",
 			"operationalInsights": "` + opInsightsResourceID + `",
 			"ossRDBMS": "` + ossRDBMSResourceID + `",
-			"cosmosDB": "` + cosmosDBResourceID + `"
+			"cosmosDB": "` + cosmosDBResourceID + `",
+			"managedHSM": "` + managedHSMResourceID + `"
 		}
 	}`
 
@@ -263,6 +285,9 @@ func TestDeserializeEnvironment(t *testing.T) {
 	if "--key-vault-endpoint--" != testSubject.KeyVaultEndpoint {
 		t.Errorf("Expected KeyVaultEndpoint to be \"--key-vault-endpoint--\", but got %q", testSubject.KeyVaultEndpoint)
 	}
+	if "--managed-hsm-endpoint--" != testSubject.ManagedHSMEndpoint {
+		t.Errorf("Expected ManagedHSMEndpoint to be \"--managed-hsm-endpoint--\", but got %q", testSubject.ManagedHSMEndpoint)
+	}
 	if "--service-bus-endpoint--" != testSubject.ServiceBusEndpoint {
 		t.Errorf("Expected ServiceBusEndpoint to be \"--service-bus-endpoint--\", but goet %q", testSubject.ServiceBusEndpoint)
 	}
@@ -289,6 +314,9 @@ func TestDeserializeEnvironment(t *testing.T) {
 	}
 	if "--key-vault-dns-suffix--" != testSubject.KeyVaultDNSSuffix {
 		t.Errorf("Expected StorageEndpointSuffix to be \"--key-vault-dns-suffix--\", but got %q", testSubject.KeyVaultDNSSuffix)
+	}
+	if "--managed-hsm-dns-suffix--" != testSubject.ManagedHSMDNSSuffix {
+		t.Errorf("Expected StorageEndpointSuffix to be \"--managed-hsm-dns-suffix--\", but got %q", testSubject.ManagedHSMDNSSuffix)
 	}
 	if "--service-bus-endpoint-suffix--" != testSubject.ServiceBusEndpointSuffix {
 		t.Errorf("Expected StorageEndpointSuffix to be \"--service-bus-endpoint-suffix--\", but got %q", testSubject.ServiceBusEndpointSuffix)
@@ -322,6 +350,9 @@ func TestDeserializeEnvironment(t *testing.T) {
 	}
 	if cosmosDBResourceID != testSubject.ResourceIdentifiers.CosmosDB {
 		t.Errorf("Expected ResourceIdentifiers.CosmosDB to be "+cosmosDBResourceID+", but got %q", testSubject.ResourceIdentifiers.CosmosDB)
+	}
+	if managedHSMResourceID != testSubject.ResourceIdentifiers.ManagedHSM {
+		t.Errorf("Expected ResourceIdentifiers.ManagedHSM to be "+managedHSMResourceID+", but got %q", testSubject.ResourceIdentifiers.ManagedHSM)
 	}
 }
 
