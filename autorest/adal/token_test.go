@@ -700,6 +700,46 @@ func TestServicePrincipalTokenSecretRefreshSetsBody(t *testing.T) {
 	})
 }
 
+func TestServicePrincipalTokenFederatedJwtRefreshSetsBody(t *testing.T) {
+	sptCert := newServicePrincipalTokenFederatedJwt(t)
+	testServicePrincipalTokenRefreshSetsBody(t, sptCert, func(t *testing.T, b []byte) {
+		body := string(b)
+
+		values, _ := url.ParseQuery(body)
+		if values["client_assertion_type"][0] != "urn:ietf:params:oauth:client-assertion-type:jwt-bearer" ||
+			values["client_id"][0] != "id" ||
+			values["grant_type"][0] != "client_credentials" ||
+			values["resource"][0] != "resource" {
+			t.Fatalf("adal: ServicePrincipalTokenCertificate#Refresh did not correctly set the HTTP Request Body.")
+		}
+
+		tok, _ := jwt.Parse(values["client_assertion"][0], nil)
+		if tok == nil {
+			t.Fatalf("adal: ServicePrincipalTokenCertificate#Expected client_assertion to be a JWT")
+		}
+		if _, ok := tok.Header["typ"]; !ok {
+			t.Fatalf("adal: ServicePrincipalTokenCertificate#Expected client_assertion to have an typ header")
+		}
+
+		claims, ok := tok.Claims.(jwt.MapClaims)
+		if !ok {
+			t.Fatalf("expected MapClaims, got %T", tok.Claims)
+		}
+		if err := claims.Valid(); err != nil {
+			t.Fatalf("invalid claim: %v", err)
+		}
+		if aud := claims["aud"]; aud != "testAudience" {
+			t.Fatalf("unexpected aud: %s", aud)
+		}
+		if iss := claims["iss"]; iss != "id" {
+			t.Fatalf("unexpected iss: %s", iss)
+		}
+		if sub := claims["sub"]; sub != "id" {
+			t.Fatalf("unexpected sub: %s", sub)
+		}
+	})
+}
+
 func TestServicePrincipalTokenRefreshClosesRequestBody(t *testing.T) {
 	spt := newServicePrincipalToken()
 
@@ -1266,6 +1306,19 @@ func TestMarshalServicePrincipalAuthorizationCodeSecret(t *testing.T) {
 	}
 }
 
+func TestMarshalServicePrincipalFederatedSecret(t *testing.T) {
+	spt := newServicePrincipalTokenFederatedJwt(t)
+	b, err := json.Marshal(spt)
+	if err == nil {
+		t.Fatal("expected error when marshalling certificate token")
+	}
+	var spt2 *ServicePrincipalToken
+	err = json.Unmarshal(b, &spt2)
+	if err == nil {
+		t.Fatal("expected error when unmarshalling certificate token")
+	}
+}
+
 func TestMarshalInnerToken(t *testing.T) {
 	spt := newServicePrincipalTokenManual()
 	tokenJSON, err := spt.MarshalTokenJSON()
@@ -1463,5 +1516,24 @@ func newServicePrincipalTokenUsernamePassword(t *testing.T) *ServicePrincipalTok
 
 func newServicePrincipalTokenAuthorizationCode(t *testing.T) *ServicePrincipalToken {
 	spt, _ := NewServicePrincipalTokenFromAuthorizationCode(TestOAuthConfig, "id", "clientSecret", "code", "http://redirectUri/getToken", "resource")
+	return spt
+}
+
+func newServicePrincipalTokenFederatedJwt(t *testing.T) *ServicePrincipalToken {
+	token := jwt.New(jwt.SigningMethodHS256)
+	token.Header["typ"] = "JWT"
+	token.Claims = jwt.MapClaims{
+		"aud": "testAudience",
+		"iss": "id",
+		"sub": "id",
+		"nbf": time.Now().Unix(),
+		"exp": time.Now().Add(24 * time.Hour).Unix(),
+	}
+
+	signedString, err := token.SignedString([]byte("test key"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	spt, _ := NewServicePrincipalTokenFromFederatedToken(TestOAuthConfig, "id", signedString, "resource")
 	return spt
 }
