@@ -88,7 +88,6 @@ func TestTokenWillExpireIn(t *testing.T) {
 }
 
 func TestParseExpiresOn(t *testing.T) {
-	// get current time, round to nearest second, and add one hour
 	n := time.Now().UTC()
 	amPM := "AM"
 	if n.Hour() >= 12 {
