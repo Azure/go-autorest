@@ -111,7 +111,7 @@ func TestParseExpiresOn(t *testing.T) {
 		},
 		{
 			Name:   "timestamp without AM/PM",
-			String: fmt.Sprintf("%d/%d/%d %d:%02d:%02d +00:00", n.Month(), n.Day(), n.Year(), n.Hour(), n.Minute(), n.Second()),
+			String: fmt.Sprintf("%02d/%02d/%02d %02d:%02d:%02d +00:00", n.Month(), n.Day(), n.Year(), n.Hour(), n.Minute(), n.Second()),
 			Value:  n.Unix(),
 		},
 	}
