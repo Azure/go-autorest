@@ -891,6 +891,34 @@ func TestServicePrincipalTokenEnsureFreshRefreshes(t *testing.T) {
 	}
 }
 
+func TestServicePrincipalTokenEnsureFreshWithIntExpiresOn(t *testing.T) {
+	spt := newServicePrincipalToken()
+	expireToken(&spt.inner.Token)
+
+	body := mocks.NewBody(newTokenJSONIntExpiresOn(`"3600"`, 12345, "test"))
+	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
+
+	f := false
+	c := mocks.NewSender()
+	s := DecorateSender(c,
+		(func() SendDecorator {
+			return func(s Sender) Sender {
+				return SenderFunc(func(r *http.Request) (*http.Response, error) {
+					f = true
+					return resp, nil
+				})
+			}
+		})())
+	spt.SetSender(s)
+	err := spt.EnsureFresh()
+	if err != nil {
+		t.Fatalf("adal: ServicePrincipalToken#EnsureFresh returned an unexpected error (%v)", err)
+	}
+	if !f {
+		t.Fatal("adal: ServicePrincipalToken#EnsureFresh failed to call Refresh for stale token")
+	}
+}
+
 func TestServicePrincipalTokenEnsureFreshFails1(t *testing.T) {
 	spt := newServicePrincipalToken()
 	expireToken(&spt.inner.Token)
@@ -1459,6 +1487,23 @@ func newTokenJSON(expiresIn, expiresOn, resource string) string {
 		"refresh_token": "ABC123"
 		}`,
 		expiresIn, expiresOn, nb, resource)
+}
+
+func newTokenJSONIntExpiresOn(expiresIn string, expiresOn int, resource string) string {
+	/*nb, err := parseExpiresOn(expiresOn)
+	if err != nil {
+		panic(err)
+	}*/
+	return fmt.Sprintf(`{
+		"access_token" : "accessToken",
+		"expires_in"   : %s,
+		"expires_on"   : %d,
+		"not_before"   : "%d",
+		"resource"     : "%s",
+		"token_type"   : "Bearer",
+		"refresh_token": "ABC123"
+		}`,
+		expiresIn, expiresOn, expiresOn, resource)
 }
 
 func newADFSTokenJSON(expiresIn int) string {
