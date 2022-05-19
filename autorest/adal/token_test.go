@@ -88,8 +88,7 @@ func TestTokenWillExpireIn(t *testing.T) {
 }
 
 func TestParseExpiresOn(t *testing.T) {
-	// get current time, round to nearest second, and add one hour
-	n := time.Now().UTC().Round(time.Second).Add(time.Hour)
+	n := time.Now().UTC()
 	amPM := "AM"
 	if n.Hour() >= 12 {
 		amPM = "PM"
@@ -107,12 +106,12 @@ func TestParseExpiresOn(t *testing.T) {
 		{
 			Name:   "timestamp with AM/PM",
 			String: fmt.Sprintf("%d/%d/%d %d:%02d:%02d %s +00:00", n.Month(), n.Day(), n.Year(), n.Hour(), n.Minute(), n.Second(), amPM),
-			Value:  3600,
+			Value:  n.Unix(),
 		},
 		{
 			Name:   "timestamp without AM/PM",
-			String: fmt.Sprintf("%d/%d/%d %d:%02d:%02d +00:00", n.Month(), n.Day(), n.Year(), n.Hour(), n.Minute(), n.Second()),
-			Value:  3600,
+			String: fmt.Sprintf("%02d/%02d/%02d %02d:%02d:%02d +00:00", n.Month(), n.Day(), n.Year(), n.Hour(), n.Minute(), n.Second()),
+			Value:  n.Unix(),
 		},
 	}
 	for _, tc := range testcases {
@@ -368,7 +367,8 @@ func TestServicePrincipalTokenFromASE(t *testing.T) {
 	}
 	spt.MaxMSIRefreshAttempts = 1
 	// expires_on is sent in UTC
-	expiresOn := time.Now().UTC().Add(time.Hour)
+	nowTime := time.Now()
+	expiresOn := nowTime.UTC().Add(time.Hour)
 	// use int format for expires_in
 	body := mocks.NewBody(newTokenJSON("3600", expiresOn.Format(expiresOnDateFormat), "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
@@ -407,10 +407,8 @@ func TestServicePrincipalTokenFromASE(t *testing.T) {
 	if err != nil {
 		t.Fatalf("adal: failed to get ExpiresOn %v", err)
 	}
-	// depending on elapsed time it might be slightly less that one hour
-	const hourInSeconds = int64(time.Hour / time.Second)
-	if v > hourInSeconds || v < hourInSeconds-1 {
-		t.Fatalf("adal: expected %v, got %v", int64(time.Hour/time.Second), v)
+	if nowAsUnix := nowTime.Add(time.Hour).Unix(); v != nowAsUnix {
+		t.Fatalf("adal: expected %v, got %v", nowAsUnix, v)
 	}
 	if body.IsOpen() {
 		t.Fatalf("the response was not closed!")
@@ -868,6 +866,34 @@ func TestServicePrincipalTokenEnsureFreshRefreshes(t *testing.T) {
 	expireToken(&spt.inner.Token)
 
 	body := mocks.NewBody(newTokenJSON(`"3600"`, "12345", "test"))
+	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
+
+	f := false
+	c := mocks.NewSender()
+	s := DecorateSender(c,
+		(func() SendDecorator {
+			return func(s Sender) Sender {
+				return SenderFunc(func(r *http.Request) (*http.Response, error) {
+					f = true
+					return resp, nil
+				})
+			}
+		})())
+	spt.SetSender(s)
+	err := spt.EnsureFresh()
+	if err != nil {
+		t.Fatalf("adal: ServicePrincipalToken#EnsureFresh returned an unexpected error (%v)", err)
+	}
+	if !f {
+		t.Fatal("adal: ServicePrincipalToken#EnsureFresh failed to call Refresh for stale token")
+	}
+}
+
+func TestServicePrincipalTokenEnsureFreshWithIntExpiresOn(t *testing.T) {
+	spt := newServicePrincipalToken()
+	expireToken(&spt.inner.Token)
+
+	body := mocks.NewBody(newTokenJSONIntExpiresOn(`"3600"`, 12345, "test"))
 	resp := mocks.NewResponseWithBodyAndStatus(body, http.StatusOK, "OK")
 
 	f := false
@@ -1459,6 +1485,19 @@ func newTokenJSON(expiresIn, expiresOn, resource string) string {
 		"refresh_token": "ABC123"
 		}`,
 		expiresIn, expiresOn, nb, resource)
+}
+
+func newTokenJSONIntExpiresOn(expiresIn string, expiresOn int, resource string) string {
+	return fmt.Sprintf(`{
+		"access_token" : "accessToken",
+		"expires_in"   : %s,
+		"expires_on"   : %d,
+		"not_before"   : "%d",
+		"resource"     : "%s",
+		"token_type"   : "Bearer",
+		"refresh_token": "ABC123"
+		}`,
+		expiresIn, expiresOn, expiresOn, resource)
 }
 
 func newADFSTokenJSON(expiresIn int) string {
