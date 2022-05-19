@@ -1,3 +1,5 @@
+# NOTE: This module will go out of support by March 31, 2023.  For authenticating with Azure AD, use module [azidentity](https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/sdk/azidentity) instead.  For help migrating from `auth` to `azidentiy` please consult the [migration guide](https://github.com/Azure/azure-sdk-for-go/blob/main/sdk/azidentity/MIGRATION.md).  General information about the retirement of this and other legacy modules can be found [here](https://azure.microsoft.com/en-us/updates/support-for-azure-sdk-libraries-that-do-not-conform-to-our-current-azure-sdk-guidelines-will-be-retired-as-of-31-march-2023/).
+
 ## Authentication
 
 Typical SDK operations must be authenticated and authorized. The `autorest.Authorizer`
