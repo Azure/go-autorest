@@ -1490,10 +1490,6 @@ func newTokenJSON(expiresIn, expiresOn, resource string) string {
 }
 
 func newTokenJSONIntExpiresOn(expiresIn string, expiresOn int, resource string) string {
-	/*nb, err := parseExpiresOn(expiresOn)
-	if err != nil {
-		panic(err)
-	}*/
 	return fmt.Sprintf(`{
 		"access_token" : "accessToken",
 		"expires_in"   : %s,
