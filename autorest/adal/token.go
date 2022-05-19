@@ -1146,10 +1146,9 @@ func parseExpiresOn(s interface{}) (json.Number, error) {
 	if !ok {
 		return "", fmt.Errorf("unexpected expires_on type %T", s)
 	}
-	// convert the expiration date to the number of seconds from now
+	// convert the expiration date to the number of seconds from the unix epoch
 	timeToDuration := func(t time.Time) json.Number {
-		dur := t.Sub(time.Now().UTC())
-		return json.Number(strconv.FormatInt(int64(dur.Round(time.Second).Seconds()), 10))
+		return json.Number(strconv.FormatInt(t.UTC().Unix(), 10))
 	}
 	if _, err := json.Number(asStr).Int64(); err == nil {
 		// this is the number of seconds case, no conversion required
