@@ -1,3 +1,5 @@
+# NOTE: This module will go out of support by March 31, 2023.  For authenticating with Azure AD, use module [azidentity](https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/sdk/azidentity) instead.  For help migrating from `auth` to `azidentiy` please consult the [migration guide](https://aka.ms/azsdk/go/identity/migration).  General information about the retirement of this and other legacy modules can be found [here](https://azure.microsoft.com/updates/support-for-azure-sdk-libraries-that-do-not-conform-to-our-current-azure-sdk-guidelines-will-be-retired-as-of-31-march-2023/).
+
 ## Authentication
 
 Typical SDK operations must be authenticated and authorized. The `autorest.Authorizer`
@@ -52,7 +54,7 @@ below.
 > for more info. Copy the new principal's ID, secret, and tenant ID for use in
 > your app, or consider the `--sdk-auth` parameter for serialized output.
 
-[azure managed service identity]: https://docs.microsoft.com/en-us/azure/active-directory/msi-overview
+[azure managed service identity]: https://docs.microsoft.com/azure/active-directory/msi-overview
 
 - The `auth.NewAuthorizerFromEnvironment()` described above creates an authorizer
   from the first available of the following configuration:
@@ -81,7 +83,7 @@ below.
       4. **Azure Managed Service Identity**: Delegate credential management to the
          platform. Requires that code is running in Azure, e.g. on a VM. All
          configuration is handled by Azure. See [Azure Managed Service
-         Identity](https://docs.microsoft.com/en-us/azure/active-directory/msi-overview)
+         Identity](https://docs.microsoft.com/azure/active-directory/msi-overview)
          for more details.
 
 - The `auth.NewAuthorizerFromFile()` method creates an authorizer using
@@ -114,7 +116,7 @@ below.
 
   To use `NewAuthorizerFromCLI()` or `NewAuthorizerFromCLIWithResource()`, follow these steps:
 
-  1. Install [Azure CLI v2.0.12](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) or later. Upgrade earlier versions.
+  1. Install [Azure CLI v2.0.12](https://docs.microsoft.com/cli/azure/install-azure-cli) or later. Upgrade earlier versions.
   2. Use `az login` to sign in to Azure.
 
   If you receive an error, use `az account get-access-token` to verify access.
