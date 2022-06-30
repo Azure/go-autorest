@@ -561,7 +561,7 @@ Default:
 }
 
 func (pt *pollingTrackerBase) updatePollingState(provStateApl bool) error {
-	if pt.Pm == PollingAsyncOperation && pt.rawBody["status"] != nil {
+	if pt.Pm == PollingAsyncOperation || pt.Pm == PollingLocation && pt.rawBody["status"] != nil {
 		pt.State = pt.rawBody["status"].(string)
 	} else {
 		if pt.resp.StatusCode == http.StatusAccepted {
