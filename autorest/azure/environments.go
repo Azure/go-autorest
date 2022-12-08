@@ -153,7 +153,7 @@ var (
 		GalleryEndpoint:              "https://gallery.usgovcloudapi.net/",
 		KeyVaultEndpoint:             "https://vault.usgovcloudapi.net/",
 		ManagedHSMEndpoint:           NotAvailable,
-		GraphEndpoint:                "https://graph.windows.net/",
+		GraphEndpoint:                "https://graph.windows.us/",
 		ServiceBusEndpoint:           "https://servicebus.usgovcloudapi.net/",
 		BatchManagementEndpoint:      "https://batch.core.usgovcloudapi.net/",
 		MicrosoftGraphEndpoint:       "https://graph.microsoft.us/",
