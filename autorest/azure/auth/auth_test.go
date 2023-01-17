@@ -268,6 +268,26 @@ func TestFileClientCertificateAuthorizer(t *testing.T) {
 	}
 }
 
+func TestFileGetAuthorizerClientCert(t *testing.T) {
+	t.Setenv("AZURE_AUTH_LOCATION", "./testdata/credsutf8.json")
+	settings, err := GetSettingsFromFile()
+	if err != nil {
+		t.Logf("failed to load file settings: %v", err)
+		t.Fail()
+	}
+	// add certificate settings
+	settings.Values[CertificatePath] = "~/fake/path/cert.pfx"
+	settings.Values[CertificatePassword] = "fake-password"
+	auth, err := settings.GetAuthorizer("https://management.azure.com")
+	if err != nil {
+		t.Logf("failed to get authorizer: %v", err)
+		t.Fail()
+	}
+	if _, ok := auth.(*autorest.BearerAuthorizer); !ok {
+		t.Fatalf("unexpected authorizer type %T", auth)
+	}
+}
+
 func TestMultitenantClientCredentials(t *testing.T) {
 	setDefaultEnv()
 	os.Setenv(AuxiliaryTenantIDs, "aux-tenant-1;aux-tenant-2;aux-tenant3")
