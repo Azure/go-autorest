@@ -9,15 +9,12 @@ jobs:
 
     strategy:
       matrix:
-        Linux_Go115:
-          vm.image: 'ubuntu-18.04'
-          go.version: '1.15'
-        Linux_Go116:
-          vm.image: 'ubuntu-18.04'
-          go.version: '1.16'
-        Linux_Go117:
-          vm.image: 'ubuntu-18.04'
-          go.version: '1.17'
+        Linux_Go118:
+          vm.image: 'ubuntu-22.04'
+          go.version: '1.18.10'
+        Linux_Go119:
+          vm.image: 'ubuntu-22.04'
+          go.version: '1.19.5'
           current_go: 'true'
 
     pool:
@@ -41,11 +38,11 @@ jobs:
       - script: |
           set -e
           export GO111MODULE=on
-          go get golang.org/x/lint/golint@latest
-          go get github.com/jstemmer/go-junit-report@latest
-          go get github.com/axw/gocov/gocov@latest
-          go get github.com/AlekSi/gocov-xml@latest
-          go get github.com/matm/gocov-html@latest
+          go install golang.org/x/lint/golint@latest
+          go install github.com/jstemmer/go-junit-report@latest
+          go install github.com/axw/gocov/gocov@latest
+          go install github.com/AlekSi/gocov-xml@latest
+          go install github.com/matm/gocov-html/cmd/gocov-html@latest
         workingDirectory: '$(sdkPath)'
         displayName: 'Install Dependencies'
 
