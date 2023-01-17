@@ -269,7 +269,7 @@ func TestFileClientCertificateAuthorizer(t *testing.T) {
 }
 
 func TestFileGetAuthorizerClientCert(t *testing.T) {
-	os.Setenv("AZURE_AUTH_LOCATION", "./testdata/credsutf8.json")
+	t.Setenv("AZURE_AUTH_LOCATION", "./testdata/credsutf8.json")
 	settings, err := GetSettingsFromFile()
 	if err != nil {
 		t.Logf("failed to load file settings: %v", err)
@@ -278,10 +278,13 @@ func TestFileGetAuthorizerClientCert(t *testing.T) {
 	// add certificate settings
 	settings.Values[CertificatePath] = "~/fake/path/cert.pfx"
 	settings.Values[CertificatePassword] = "fake-password"
-	_, err = settings.GetAuthorizer("https://management.azure.com")
-	if err == nil {
-		t.Log("unexpected nil error")
+	auth, err := settings.GetAuthorizer("https://management.azure.com")
+	if err != nil {
+		t.Logf("failed to get authorizer: %v", err)
 		t.Fail()
+	}
+	if _, ok := auth.(*autorest.BearerAuthorizer); !ok {
+		t.Fatalf("unexpected authorizer type %T", auth)
 	}
 }
 
