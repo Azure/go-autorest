@@ -559,7 +559,7 @@ func NewDeviceFlowConfig(clientID string, tenantID string) DeviceFlowConfig {
 	}
 }
 
-//AuthorizerConfig provides an authorizer from the configuration provided.
+// AuthorizerConfig provides an authorizer from the configuration provided.
 type AuthorizerConfig interface {
 	Authorizer() (autorest.Authorizer, error)
 }
