@@ -693,8 +693,35 @@ func NewServicePrincipalTokenFromAuthorizationCode(oauthConfig OAuthConfig, clie
 	)
 }
 
+// NewServicePrincipalTokenFromFederatedToken creates a ServicePrincipalToken from the supplied federated OIDC JWT.
+
+// Deprecated: Use NewServicePrincipalTokenFromFederatedTokenWithCallback to refresh jwt dynamically.
+func NewServicePrincipalTokenFromFederatedToken(oauthConfig OAuthConfig, clientID string, jwt string, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+	if err := validateOAuthConfig(oauthConfig); err != nil {
+		return nil, err
+	}
+	if err := validateStringParam(clientID, "clientID"); err != nil {
+		return nil, err
+	}
+	if err := validateStringParam(resource, "resource"); err != nil {
+		return nil, err
+	}
+	if jwt == "" {
+		return nil, fmt.Errorf("parameter 'jwt' cannot be empty")
+	}
+	return NewServicePrincipalTokenFromFederatedTokenCallback(
+		oauthConfig,
+		clientID,
+		func() (string, error) {
+			return jwt, nil
+		},
+		resource,
+		callbacks...,
+	)
+}
+
 // NewServicePrincipalTokenFromFederatedToken creates a ServicePrincipalToken from the supplied federated OIDC JWTCallback.
-func NewServicePrincipalTokenFromFederatedToken(oauthConfig OAuthConfig, clientID string, jwtCallback JWTCallback, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+func NewServicePrincipalTokenFromFederatedTokenCallback(oauthConfig OAuthConfig, clientID string, jwtCallback JWTCallback, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	if err := validateOAuthConfig(oauthConfig); err != nil {
 		return nil, err
 	}
