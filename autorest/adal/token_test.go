@@ -224,10 +224,16 @@ func TestFederatedTokenRefreshUsesJwtCallback(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jwt := r.FormValue("client_assertion")
+		refreshToken := r.FormValue("refresh_token")
+
 		if jwt == "aaa.aaa" {
 			w.Write([]byte(`{"access_token":"A","expires_in":"3600"}`))
 		} else if jwt == "bbb.bbb" {
-			w.Write([]byte(`{"access_token":"B","expires_in":"3600"}`))
+			w.Write([]byte(`{"access_token":"B","expires_in":"3600","refresh_token":"R"}`))
+		} else if refreshToken == "R" {
+			w.Write([]byte(`{"access_token":"C","expires_in":"3600"}`))
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
 		}
 	}))
 
@@ -237,18 +243,26 @@ func TestFederatedTokenRefreshUsesJwtCallback(t *testing.T) {
 	err = spt.refreshInternal(context.Background(), "")
 	assert.ErrorIs(t, err, os.ErrNotExist)
 
+	// get jwt token from jwtFile
 	err = os.WriteFile(jwtFile, []byte("aaa.aaa"), 0600)
 	assert.NoError(t, err)
 	err = spt.refreshInternal(context.Background(), "")
 	assert.NoError(t, err)
 	assert.Equal(t, "A", spt.inner.Token.AccessToken)
 
-	// refresh token
+	// jwtFile is refreshed
 	err = os.WriteFile(jwtFile, []byte("bbb.bbb"), 0600)
 	assert.NoError(t, err)
 	err = spt.refreshInternal(context.Background(), "")
 	assert.NoError(t, err)
 	assert.Equal(t, "B", spt.inner.Token.AccessToken)
+	// refresh_token is set
+	assert.Equal(t, "R", spt.inner.Token.RefreshToken)
+
+	// after refresh_token is set, the callback won't be called
+	err = spt.refreshInternal(context.Background(), "")
+	assert.NoError(t, err)
+	assert.Equal(t, "C", spt.inner.Token.AccessToken)
 }
 
 func TestServicePrincipalTokenRefreshUsesPOST(t *testing.T) {
