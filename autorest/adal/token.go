@@ -720,7 +720,7 @@ func NewServicePrincipalTokenFromFederatedToken(oauthConfig OAuthConfig, clientI
 	)
 }
 
-// NewServicePrincipalTokenFromFederatedToken creates a ServicePrincipalToken from the supplied federated OIDC JWTCallback.
+// NewServicePrincipalTokenFromFederatedTokenCallback creates a ServicePrincipalToken from the supplied federated OIDC JWTCallback.
 func NewServicePrincipalTokenFromFederatedTokenCallback(oauthConfig OAuthConfig, clientID string, jwtCallback JWTCallback, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	if err := validateOAuthConfig(oauthConfig); err != nil {
 		return nil, err
