@@ -25,8 +25,10 @@ import (
 	"io/ioutil"
 	"math/big"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -37,6 +39,7 @@ import (
 	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/mocks"
 	jwt "github.com/golang-jwt/jwt/v4"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -204,6 +207,62 @@ func TestServicePrincipalTokenRefreshUsesCustomRefreshFunc(t *testing.T) {
 	if !called {
 		t.Fatalf("adal: ServicePrincipalToken#refreshInternal didn't call the refresh function")
 	}
+}
+
+func TestFederatedTokenRefreshUsesJwtCallback(t *testing.T) {
+	baseDir, err := os.MkdirTemp("", "")
+	assert.NoError(t, err)
+	jwtFile := filepath.Join(baseDir, "token")
+
+	jwtCallback := func() (string, error) {
+		jwt, err := os.ReadFile(jwtFile)
+		if err != nil {
+			return "", fmt.Errorf("failed to read a file with a federated token: %w", err)
+		}
+		return string(jwt), nil
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		jwt := r.FormValue("client_assertion")
+		refreshToken := r.FormValue("refresh_token")
+
+		if jwt == "aaa.aaa" {
+			w.Write([]byte(`{"access_token":"A","expires_in":"3600"}`))
+		} else if jwt == "bbb.bbb" {
+			w.Write([]byte(`{"access_token":"B","expires_in":"3600","refresh_token":"R"}`))
+		} else if refreshToken == "R" {
+			w.Write([]byte(`{"access_token":"C","expires_in":"3600"}`))
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+		}
+	}))
+
+	spt := newServicePrincipalTokenFederatedJwtCallback(t, jwtCallback, server.URL)
+
+	// token file does not exist, no such file error
+	err = spt.refreshInternal(context.Background(), "")
+	assert.ErrorIs(t, err, os.ErrNotExist)
+
+	// get jwt token from jwtFile
+	err = os.WriteFile(jwtFile, []byte("aaa.aaa"), 0600)
+	assert.NoError(t, err)
+	err = spt.refreshInternal(context.Background(), "")
+	assert.NoError(t, err)
+	assert.Equal(t, "A", spt.inner.Token.AccessToken)
+
+	// jwtFile is refreshed
+	err = os.WriteFile(jwtFile, []byte("bbb.bbb"), 0600)
+	assert.NoError(t, err)
+	err = spt.refreshInternal(context.Background(), "")
+	assert.NoError(t, err)
+	assert.Equal(t, "B", spt.inner.Token.AccessToken)
+	// refresh_token is set
+	assert.Equal(t, "R", spt.inner.Token.RefreshToken)
+
+	// after refresh_token is set, the callback won't be called
+	err = spt.refreshInternal(context.Background(), "")
+	assert.NoError(t, err)
+	assert.Equal(t, "C", spt.inner.Token.AccessToken)
 }
 
 func TestServicePrincipalTokenRefreshUsesPOST(t *testing.T) {
@@ -1600,5 +1659,11 @@ func newServicePrincipalTokenFederatedJwt(t *testing.T) *ServicePrincipalToken {
 		t.Fatal(err)
 	}
 	spt, _ := NewServicePrincipalTokenFromFederatedToken(TestOAuthConfig, "id", signedString, "resource")
+	return spt
+}
+
+func newServicePrincipalTokenFederatedJwtCallback(t *testing.T, callback JWTCallback, fakeEndpoint string) *ServicePrincipalToken {
+	outhConfig, _ := NewOAuthConfig(fakeEndpoint, TestTenantID)
+	spt, _ := NewServicePrincipalTokenFromFederatedTokenCallback(*outhConfig, "id", callback, "resource")
 	return spt
 }
