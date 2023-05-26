@@ -18,11 +18,11 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"crypto/rsa"
 	"crypto/x509"
-	"io/ioutil"
 	"net/http"
 	"os/user"
 
@@ -203,7 +203,7 @@ func acquireTokenClientCertFlow(oauthConfig adal.OAuthConfig,
 	resource string,
 	callbacks ...adal.TokenRefreshCallback) (*adal.ServicePrincipalToken, error) {
 
-	certData, err := ioutil.ReadFile(certificatePath)
+	certData, err := os.ReadFile(certificatePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read the certificate file (%s): %v", certificatePath, err)
 	}

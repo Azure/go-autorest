@@ -19,7 +19,7 @@ package autorest
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -36,7 +36,7 @@ func (rr *RetriableRequest) Prepare() (err error) {
 	if rr.req.Body != nil {
 		if rr.br != nil {
 			_, err = rr.br.Seek(0, 0 /*io.SeekStart*/)
-			rr.req.Body = ioutil.NopCloser(rr.br)
+			rr.req.Body = io.NopCloser(rr.br)
 		}
 		if err != nil {
 			return err

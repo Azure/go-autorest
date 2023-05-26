@@ -16,7 +16,7 @@ package logger
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -79,7 +79,7 @@ func TestLogReqRespNoBody(t *testing.T) {
 		t.Fatal("expected Instance to be fileLogger")
 	}
 	// parse log file to ensure contents match
-	b, err := ioutil.ReadFile(lf)
+	b, err := os.ReadFile(lf)
 	if err != nil {
 		t.Fatalf("failed to read log file: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestLogReqRespWithBody(t *testing.T) {
 		ProtoMinor: 0,
 		Request:    req,
 		Header:     http.Header{},
-		Body:       ioutil.NopCloser(strings.NewReader(respBody)),
+		Body:       io.NopCloser(strings.NewReader(respBody)),
 	}
 	resp.Header.Add(respHeaderKey, respHeaderVal)
 	Instance.WriteResponse(resp, Filter{})
@@ -144,7 +144,7 @@ func TestLogReqRespWithBody(t *testing.T) {
 		t.Fatal("expected Instance to be fileLogger")
 	}
 	// parse log file to ensure contents match
-	b, err := ioutil.ReadFile(lf)
+	b, err := os.ReadFile(lf)
 	if err != nil {
 		t.Fatalf("failed to read log file: %v", err)
 	}

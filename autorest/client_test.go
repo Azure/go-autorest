@@ -19,7 +19,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -72,7 +72,7 @@ func TestLoggingInspectorWithInspectionRestoresBody(t *testing.T) {
 	Prepare(r,
 		c.WithInspection())
 
-	s, _ := ioutil.ReadAll(r.Body)
+	s, _ := io.ReadAll(r.Body)
 	if len(s) <= 0 {
 		t.Fatal("autorest: LoggingInspector#WithInspection did not restore the Request body")
 	}
@@ -119,7 +119,7 @@ func TestLoggingInspectorByInspectingRestoresBody(t *testing.T) {
 	Respond(r,
 		c.ByInspecting())
 
-	s, _ := ioutil.ReadAll(r.Body)
+	s, _ := io.ReadAll(r.Body)
 	if len(s) <= 0 {
 		t.Fatal("autorest: LoggingInspector#ByInspecting did not restore the Response body")
 	}
@@ -386,9 +386,9 @@ func TestCookies(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &expected)
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 		if err != nil {
-			t.Fatalf("autorest: ioutil.ReadAll failed reading request body: %s", err)
+			t.Fatalf("autorest: io.ReadAll failed reading request body: %s", err)
 		}
 		if string(b) == second {
 			cookie, err := r.Cookie(expected.Name)
