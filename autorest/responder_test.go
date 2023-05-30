@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"reflect"
 	"strings"
@@ -371,7 +371,7 @@ func TestByDiscardingBody(t *testing.T) {
 	if err != nil {
 		t.Fatalf("autorest: ByDiscardingBody failed (%v)", err)
 	}
-	buf, err := ioutil.ReadAll(r.Body)
+	buf, err := io.ReadAll(r.Body)
 	if err != nil {
 		t.Fatalf("autorest: Reading result of ByDiscardingBody failed (%v)", err)
 	}

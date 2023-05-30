@@ -22,7 +22,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -632,7 +632,7 @@ func testServicePrincipalTokenRefreshSetsBody(t *testing.T, spt *ServicePrincipa
 		(func() SendDecorator {
 			return func(s Sender) Sender {
 				return SenderFunc(func(r *http.Request) (*http.Response, error) {
-					b, err := ioutil.ReadAll(r.Body)
+					b, err := io.ReadAll(r.Body)
 					if err != nil {
 						t.Fatalf("adal: Failed to read body of Service Principal token request (%v)", err)
 					}

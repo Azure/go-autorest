@@ -17,7 +17,7 @@ package azure
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -175,7 +175,7 @@ func TestWithErrorUnlessStatusCode_NotAnAzureError(t *testing.T) {
 
 	// the error body should still be there
 	defer r.Body.Close()
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,7 +226,7 @@ func TestWithErrorUnlessStatusCode_FoundAzureErrorWithoutDetails(t *testing.T) {
 
 	// the error body should still be there
 	defer r.Body.Close()
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -305,7 +305,7 @@ func TestWithErrorUnlessStatusCode_FoundAzureFullError(t *testing.T) {
 
 	// the error body should still be there
 	defer r.Body.Close()
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -394,7 +394,7 @@ func TestWithErrorUnlessStatusCode_NoAzureError(t *testing.T) {
 
 	// the error body should still be there
 	defer r.Body.Close()
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -488,7 +488,7 @@ func TestWithErrorUnlessStatusCode_UnwrappedError(t *testing.T) {
 
 	// the error body should still be there
 	defer r.Body.Close()
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		t.Error(err)
 	}

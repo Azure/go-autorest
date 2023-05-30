@@ -17,7 +17,7 @@ package autorest
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -175,7 +175,7 @@ func TestWithBytes(t *testing.T) {
 		t.Fatalf("ERROR: %v\n", err)
 	}
 
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		t.Fatalf("ERROR: %v\n", err)
 	}
@@ -237,7 +237,7 @@ func ExampleWithFormData() {
 		fmt.Printf("ERROR: %v\n", err)
 	}
 
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
 	} else {
@@ -256,7 +256,7 @@ func ExampleWithJSON() {
 		fmt.Printf("ERROR: %v\n", err)
 	}
 
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
 	} else {
@@ -275,7 +275,7 @@ func ExampleWithXML() {
 		fmt.Printf("ERROR: %v\n", err)
 	}
 
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
 	} else {
@@ -560,7 +560,7 @@ func TestWithFormData(t *testing.T) {
 		t.Fatalf("autorest: WithFormData failed with error (%v)", err)
 	}
 
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		t.Fatalf("autorest: WithFormData failed with error (%v)", err)
 	}
@@ -581,7 +581,7 @@ func TestWithFormData(t *testing.T) {
 
 func TestWithMultiPartFormDataSetsContentLength(t *testing.T) {
 	v := map[string]interface{}{
-		"file": ioutil.NopCloser(strings.NewReader("Hello Gopher")),
+		"file": io.NopCloser(strings.NewReader("Hello Gopher")),
 		"age":  "42",
 	}
 
@@ -591,7 +591,7 @@ func TestWithMultiPartFormDataSetsContentLength(t *testing.T) {
 		t.Fatalf("autorest: WithMultiPartFormData failed with error (%v)", err)
 	}
 
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		t.Fatalf("autorest: WithMultiPartFormData failed with error (%v)", err)
 	}
@@ -613,7 +613,7 @@ func TestWithMultiPartFormDataWithNoFile(t *testing.T) {
 		t.Fatalf("autorest: WithMultiPartFormData failed with error (%v)", err)
 	}
 
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		t.Fatalf("autorest: WithMultiPartFormData failed with error (%v)", err)
 	}
@@ -625,12 +625,12 @@ func TestWithMultiPartFormDataWithNoFile(t *testing.T) {
 
 func TestWithFile(t *testing.T) {
 	r, err := Prepare(&http.Request{},
-		WithFile(ioutil.NopCloser(strings.NewReader("Hello Gopher"))))
+		WithFile(io.NopCloser(strings.NewReader("Hello Gopher"))))
 	if err != nil {
 		t.Fatalf("autorest: WithFile failed with error (%v)", err)
 	}
 
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		t.Fatalf("autorest: WithFile failed with error (%v)", err)
 	}
@@ -646,7 +646,7 @@ func TestWithBool_SetsTheBody(t *testing.T) {
 		t.Fatalf("autorest: WithBool failed with error (%v)", err)
 	}
 
-	s, err := ioutil.ReadAll(r.Body)
+	s, err := io.ReadAll(r.Body)
 	if err != nil {
 		t.Fatalf("autorest: WithBool failed with error (%v)", err)
 	}
@@ -668,7 +668,7 @@ func TestWithFloat32_SetsTheBody(t *testing.T) {
 		t.Fatalf("autorest: WithFloat32 failed with error (%v)", err)
 	}
 
-	s, err := ioutil.ReadAll(r.Body)
+	s, err := io.ReadAll(r.Body)
 	if err != nil {
 		t.Fatalf("autorest: WithFloat32 failed with error (%v)", err)
 	}
@@ -690,7 +690,7 @@ func TestWithFloat64_SetsTheBody(t *testing.T) {
 		t.Fatalf("autorest: WithFloat64 failed with error (%v)", err)
 	}
 
-	s, err := ioutil.ReadAll(r.Body)
+	s, err := io.ReadAll(r.Body)
 	if err != nil {
 		t.Fatalf("autorest: WithFloat64 failed with error (%v)", err)
 	}
@@ -712,7 +712,7 @@ func TestWithInt32_SetsTheBody(t *testing.T) {
 		t.Fatalf("autorest: WithInt32 failed with error (%v)", err)
 	}
 
-	s, err := ioutil.ReadAll(r.Body)
+	s, err := io.ReadAll(r.Body)
 	if err != nil {
 		t.Fatalf("autorest: WithInt32 failed with error (%v)", err)
 	}
@@ -734,7 +734,7 @@ func TestWithInt64_SetsTheBody(t *testing.T) {
 		t.Fatalf("autorest: WithInt64 failed with error (%v)", err)
 	}
 
-	s, err := ioutil.ReadAll(r.Body)
+	s, err := io.ReadAll(r.Body)
 	if err != nil {
 		t.Fatalf("autorest: WithInt64 failed with error (%v)", err)
 	}
@@ -756,7 +756,7 @@ func TestWithString_SetsTheBody(t *testing.T) {
 		t.Fatalf("autorest: WithString failed with error (%v)", err)
 	}
 
-	s, err := ioutil.ReadAll(r.Body)
+	s, err := io.ReadAll(r.Body)
 	if err != nil {
 		t.Fatalf("autorest: WithString failed with error (%v)", err)
 	}
@@ -777,7 +777,7 @@ func TestWithJSONSetsContentLength(t *testing.T) {
 		t.Fatalf("autorest: WithJSON failed with error (%v)", err)
 	}
 
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		t.Fatalf("autorest: WithJSON failed with error (%v)", err)
 	}

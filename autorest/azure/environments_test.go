@@ -17,7 +17,6 @@ package azure
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -77,7 +76,7 @@ var testEnvironment1 = Environment{
 }
 
 func TestEnvironment_EnvironmentFromURL_NoOverride_Success(t *testing.T) {
-	fileContents, _ := ioutil.ReadFile(filepath.Join("testdata", "test_metadata_environment_1.json"))
+	fileContents, _ := os.ReadFile(filepath.Join("testdata", "test_metadata_environment_1.json"))
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(fileContents))
@@ -95,7 +94,7 @@ func TestEnvironment_EnvironmentFromURL_NoOverride_Success(t *testing.T) {
 }
 
 func TestEnvironment_EnvironmentFromURL_OverrideStorageSuffix_Success(t *testing.T) {
-	fileContents, _ := ioutil.ReadFile(filepath.Join("testdata", "test_metadata_environment_1.json"))
+	fileContents, _ := os.ReadFile(filepath.Join("testdata", "test_metadata_environment_1.json"))
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(fileContents))

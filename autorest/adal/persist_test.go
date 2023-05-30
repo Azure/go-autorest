@@ -16,7 +16,6 @@ package adal
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path"
 	"reflect"
@@ -46,7 +45,7 @@ var TestToken = Token{
 }
 
 func writeTestTokenFile(t *testing.T, suffix string, contents string) *os.File {
-	f, err := ioutil.TempFile(os.TempDir(), suffix)
+	f, err := os.CreateTemp(os.TempDir(), suffix)
 	if err != nil {
 		t.Fatalf("azure: unexpected error when creating temp file: %v", err)
 	}
@@ -108,7 +107,7 @@ func token() *Token {
 }
 
 func TestSaveToken(t *testing.T) {
-	f, err := ioutil.TempFile("", "testloadtoken")
+	f, err := os.CreateTemp("", "testloadtoken")
 	if err != nil {
 		t.Fatalf("azure: unexpected error when creating temp file: %v", err)
 	}
@@ -135,7 +134,7 @@ func TestSaveToken(t *testing.T) {
 
 	json.Unmarshal([]byte(MockTokenJSON), &expectedToken)
 
-	contents, err := ioutil.ReadFile(f.Name())
+	contents, err := os.ReadFile(f.Name())
 	if err != nil {
 		t.Fatal("!!")
 	}
