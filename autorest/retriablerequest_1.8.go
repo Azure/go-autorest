@@ -34,7 +34,7 @@ type RetriableRequest struct {
 func (rr *RetriableRequest) Prepare() (err error) {
 	// preserve the request body; this is to support retry logic as
 	// the underlying transport will always close the reqeust body
-	if rr.req.Body != nil {
+	if rr.req.Body != nil && rr.req.Body != http.NoBody {
 		if rr.rc != nil {
 			rr.req.Body = rr.rc
 		} else if rr.br != nil {
