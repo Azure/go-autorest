@@ -9,5 +9,5 @@ require (
 	github.com/Azure/go-autorest/logger v0.2.1
 	github.com/Azure/go-autorest/tracing v0.6.0
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
-	golang.org/x/crypto v0.6.0
+	golang.org/x/crypto v0.17.0
 )
