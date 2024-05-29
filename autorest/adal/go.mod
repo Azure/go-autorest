@@ -1,3 +1,4 @@
+// Deprecated: use github.com/Azure/azure-sdk-for-go/sdk/azidentity instead.
 module github.com/Azure/go-autorest/autorest/adal
 
 go 1.15
