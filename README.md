@@ -1,6 +1,12 @@
 # NOTE: The modules in this repo will go out of support by March 31, 2023.  Additional information can be found [here](https://azure.microsoft.com/updates/support-for-azure-sdk-libraries-that-do-not-conform-to-our-current-azure-sdk-guidelines-will-be-retired-as-of-31-march-2023/).
 
-# go-autorest
+## Migrating to Supported SDKs
+
+- General information on the new Azure Go SDKs can be found [here](https://github.com/Azure/azure-sdk-for-go/blob/main/documentation/new-version-guideline.md).
+- For SDK migration, please consult the SDK [migration guide](https://github.com/Azure/azure-sdk-for-go/blob/main/documentation/MIGRATION_GUIDE.md).
+- For migrating from `autorest/adal` to its replacement, please see the [azidentity migration guide](https://github.com/Azure/azure-sdk-for-go/blob/main/sdk/azidentity/MIGRATION.md).
+
+## go-autorest
 
 [![GoDoc](https://godoc.org/github.com/Azure/go-autorest/autorest?status.png)](https://godoc.org/github.com/Azure/go-autorest/autorest)
 [![Build Status](https://dev.azure.com/azure-sdk/public/_apis/build/status/go/Azure.go-autorest?branchName=master)](https://dev.azure.com/azure-sdk/public/_build/latest?definitionId=625&branchName=master)
@@ -14,7 +20,7 @@ provided in this repo in the package
 is maintained only as part of the Azure Go SDK and is not related to other
 "ADAL" libraries in [github.com/AzureAD](https://github.com/AzureAD).
 
-## Overview
+### Overview
 
 Package go-autorest implements an HTTP request pipeline suitable for use across
 multiple goroutines and provides the shared routines used by packages generated
@@ -73,16 +79,16 @@ Errors raised by autorest objects and methods will conform to the `autorest.Erro
 See the included examples for more detail. For details on the suggested use of this package by
 generated clients, see the Client described below.
 
-## Helpers
+### Helpers
 
-### Handling Swagger Dates
+#### Handling Swagger Dates
 
 The Swagger specification (https://swagger.io) that drives AutoRest
 (https://github.com/Azure/autorest/) precisely defines two date forms: date and date-time. The
 github.com/Azure/go-autorest/autorest/date package provides time.Time derivations to ensure correct
 parsing and formatting.
 
-### Handling Empty Values
+#### Handling Empty Values
 
 In JSON, missing values have different semantics than empty values. This is especially true for
 services using the HTTP PATCH verb. The JSON submitted with a PATCH request generally contains
@@ -137,7 +143,7 @@ go get github.com/Azure/go-autorest/autorest/date
 go get github.com/Azure/go-autorest/autorest/to
 ```
 
-### Using with Go Modules
+#### Using with Go Modules
 In [v12.0.1](https://github.com/Azure/go-autorest/pull/386), this repository introduced the following modules.
 
 - autorest/adal
@@ -153,7 +159,7 @@ In [v12.0.1](https://github.com/Azure/go-autorest/pull/386), this repository int
 
 Tagging cumulative SDK releases as a whole (e.g. `v12.3.0`) is still enabled to support consumers of this repo that have not yet migrated to modules.
 
-## License
+### License
 
 See LICENSE file.
 
