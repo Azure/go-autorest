@@ -1,3 +1,4 @@
+// Deprecated: this module has been deprecated and is no longer supported.
 module github.com/Azure/go-autorest/tracing/opencensus
 
 go 1.15

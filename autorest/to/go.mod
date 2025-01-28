@@ -1,3 +1,4 @@
+// Deprecated: use github.com/Azure/azure-sdk-for-go/sdk/azcore/to instead.
 module github.com/Azure/go-autorest/autorest/to
 
 go 1.15
