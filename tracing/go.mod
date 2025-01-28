@@ -1,3 +1,4 @@
+// Deprecated: use github.com/Azure/azure-sdk-for-go/sdk/azcore/tracing instead.
 module github.com/Azure/go-autorest/tracing
 
 go 1.15
